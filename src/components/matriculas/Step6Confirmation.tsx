@@ -1,0 +1,417 @@
+// components/matriculas/steps/Step6Confirmation.tsx
+import { useState } from "react";
+import { apiUrl, API_ENDPOINTS } from "@/utils/api";
+
+// Helper para obtener CSRF token
+const getCsrfToken = () => {
+  const name = "csrftoken";
+  const cookies = document.cookie.split(";");
+  for (let cookie of cookies) {
+    const [key, value] = cookie.trim().split("=");
+    if (key === name) return value;
+  }
+  return null;
+};
+
+export const Step6Confirmation = ({
+  back,
+  data,
+  uploadedFiles,
+  enrollmentInfo,
+}: any) => {
+  const [sending, setSending] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const handleFinalSubmit = async () => {
+    const enrollmentId = enrollmentInfo?.current_enrollment?.id;
+
+    if (!enrollmentId) {
+      alert("No se encontró la matrícula");
+      return;
+    }
+
+    setSending(true);
+
+    try {
+      // ---------- PASO 1: Enviar datos de Step3 (student_data) ----------
+      const storageKey = `enrollment_step3_${enrollmentId}`;
+      const step3DataStr = localStorage.getItem(storageKey);
+
+      if (step3DataStr) {
+        const studentData = JSON.parse(step3DataStr);
+
+        console.log("Enviando datos del estudiante al backend...");
+        const updateResponse = await fetch(
+          apiUrl(API_ENDPOINTS.enrollmentUpdateData(enrollmentId)),
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": getCsrfToken() || "",
+            },
+            body: JSON.stringify({ student_data: studentData }),
+            credentials: "include",
+          }
+        );
+
+        if (!updateResponse.ok) {
+          const error = await updateResponse.json();
+          alert(
+            `Error al guardar datos: ${error.error || "Error desconocido"}`
+          );
+          setSending(false);
+          return;
+        }
+
+        console.log("Datos del estudiante guardados correctamente");
+      }
+
+      // ---------- PASO 2: Subir firma y documentos (Step4) ----------
+      // Determinar si es primera matrícula y si es preescolar
+      const currentEnrollment = enrollmentInfo?.current_enrollment;
+      const isFirstEnrollment = currentEnrollment?.is_first_enrollment || false;
+      const gradeName = currentEnrollment?.grade?.name || "";
+
+      const preescolarGrades = [
+        "Caminadores",
+        "Párvulos",
+        "Pre-Jardín",
+        "Jardín",
+        "Transición",
+      ];
+      const isPreescolar = preescolarGrades.some((grade) =>
+        gradeName.includes(grade)
+      );
+
+      const getRequiredDocuments = () => {
+        if (isFirstEnrollment) {
+          // Estudiantes NUEVOS
+          if (isPreescolar) {
+            return [
+              { key: "registro_civil", label: "Registro Civil" },
+              { key: "registro_vacunacion", label: "Registro de vacunación" },
+              { key: "cert_eps", label: "Certificado vinculación EPS" },
+              { key: "cert_medico", label: "Certificado médico" },
+              { key: "cert_vista", label: "Certificado Vista" },
+              { key: "cert_auditivo", label: "Certificado Auditivo" },
+            ];
+          } else {
+            // Primaria/Bachillerato
+            return [
+              {
+                key: "registro_civil_ti",
+                label: "Registro civil y/o tarjeta de identidad",
+              },
+              { key: "cert_eps", label: "Certificado vinculación EPS" },
+              { key: "cert_medico", label: "Certificado médico" },
+              { key: "cert_vista", label: "Certificado Vista" },
+              { key: "paz_salvo", label: "Paz y salvo (colegio anterior)" },
+              {
+                key: "convivencia",
+                label: "Convivencia escolar (colegio anterior)",
+              },
+              {
+                key: "ficha_psicologica",
+                label: "Ficha psicológica (colegio anterior)",
+              },
+              {
+                key: "cert_estudios",
+                label: "Certificado de estudios y notas años anteriores",
+              },
+              { key: "retiro_simat", label: "Constancia retiro SIMAT" },
+            ];
+          }
+        } else {
+          // Estudiantes ANTIGUOS (renovación)
+          if (isPreescolar) {
+            return [
+              { key: "registro_civil", label: "Registro Civil" },
+              { key: "registro_vacunacion", label: "Registro de vacunación" },
+              { key: "cert_eps", label: "Certificado vinculación EPS" },
+              { key: "cert_medico", label: "Certificado médico" },
+              { key: "cert_vista", label: "Certificado Vista" },
+              { key: "cert_auditivo", label: "Certificado Auditivo" },
+            ];
+          } else {
+            // Primaria/Bachillerato
+            return [
+              {
+                key: "registro_civil_ti",
+                label: "Registro civil y/o tarjeta de identidad",
+              },
+              { key: "cert_eps", label: "Certificado vinculación EPS" },
+              { key: "cert_medico", label: "Certificado médico" },
+              { key: "cert_vista", label: "Certificado Vista" },
+            ];
+          }
+        }
+      };
+
+      const requiredDocuments = getRequiredDocuments();
+
+      // Construir FormData con TODOS los archivos de uploadedFiles
+      const formData = new FormData();
+
+      // Fotos de perfil (Step3) - desde uploadedFiles
+      if (uploadedFiles?.student_photo instanceof File) {
+        formData.append("student_photo", uploadedFiles.student_photo);
+      }
+      if (uploadedFiles?.father_photo instanceof File) {
+        formData.append("father_photo", uploadedFiles.father_photo);
+      }
+      if (uploadedFiles?.mother_photo instanceof File) {
+        formData.append("mother_photo", uploadedFiles.mother_photo);
+      }
+
+      // Firmas de padres/acudiente (Step4) - desde uploadedFiles
+      if (uploadedFiles?.father_signature instanceof File) {
+        formData.append("father_signature", uploadedFiles.father_signature);
+      }
+      if (uploadedFiles?.mother_signature instanceof File) {
+        formData.append("mother_signature", uploadedFiles.mother_signature);
+      }
+      if (uploadedFiles?.guardian_signature instanceof File) {
+        formData.append("guardian_signature", uploadedFiles.guardian_signature);
+      }
+
+      // Huellas de padres/acudiente (Step4) - desde uploadedFiles
+      if (uploadedFiles?.father_fingerprint instanceof File) {
+        formData.append("father_fingerprint", uploadedFiles.father_fingerprint);
+      }
+      if (uploadedFiles?.mother_fingerprint instanceof File) {
+        formData.append("mother_fingerprint", uploadedFiles.mother_fingerprint);
+      }
+      if (uploadedFiles?.guardian_fingerprint instanceof File) {
+        formData.append(
+          "guardian_fingerprint",
+          uploadedFiles.guardian_fingerprint
+        );
+      }
+
+      // Documentos requeridos (Step5) - desde uploadedFiles
+      requiredDocuments.forEach((doc) => {
+        const file = uploadedFiles?.[doc.key];
+        if (file instanceof File) {
+          formData.append(doc.key, file);
+        }
+      });
+
+      // Verificar si hay archivos
+      const hasFiles = Array.from(formData.keys()).length > 0;
+
+      if (hasFiles) {
+        console.log("Subiendo firma y documentos de matrícula...");
+
+        const docsResponse = await fetch(
+          apiUrl(API_ENDPOINTS.enrollmentDocuments(enrollmentId)),
+          {
+            method: "POST",
+            headers: {
+              "X-CSRFToken": getCsrfToken() || "",
+              // NO poner Content-Type aquí; lo maneja el navegador con boundary
+            },
+            body: formData,
+            credentials: "include",
+          }
+        );
+
+        if (!docsResponse.ok) {
+          const error = await docsResponse.json();
+          alert(
+            `Error al subir documentos: ${error.error || "Error desconocido"}`
+          );
+          setSending(false);
+          return;
+        }
+
+        console.log("Documentos subidos correctamente");
+      } else {
+        console.log("No hay documentos nuevos que subir, continuando...");
+      }
+
+      // ---------- PASO 3: Enviar matrícula a revisión ----------
+      console.log("Enviando matrícula a revisión...");
+      const response = await fetch(
+        apiUrl(API_ENDPOINTS.enrollmentSubmit(enrollmentId)),
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCsrfToken() || "",
+          },
+          credentials: "include",
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log("Matrícula enviada:", result);
+
+        // Limpiar localStorage después de envío exitoso
+        const storageKey = `enrollment_step3_${enrollmentId}`;
+        localStorage.removeItem(storageKey);
+
+        setSuccess(true);
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error || "No se pudo enviar la matrícula"}`);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Error al enviar la matrícula. Verifica tu conexión.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  // Modal de éxito
+  if (success) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center space-y-4">
+          <div className="flex justify-center">
+            <div className="rounded-full bg-success p-6">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-16 w-16 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+          </div>
+
+          <h2 className="text-3xl font-bold text-success">
+            ¡Matrícula Enviada Exitosamente!
+          </h2>
+
+          <div className="alert alert-info shadow-lg max-w-2xl mx-auto">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              className="stroke-current shrink-0 w-6 h-6"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <div className="text-left">
+              <h3 className="font-bold">Tu matrícula está en revisión</h3>
+              <p className="text-sm">
+                La institución revisará tu información y documentos. Recibirás
+                una notificación cuando tu matrícula sea aprobada.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-base-200 p-6 rounded-lg max-w-md mx-auto">
+            <h4 className="font-bold mb-2">Próximos pasos:</h4>
+            <ul className="text-sm text-left space-y-2">
+              <li>✓ Matrícula enviada a revisión</li>
+              <li>⏳ Espera la aprobación del rector</li>
+              <li>📧 Recibirás un correo de confirmación</li>
+            </ul>
+          </div>
+
+          <button
+            className="btn btn-primary mt-6"
+            onClick={() => (window.location.href = "/matriculas")}
+          >
+            Volver al inicio
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Datos para el resumen (grado sugerido / año objetivo)
+  const suggestedGrade =
+    enrollmentInfo?.eligibility?.suggested_grade?.description ||
+    enrollmentInfo?.current_enrollment?.grade?.name ||
+    "N/A";
+  const targetYear = enrollmentInfo?.eligibility?.target_academic_year || "N/A";
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-primary text-center">
+        Resumen de Matrícula
+      </h2>
+
+      <div className="bg-gray-50 p-6 rounded-lg space-y-4 text-sm">
+        <div className="grid grid-cols-2 border-b pb-2">
+          <span className="font-bold text-gray-600">Grado a Cursar:</span>
+          <span>
+            {suggestedGrade} {targetYear !== "N/A" ? `(${targetYear})` : ""}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 border-b pb-2">
+          <span className="font-bold text-gray-600">Estudiante:</span>
+          <span>
+            {data.student_firstname1} {data.student_lastname1}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 border-b pb-2">
+          <span className="font-bold text-gray-600">Dirección:</span>
+          <span>{data.residence_address}</span>
+        </div>
+        <div className="grid grid-cols-2 border-b pb-2">
+          <span className="font-bold text-gray-600">Documentos:</span>
+          <span className="text-success font-semibold">
+            Firmados y en verificación
+          </span>
+        </div>
+      </div>
+
+      <div className="alert alert-warning shadow-lg">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="stroke-current shrink-0 h-6 w-6"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+          />
+        </svg>
+        <span>
+          Al hacer clic en Confirmar, aceptas legalmente el compromiso de
+          matrícula y tus datos serán enviados a revisión.
+        </span>
+      </div>
+
+      <div className="flex justify-between mt-8">
+        <button className="btn btn-ghost" onClick={back} disabled={sending}>
+          Volver
+        </button>
+        <button
+          className="btn btn-success text-white w-1/2"
+          onClick={handleFinalSubmit}
+          disabled={sending}
+        >
+          {sending ? (
+            <>
+              <span className="loading loading-spinner"></span>
+              Enviando matrícula...
+            </>
+          ) : (
+            "Confirmar y Enviar Matrícula"
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};

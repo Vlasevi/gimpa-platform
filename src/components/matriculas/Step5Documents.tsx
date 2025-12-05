@@ -1,0 +1,276 @@
+// components/matriculas/steps/Step5Documents.tsx
+import { useState, useEffect, useRef } from "react";
+
+// Componente reutilizable para subir documentos
+const DocumentUpload = ({ docKey, label, data, update, uploadedFiles, updateUploadedFiles }: any) => {
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] || null;
+        if (file) {
+            // Store file in uploadedFiles (separate from formData)
+            updateUploadedFiles({ [docKey]: file });
+            // Mark as uploaded in formData
+            update({ [`${docKey}_uploaded`]: true });
+        }
+    };
+
+    const handleRemove = () => {
+        // Remove from uploadedFiles
+        updateUploadedFiles({ [docKey]: null });
+        // Mark as not uploaded in formData
+        update({ [`${docKey}_uploaded`]: false });
+        // Limpiar el input file
+        if (inputRef.current) {
+            inputRef.current.value = "";
+        }
+    };
+
+    // Check if file exists in uploadedFiles
+    const currentFile = uploadedFiles?.[docKey];
+
+    return (
+        <div className="space-y-2">
+            <input
+                ref={inputRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                className="file-input file-input-bordered file-input-sm w-full"
+                onChange={handleFileChange}
+            />
+            {currentFile && (
+                <div className="flex items-center gap-2">
+                    <span className="text-success text-xs">
+                        ✓ {currentFile.name}
+                    </span>
+                    <button
+                        type="button"
+                        onClick={handleRemove}
+                        className="btn btn-xs btn-ghost"
+                    >
+                        ✕
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export const Step5Documents = ({
+    next,
+    back,
+    data,
+    update,
+    uploadedFiles,
+    updateUploadedFiles,
+    enrollmentInfo,
+    preloadedDocuments,
+}: any) => {
+    const [replacingDocs, setReplacingDocs] = useState<any>({});
+
+    // Determinar grado y tipo de matrícula
+    const currentEnrollment = enrollmentInfo?.current_enrollment;
+    const isFirstEnrollment = currentEnrollment?.is_first_enrollment || false;
+    const gradeName = currentEnrollment?.grade?.name || "";
+
+    // Determinar si es Preescolar (Caminadores a Transición)
+    const preescolarGrades = [
+        "Caminadores",
+        "Párvulos",
+        "Pre-Jardín",
+        "Jardín",
+        "Transición",
+    ];
+    const isPreescolar = preescolarGrades.some((grade) =>
+        gradeName.includes(grade)
+    );
+
+    // Definir documentos requeridos según grado y tipo de matrícula
+    const getRequiredDocuments = () => {
+        if (isFirstEnrollment) {
+            // Estudiantes NUEVOS
+            if (isPreescolar) {
+                return [
+                    { key: "registro_civil", label: "Registro Civil" },
+                    { key: "registro_vacunacion", label: "Registro de vacunación" },
+                    { key: "cert_eps", label: "Certificado vinculación EPS" },
+                    { key: "cert_medico", label: "Certificado médico" },
+                    { key: "cert_vista", label: "Certificado Vista" },
+                    { key: "cert_auditivo", label: "Certificado Auditivo" },
+                ];
+            } else {
+                // Primaria/Bachillerato
+                return [
+                    {
+                        key: "registro_civil_ti",
+                        label: "Registro civil y/o tarjeta de identidad",
+                    },
+                    { key: "cert_eps", label: "Certificado vinculación EPS" },
+                    { key: "cert_medico", label: "Certificado médico" },
+                    { key: "cert_vista", label: "Certificado Vista" },
+                    { key: "paz_salvo", label: "Paz y salvo (colegio anterior)" },
+                    {
+                        key: "convivencia",
+                        label: "Convivencia escolar (colegio anterior)",
+                    },
+                    {
+                        key: "ficha_psicologica",
+                        label: "Ficha psicológica (colegio anterior)",
+                    },
+                    {
+                        key: "cert_estudios",
+                        label: "Certificado de estudios y notas años anteriores",
+                    },
+                    { key: "retiro_simat", label: "Constancia retiro SIMAT" },
+                ];
+            }
+        } else {
+            // Estudiantes ANTIGUOS (renovación)
+            if (isPreescolar) {
+                return [
+                    { key: "registro_civil", label: "Registro Civil" },
+                    { key: "registro_vacunacion", label: "Registro de vacunación" },
+                    { key: "cert_eps", label: "Certificado vinculación EPS" },
+                    { key: "cert_medico", label: "Certificado médico" },
+                    { key: "cert_vista", label: "Certificado Vista" },
+                    { key: "cert_auditivo", label: "Certificado Auditivo" },
+                ];
+            } else {
+                // Primaria/Bachillerato
+                return [
+                    {
+                        key: "registro_civil_ti",
+                        label: "Registro civil y/o tarjeta de identidad",
+                    },
+                    { key: "cert_eps", label: "Certificado vinculación EPS" },
+                    { key: "cert_medico", label: "Certificado médico" },
+                    { key: "cert_vista", label: "Certificado Vista" },
+                ];
+            }
+        }
+    };
+
+    const requiredDocuments = getRequiredDocuments();
+
+
+
+    return (
+        <div className="space-y-6">
+            <h2 className="text-xl font-bold text-secondary">Documentos Requeridos</h2>
+
+            {/* Información del tipo de matrícula */}
+            <div className="alert alert-info">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    className="stroke-current shrink-0 w-6 h-6"
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                </svg>
+                <div>
+                    <h3 className="font-bold">
+                        {isFirstEnrollment ? "Estudiante Nuevo" : "Renovación de Matrícula"}
+                    </h3>
+                    <div className="text-xs">
+                        Grado: {gradeName} ({isPreescolar ? "Preescolar" : "Primaria/Bachillerato"})
+                    </div>
+                </div>
+            </div>
+
+            {/* Sección de Documentos Requeridos */}
+            <div className="space-y-4">
+                <p className="text-sm text-gray-600">
+                    Sube los documentos requeridos para completar tu matrícula. Los documentos existentes se muestran a continuación.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {requiredDocuments.map((doc) => (
+                        <div key={doc.key} className="card bg-base-100 border shadow-sm">
+                            <div className="card-body p-4">
+                                <h4 className="font-semibold text-sm mb-2">{doc.label}</h4>
+
+                                {/* Mostrar documento existente (solo lectura) */}
+                                {preloadedDocuments?.[doc.key] && !replacingDocs[doc.key] ? (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2 p-2 bg-success/10 rounded">
+                                            <span className="text-success text-xs">
+                                                ✓ {preloadedDocuments[doc.key].name}
+                                            </span>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <a
+                                                href={preloadedDocuments[doc.key].url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="btn btn-xs btn-outline btn-primary"
+                                            >
+                                                Ver
+                                            </a>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setReplacingDocs({
+                                                        ...replacingDocs,
+                                                        [doc.key]: true,
+                                                    })
+                                                }
+                                                className="btn btn-xs btn-outline btn-warning"
+                                            >
+                                                Reemplazar
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {/* Input para subir nuevo documento */}
+                                        <DocumentUpload
+                                            docKey={doc.key}
+                                            label={doc.label}
+                                            data={data}
+                                            update={update}
+                                            uploadedFiles={uploadedFiles}
+                                            updateUploadedFiles={updateUploadedFiles}
+                                        />
+                                        {replacingDocs[doc.key] && (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setReplacingDocs({
+                                                        ...replacingDocs,
+                                                        [doc.key]: false,
+                                                    })
+                                                }
+                                                className="btn btn-xs btn-ghost mt-2"
+                                            >
+                                                Cancelar
+                                            </button>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Botones de navegación */}
+            <div className="flex justify-between mt-8">
+                <button className="btn btn-ghost" onClick={back}>
+                    Atrás
+                </button>
+                <button
+                    className="btn btn-primary"
+                    onClick={next}
+                >
+                    Siguiente
+                </button>
+            </div>
+        </div>
+    );
+};

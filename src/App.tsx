@@ -1,17 +1,14 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "@/context/AuthContext";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AuthProvider, ProtectedRoute } from "@/components/Login/loginLogic";
 import Login from "./pages/Login";
-import AppShell from "./pages/AppShell";
+import Layout from "./components/Layout";
+import Dashboard from "./pages/Dashboard";
 import Estudiantes from "./pages/Estudiantes";
-import Boletines from "./pages/Boletines";
 import Matriculas from "./pages/Matriculas";
-import Pagos from "./pages/Pagos";
 import Notas from "./pages/Notas";
+import Pagos from "./pages/Pagos";
+import Certificados from "./pages/Certificados";
 import NotAuthorized from "./pages/NotAuthorized";
 import NotFound from "./pages/NotFound";
 
@@ -19,37 +16,29 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Login />} />
-            
-            <Route
-              path="/app"
-              element={
-                <ProtectedRoute>
-                  <AppShell />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<Navigate to="/app/estudiantes" replace />} />
-              <Route path="estudiantes" element={<Estudiantes />} />
-              <Route path="boletines" element={<Boletines />} />
-              <Route path="matriculas" element={<Matriculas />} />
-              <Route path="pagos" element={<Pagos />} />
-              <Route path="notas" element={<Notas />} />
-            </Route>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/unauthorized" element={<NotAuthorized />} />
+          <Route path="/404" element={<NotFound />} />
 
-            <Route path="/not-authorized" element={<NotAuthorized />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+          <Route element={<ProtectedRoute />}>
+            <Route element={<Layout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/estudiantes" element={<Estudiantes />} />
+              <Route path="/matriculas" element={<Matriculas />} />
+              <Route path="/notas" element={<Notas />} />
+              <Route path="/pagos" element={<Pagos />} />
+              <Route path="/certificados" element={<Certificados />} />
+            </Route>
+          </Route>
+
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/404" replace />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   </QueryClientProvider>
 );
-
 export default App;

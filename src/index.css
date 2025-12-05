@@ -1,73 +1,55 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+@plugin "daisyui";
 
-@layer base {
-  :root {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
+@plugin "daisyui/theme" {
+  name: "gimpa";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+  /* Colores principales */
+  --color-primary: #3b4aa0;
+  --color-primary-content: #ffffff;
+  --color-secondary: #2d3561;
+  --color-secondary-content: #ffffff;
+  --color-accent: #52b455;
+  --color-accent-content: #ffffff;
+  --color-neutral: #2a2a2a;
+  --color-neutral-content: #ffffff;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+  /* Colores base */
+  --color-base-100: #ffffff;
+  --color-base-200: #f8f9fa;
+  --color-base-300: #e9ecef;
+  --color-base-content: #2a2a2a;
 
-    /* Professional education blue */
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
-    --primary-hover: 217 91% 50%;
+  /* Colores de estado */
+  --color-info: #ffcd3c;
+  --color-info-content: #2a2a2a;
+  --color-success: #52b455;
+  --color-success-content: #ffffff;
+  --color-warning: #ff6b35;
+  --color-warning-content: #ffffff;
+  --color-error: #dc3545;
+  --color-error-content: #ffffff;
 
-    /* Soft secondary */
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
+  /* Border radius */
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.5rem;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-
-    /* Purple accent for highlights */
-    --accent: 262 83% 58%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 217 91% 60%;
-
-    --radius: 0.75rem;
-
-    /* Sidebar colors */
-    --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 19% 27%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 19% 27%;
-    --sidebar-ring: 217 91% 60%;
-    
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(262 83% 58%));
-    --gradient-hero: linear-gradient(180deg, hsl(210 40% 98%), hsl(217 91% 95%));
-    
-    /* Shadows */
-    --shadow-soft: 0 2px 8px hsl(217 91% 60% / 0.1);
-    --shadow-medium: 0 4px 16px hsl(217 91% 60% / 0.15);
-  }
+  /* Border size */
+  --border: 1px;
 }
 
+/* Variables personalizadas adicionales para Sidebar y componentes */
 @layer base {
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-background text-foreground;
+  :root {
+    --accentlight: 120 56% 80%;
+    --accent: 122 39% 52%;
+    --primary-light: 231 41% 54%;
+    --primary-dark: 230 50% 35%;
+    --accent-dark: 123 44% 38%;
   }
 }
