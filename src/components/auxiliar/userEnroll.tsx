@@ -1,17 +1,5 @@
 import { useState, useEffect } from "react";
-import { apiUrl, API_ENDPOINTS } from "@/utils/api";
-
-const getCsrfToken = () => {
-  const name = "csrftoken";
-  const cookies = document.cookie.split(";");
-  for (let cookie of cookies) {
-    const trimmedCookie = cookie.trim();
-    if (trimmedCookie.startsWith(name + "=")) {
-      return trimmedCookie.substring(name.length + 1);
-    }
-  }
-  return null;
-};
+import { apiUrl, API_ENDPOINTS, buildHeaders } from "@/utils/api";
 export default function UserEnroll({
   showEnrollModal = false,
   onCancel,
@@ -103,10 +91,7 @@ export default function UserEnroll({
           apiUrl(API_ENDPOINTS.enrollmentUpdateGradeYear(enrollmentId)),
           {
             method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              "X-CSRFToken": getCsrfToken() || "",
-            },
+            headers: buildHeaders(),
             body: JSON.stringify(payload),
             credentials: "include",
           }
@@ -133,10 +118,7 @@ export default function UserEnroll({
         };
         const res = await fetch(apiUrl(API_ENDPOINTS.enrollments), {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": getCsrfToken() || "",
-          },
+          headers: buildHeaders(),
           body: JSON.stringify(payload),
           credentials: "include",
         });

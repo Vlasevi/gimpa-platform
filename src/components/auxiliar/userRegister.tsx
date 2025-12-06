@@ -1,18 +1,7 @@
 import { useState } from "react";
-import { apiUrl } from "@/utils/api";
+import { apiUrl, buildHeaders } from "@/utils/api";
 
 const endpoint = apiUrl("/api/accounts/users/register/");
-const getCsrfToken = () => {
-  const name = "csrftoken";
-  const cookies = document.cookie.split(";");
-  for (let cookie of cookies) {
-    const trimmedCookie = cookie.trim();
-    if (trimmedCookie.startsWith(name + "=")) {
-      return trimmedCookie.substring(name.length + 1);
-    }
-  }
-  return null;
-};
 
 export default function UserRegister({ onCancel, onSuccess }) {
   const inputBorder = "border border-gray-300";
@@ -58,10 +47,7 @@ export default function UserRegister({ onCancel, onSuccess }) {
     try {
       const res = await fetch(endpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": getCsrfToken() || "",
-        },
+        headers: buildHeaders(),
         body: JSON.stringify(form),
         credentials: "include",
       });

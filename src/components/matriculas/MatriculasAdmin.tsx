@@ -5,20 +5,7 @@ import UserRegister from "@/components/auxiliar/userRegister";
 import UserEnroll from "@/components/auxiliar/userEnroll";
 import { X } from "lucide-react";
 import { getStatusLabel, getStatusBadgeClass } from "@/utils/statusHelpers";
-import { apiUrl, API_ENDPOINTS } from "@/utils/api";
-
-// Helper para obtener CSRF token
-const getCsrfToken = () => {
-  const name = "csrftoken";
-  const cookies = document.cookie.split(";");
-  for (let cookie of cookies) {
-    const trimmedCookie = cookie.trim();
-    if (trimmedCookie.startsWith(name + "=")) {
-      return decodeURIComponent(trimmedCookie.substring(name.length + 1));
-    }
-  }
-  return null;
-};
+import { apiUrl, API_ENDPOINTS, buildHeaders } from "@/utils/api";
 
 interface Grade {
   id: number;
@@ -109,10 +96,7 @@ export const MatriculasAdmin = () => {
         {
           method: "POST",
           credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": getCsrfToken() || "",
-          },
+          headers: buildHeaders(),
         }
       );
 
@@ -146,10 +130,7 @@ export const MatriculasAdmin = () => {
         {
           method: "POST",
           credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": getCsrfToken() || "",
-          },
+          headers: buildHeaders(),
           body: JSON.stringify({
             correction_comment: correctionMessage,
           }),
@@ -186,10 +167,7 @@ export const MatriculasAdmin = () => {
         {
           method: "POST",
           credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": getCsrfToken() || "",
-          },
+          headers: buildHeaders(),
         }
       );
 
@@ -224,9 +202,7 @@ export const MatriculasAdmin = () => {
         {
           method: "DELETE",
           credentials: "include",
-          headers: {
-            "X-CSRFToken": getCsrfToken() || "",
-          },
+          headers: buildHeaders(),
         }
       );
 
@@ -257,10 +233,7 @@ export const MatriculasAdmin = () => {
         {
           method: "PATCH",
           credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": getCsrfToken() || "",
-          },
+          headers: buildHeaders(),
           body: JSON.stringify({
             grade_id: gradeId,
             academic_year: academicYear,
@@ -297,10 +270,7 @@ export const MatriculasAdmin = () => {
         {
           method: "POST",
           credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": getCsrfToken() || "",
-          },
+          headers: buildHeaders(),
         }
       );
 

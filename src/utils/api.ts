@@ -22,24 +22,68 @@ export const fetchConfig: RequestInit = {
   },
 };
 
+// Función para obtener el token CSRF de las cookies
+export const getCsrfToken = (): string | null => {
+  const name = "gimpa_csrftoken";
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) {
+    return parts.pop()?.split(";").shift() || null;
+  }
+  return null;
+};
+
+// Helper para construir headers con CSRF token
+export const buildHeaders = (
+  additionalHeaders: HeadersInit = {},
+  includeContentType: boolean = true
+): HeadersInit => {
+  const headers: Record<string, string> = {
+    ...(additionalHeaders as Record<string, string>),
+  };
+
+  // Solo agregar Content-Type si se solicita (para FormData no debe incluirse)
+  if (includeContentType) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  const csrfToken = getCsrfToken();
+  if (csrfToken) {
+    headers["X-CSRFToken"] = csrfToken;
+  }
+
+  return headers;
+};
+
 // Helper para hacer fetch con la configuración por defecto
 export const apiFetch = async (path: string, options: RequestInit = {}) => {
   const url = apiUrl(path);
+
   const config = {
     ...fetchConfig,
     ...options,
-    headers: {
-      ...fetchConfig.headers,
-      ...options.headers,
-    },
+    headers: buildHeaders(options.headers),
   };
 
   return fetch(url, config);
 };
 
+// Helper para inicializar CSRF token
+export const initializeCsrfToken = async () => {
+  try {
+    await fetch(apiUrl('/api/accounts/csrf/'), {
+      credentials: 'include',
+    });
+    console.log('[API] CSRF token initialized');
+  } catch (error) {
+    console.error('[API] Failed to initialize CSRF token:', error);
+  }
+};
+
 // Endpoints del API
 export const API_ENDPOINTS = {
   // Auth
+  csrf: "/api/accounts/csrf/",
   login: "/api/login/",
   logout: "/api/logout/",
   me: "/api/accounts/me/",

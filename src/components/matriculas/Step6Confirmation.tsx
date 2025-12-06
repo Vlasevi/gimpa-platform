@@ -1,17 +1,6 @@
 // components/matriculas/steps/Step6Confirmation.tsx
 import { useState } from "react";
-import { apiUrl, API_ENDPOINTS } from "@/utils/api";
-
-// Helper para obtener CSRF token
-const getCsrfToken = () => {
-  const name = "csrftoken";
-  const cookies = document.cookie.split(";");
-  for (let cookie of cookies) {
-    const [key, value] = cookie.trim().split("=");
-    if (key === name) return value;
-  }
-  return null;
-};
+import { apiUrl, API_ENDPOINTS, buildHeaders } from "@/utils/api";
 
 export const Step6Confirmation = ({
   back,
@@ -45,10 +34,7 @@ export const Step6Confirmation = ({
           apiUrl(API_ENDPOINTS.enrollmentUpdateData(enrollmentId)),
           {
             method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              "X-CSRFToken": getCsrfToken() || "",
-            },
+            headers: buildHeaders(),
             body: JSON.stringify({ student_data: studentData }),
             credentials: "include",
           }
@@ -206,10 +192,7 @@ export const Step6Confirmation = ({
           apiUrl(API_ENDPOINTS.enrollmentDocuments(enrollmentId)),
           {
             method: "POST",
-            headers: {
-              "X-CSRFToken": getCsrfToken() || "",
-              // NO poner Content-Type aquí; lo maneja el navegador con boundary
-            },
+            headers: buildHeaders({}, false), // false = no incluir Content-Type para FormData
             body: formData,
             credentials: "include",
           }
@@ -235,10 +218,7 @@ export const Step6Confirmation = ({
         apiUrl(API_ENDPOINTS.enrollmentSubmit(enrollmentId)),
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": getCsrfToken() || "",
-          },
+          headers: buildHeaders(),
           credentials: "include",
         }
       );

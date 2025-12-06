@@ -1,18 +1,6 @@
 // components/matriculas/steps/Step1Verification.tsx
 import { useState } from "react";
-import { apiUrl, API_ENDPOINTS } from "@/utils/api";
-
-const getCsrfToken = () => {
-  const name = "csrftoken";
-  const cookies = document.cookie.split(";");
-  for (let cookie of cookies) {
-    const trimmedCookie = cookie.trim();
-    if (trimmedCookie.startsWith(name + "=")) {
-      return trimmedCookie.substring(name.length + 1);
-    }
-  }
-  return null;
-};
+import { apiUrl, API_ENDPOINTS, buildHeaders } from "@/utils/api";
 
 export const Step1Verification = ({
   next,
@@ -39,10 +27,7 @@ export const Step1Verification = ({
       const response = await fetch(apiUrl(API_ENDPOINTS.requestOtp), {
         method: "POST",
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": getCsrfToken() || "",
-        },
+        headers: buildHeaders(),
       });
 
       if (response.ok) {
@@ -70,10 +55,7 @@ export const Step1Verification = ({
       const response = await fetch(apiUrl(API_ENDPOINTS.validateOtp), {
         method: "POST",
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": getCsrfToken() || "",
-        },
+        headers: buildHeaders(),
         body: JSON.stringify({ code: inputToken }),
       });
 
