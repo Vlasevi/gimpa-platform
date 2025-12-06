@@ -28,8 +28,12 @@ export const getCsrfToken = (): string | null => {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) {
-    return parts.pop()?.split(";").shift() || null;
+    const token = parts.pop()?.split(";").shift() || null;
+    console.log('[API] CSRF token found:', token ? `${token.substring(0, 10)}...` : 'null');
+    return token;
   }
+  console.log('[API] CSRF token not found in cookies');
+  console.log('[API] Available cookies:', document.cookie);
   return null;
 };
 
@@ -50,6 +54,9 @@ export const buildHeaders = (
   const csrfToken = getCsrfToken();
   if (csrfToken) {
     headers["X-CSRFToken"] = csrfToken;
+    console.log('[API] X-CSRFToken header added');
+  } else {
+    console.warn('[API] No CSRF token available, header not added');
   }
 
   return headers;
