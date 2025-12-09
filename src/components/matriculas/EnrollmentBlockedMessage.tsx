@@ -102,7 +102,7 @@ export const EnrollmentBlockedMessage = ({
         <div className="mt-6 pt-6 border-t border-gray-200">
           <p className="text-sm text-gray-600">
             Si tienes alguna pregunta o crees que esto es un error, por favor
-            contacta a la rectoría.
+            contacta a la institución.
           </p>
         </div>
       </div>
