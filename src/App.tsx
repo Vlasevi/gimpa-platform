@@ -11,6 +11,7 @@ import Pagos from "./pages/Pagos";
 import Certificados from "./pages/Certificados";
 import NotAuthorized from "./pages/NotAuthorized";
 import NotFound from "./pages/NotFound";
+import DocumentosPendientes from "./pages/DocumentosPendientes";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,10 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/estudiantes" element={<Estudiantes />} />
               <Route path="/matriculas" element={<Matriculas />} />
+              <Route
+                path="/documentos-pendientes"
+                element={<DocumentosPendientes />}
+              />
               <Route path="/notas" element={<Notas />} />
               <Route path="/pagos" element={<Pagos />} />
               <Route path="/certificados" element={<Certificados />} />

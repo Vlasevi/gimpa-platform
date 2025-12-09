@@ -1,7 +1,8 @@
 // components/Matriculas/MatriculasAdmin.tsx
 import { useState, useEffect } from "react";
-import { FilePlus, UserPlus } from "lucide-react";
+import { FilePlus, UserPlus, UserCog } from "lucide-react";
 import UserRegister from "@/components/auxiliar/userRegister";
+import UserUpdate from "@/components/auxiliar/userUpdate";
 import UserEnroll from "@/components/auxiliar/userEnroll";
 import { X } from "lucide-react";
 import { getStatusLabel, getStatusBadgeClass } from "@/utils/statusHelpers";
@@ -39,13 +40,12 @@ interface EnrollmentsByGrade {
 export const MatriculasAdmin = () => {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
-  const [selectedYear, setSelectedYear] = useState<number>(
-    new Date().getFullYear()
-  );
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [showCorrectionModal, setShowCorrectionModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -54,20 +54,20 @@ export const MatriculasAdmin = () => {
     useState<Enrollment | null>(null);
   const [correctionMessage, setCorrectionMessage] = useState("");
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [folderLoading, setFolderLoading] = useState<number | null>(null);
 
-  // Fetch de matrículas y grados
+  // Fetch de matrículas y grados (solo una vez al montar)
   useEffect(() => {
     fetchData();
-  }, [selectedYear]);
+  }, []);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch matrículas
-      const enrollmentsRes = await fetch(
-        apiUrl(`${API_ENDPOINTS.enrollments}?academic_year=${selectedYear}`),
-        { credentials: "include" }
-      );
+      // Fetch matrículas (sin filtro de año, traer todas)
+      const enrollmentsRes = await fetch(apiUrl(API_ENDPOINTS.enrollments), {
+        credentials: "include",
+      });
       const enrollmentsData = await enrollmentsRes.json();
 
       // Fetch grados
@@ -78,6 +78,17 @@ export const MatriculasAdmin = () => {
 
       setEnrollments(enrollmentsData);
       setGrades(gradesData);
+
+      // Establecer año seleccionado al más reciente si no está definido
+      if (selectedYear === null && enrollmentsData.length > 0) {
+        const years = enrollmentsData.map((e: Enrollment) => e.academic_year);
+        const mostRecentYear = Math.max(...years);
+        setSelectedYear(mostRecentYear);
+      } else if (selectedYear === null) {
+        // Si no hay matrículas, usar año actual
+        setSelectedYear(new Date().getFullYear());
+      }
+
       setError(null);
     } catch (err) {
       setError("Error al cargar las matrículas");
@@ -291,10 +302,44 @@ export const MatriculasAdmin = () => {
     }
   };
 
+  const openDocumentsFolder = async (enrollmentId: number) => {
+    setFolderLoading(enrollmentId);
+    try {
+      const response = await fetch(
+        apiUrl(API_ENDPOINTS.enrollmentDocumentsFolder(enrollmentId)),
+        {
+          credentials: "include",
+          headers: buildHeaders(),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error || "Error al obtener la carpeta de documentos"
+        );
+      }
+
+      const data = await response.json();
+
+      if (data.folder_url) {
+        window.open(data.folder_url, "_blank");
+      } else {
+        alert("No se encontró la carpeta del estudiante en OneDrive");
+      }
+    } catch (error: any) {
+      console.error("Error al abrir carpeta:", error);
+      alert(error.message || "Error al obtener la carpeta de documentos");
+    } finally {
+      setFolderLoading(null);
+    }
+  };
+
   // Agrupar matrículas por grado
   const enrollmentsByGrade: EnrollmentsByGrade = enrollments
     .filter(
       (enrollment) =>
+        selectedYear !== null &&
         enrollment.academic_year === selectedYear &&
         (
           enrollment.student.first_name.toLowerCase() +
@@ -331,16 +376,23 @@ export const MatriculasAdmin = () => {
     new Set(enrollments.map((e) => e.academic_year))
   ).sort((a, b) => a - b);
 
+  // Si no hay años, agregar el año seleccionado por defecto
+  if (enrollmentYears.length === 0 && selectedYear) {
+    enrollmentYears.push(selectedYear);
+  }
+
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <span className="loading loading-spinner loading-lg text-primary"></span>
+      <div className="container mx-auto p-6">
+        <div className="flex justify-center items-center min-h-[60vh]">
+          <span className="loading loading-spinner loading-lg text-primary"></span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">
@@ -360,6 +412,13 @@ export const MatriculasAdmin = () => {
           >
             <UserPlus size={18} className="mr-1" />
             Registrar estudiante
+          </button>
+          <button
+            className="btn btn-secondary ml-0.5"
+            onClick={() => setShowUpdateModal(true)}
+          >
+            <UserCog size={18} className="mr-1" />
+            Actualizar estudiante
           </button>
         </div>
       </div>
@@ -471,7 +530,6 @@ export const MatriculasAdmin = () => {
                               checked={enrollment.is_editable}
                               onChange={() => {
                                 // TODO: Implementar toggle de is_editable
-                                console.log("Toggle editable", enrollment.id);
                               }}
                             />
                           </td>
@@ -479,6 +537,19 @@ export const MatriculasAdmin = () => {
                             <div className="flex gap-2">
                               {enrollment.status === "IN_REVIEW" && (
                                 <>
+                                  <button
+                                    className="btn btn-sm btn-secondary"
+                                    onClick={() =>
+                                      openDocumentsFolder(enrollment.id)
+                                    }
+                                    disabled={actionLoading === enrollment.id}
+                                  >
+                                    {actionLoading === enrollment.id ? (
+                                      <span className="loading loading-spinner loading-xs"></span>
+                                    ) : (
+                                      "📁 Ver Documentos"
+                                    )}
+                                  </button>
                                   <button
                                     className="btn btn-sm btn-success"
                                     onClick={() =>
@@ -532,6 +603,19 @@ export const MatriculasAdmin = () => {
                               {enrollment.status === "PENDING" && (
                                 <>
                                   <button
+                                    className="btn btn-sm btn-secondary"
+                                    onClick={() =>
+                                      openDocumentsFolder(enrollment.id)
+                                    }
+                                    disabled={folderLoading === enrollment.id}
+                                  >
+                                    {folderLoading === enrollment.id ? (
+                                      <span className="loading loading-spinner loading-xs"></span>
+                                    ) : (
+                                      "📁 Ver Documentos"
+                                    )}
+                                  </button>
+                                  <button
                                     className="btn btn-sm btn-primary"
                                     onClick={() => {
                                       setSelectedEnrollment(enrollment);
@@ -559,6 +643,19 @@ export const MatriculasAdmin = () => {
 
                               {enrollment.status === "ACTIVE" && (
                                 <>
+                                  <button
+                                    className="btn btn-sm btn-secondary"
+                                    onClick={() =>
+                                      openDocumentsFolder(enrollment.id)
+                                    }
+                                    disabled={folderLoading === enrollment.id}
+                                  >
+                                    {folderLoading === enrollment.id ? (
+                                      <span className="loading loading-spinner loading-xs"></span>
+                                    ) : (
+                                      "📁 Ver Documentos"
+                                    )}
+                                  </button>
                                   <button
                                     className="btn btn-sm btn-info"
                                     onClick={() => {
@@ -625,7 +722,9 @@ export const MatriculasAdmin = () => {
         {/* Mensaje si no hay matrículas */}
         {Object.keys(enrollmentsByGrade).length === 0 && (
           <div className="text-center py-12 text-gray-500">
-            No hay matrículas para el año {selectedYear}
+            {enrollments.length === 0
+              ? "No hay matrículas registradas"
+              : `No hay matrículas para el año ${selectedYear}`}
           </div>
         )}
       </div>
@@ -651,12 +750,53 @@ export const MatriculasAdmin = () => {
             </div>
             <UserRegister
               onCancel={() => setShowRegisterModal(false)}
-              onSuccess={() => setShowRegisterModal(false)}
+              onSuccess={() => {
+                setShowRegisterModal(false);
+                fetchData();
+              }}
             />
             <button
               type="button"
               className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               onClick={() => setShowRegisterModal(false)}
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Cerrar</span>
+            </button>
+          </div>
+        </>
+      )}
+
+      {showUpdateModal && (
+        <>
+          {/* Fondo opaco */}
+          <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm"></div>
+          {/* Modal */}
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed left-1/2 top-1/2 z-50 grid w-full translate-x-[-50%] translate-y-[-50%] gap-4 border border-gray-300 bg-white p-6 shadow-lg duration-200 animate-in sm:rounded-lg max-w-2xl"
+            tabIndex={-1}
+          >
+            <div className="flex flex-col space-y-1.5 text-center sm:text-left">
+              <h2 className="text-lg font-semibold leading-none tracking-tight">
+                Actualizar estudiante
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Selecciona un estudiante y completa los datos del acudiente
+              </p>
+            </div>
+            <UserUpdate
+              onCancel={() => setShowUpdateModal(false)}
+              onSuccess={() => {
+                setShowUpdateModal(false);
+                fetchData();
+              }}
+            />
+            <button
+              type="button"
+              className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              onClick={() => setShowUpdateModal(false)}
             >
               <X className="h-4 w-4" />
               <span className="sr-only">Cerrar</span>
@@ -687,7 +827,10 @@ export const MatriculasAdmin = () => {
             <UserEnroll
               showEnrollModal={showEnrollModal}
               onCancel={() => setShowEnrollModal(false)}
-              onSuccess={() => setShowEnrollModal(false)}
+              onSuccess={() => {
+                setShowEnrollModal(false);
+                fetchData();
+              }}
             />
             <button
               type="button"

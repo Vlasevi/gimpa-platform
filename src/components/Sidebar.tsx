@@ -1,8 +1,16 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "./Login/loginLogic";
 import logo from "@/assets/platform-logo.png";
-import { CreditCard, NotebookPen, BookUser, NotebookText } from "lucide-react";
+import {
+  CreditCard,
+  NotebookPen,
+  BookUser,
+  NotebookText,
+  FileUp,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useState, useEffect } from "react";
+import { apiUrl, API_ENDPOINTS } from "@/utils/api";
 
 interface MenuItem {
   label: string;
@@ -48,8 +56,46 @@ const ALL_MENU_ITEMS: MenuItem[] = [
 export const Sidebar = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [hasActiveEnrollment, setHasActiveEnrollment] = useState(false);
 
-  const filteredMenuItems = ALL_MENU_ITEMS.filter(
+  // Verificar si el estudiante tiene matrícula activa
+  useEffect(() => {
+    const checkActiveEnrollment = async () => {
+      if (!user?.permissions?.includes("make_enrollment")) return;
+      if (user?.permissions?.includes("manage_enrollment")) return; // Admin/Rector no necesitan ver esto
+
+      try {
+        const response = await fetch(apiUrl(API_ENDPOINTS.enrollments), {
+          credentials: "include",
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setHasActiveEnrollment(data?.current_enrollment?.status === "ACTIVE");
+        }
+      } catch (error) {
+        console.error("Error checking enrollment:", error);
+      }
+    };
+
+    checkActiveEnrollment();
+  }, [user]);
+
+  // Agregar dinámicamente el item de Documentos Pendientes si tiene matrícula activa
+  const menuItemsWithDynamicOptions = hasActiveEnrollment
+    ? [
+        ...ALL_MENU_ITEMS.slice(0, 2), // Notas, Matrículas
+        {
+          label: "Documentos Pendientes",
+          path: "/documentos-pendientes",
+          icon: FileUp,
+          permissionKey: ["make_enrollment"],
+        },
+        ...ALL_MENU_ITEMS.slice(2), // Pagos, Certificados
+      ]
+    : ALL_MENU_ITEMS;
+
+  const filteredMenuItems = menuItemsWithDynamicOptions.filter(
     (item) =>
       (Array.isArray(item.permissionKey)
         ? item.permissionKey.some((perm) => user.permissions.includes(perm))

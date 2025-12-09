@@ -71,11 +71,11 @@ export const apiFetch = async (path: string, options: RequestInit = {}) => {
 // Helper para inicializar CSRF token
 export const initializeCsrfToken = async () => {
   try {
-    await fetch(apiUrl('/api/accounts/csrf/'), {
-      credentials: 'include',
+    await fetch(apiUrl("/api/accounts/csrf/"), {
+      credentials: "include",
     });
   } catch (error) {
-    console.error('[API] Failed to initialize CSRF token:', error);
+    console.error("[API] Failed to initialize CSRF token:", error);
   }
 };
 
@@ -103,6 +103,8 @@ export const API_ENDPOINTS = {
     `/api/enrollments/${id}/request-correction/`,
   enrollmentGeneratePdfs: (id: number) =>
     `/api/enrollments/${id}/generate-pdfs/`,
+  enrollmentDocumentsFolder: (id: number) =>
+    `/api/enrollments/${id}/documents-folder/`,
   requestOtp: "/api/enrollments/request-otp/",
   validateOtp: "/api/enrollments/validate-otp/",
 
