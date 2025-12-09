@@ -1,7 +1,7 @@
 import React, { useContext, useState, useEffect } from "react";
 import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import Spinner from "@/components/auxiliar/Spinner";
-import { API_BASE_URL, apiUrl } from "@/utils/api";
+import { API_BASE_URL, apiUrl, buildHeaders } from "@/utils/api";
 
 const apiAccountsCheck = apiUrl("/api/accounts/me");
 const logoutEndpoint = apiUrl("/api/accounts/me/logout/");
@@ -92,28 +92,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const logout = async () => {
-    const csrfToken = getCookie("csrftoken");
-    console.log("CSRF Token leído en el momento del clic:", csrfToken);
     setLoading(true);
     try {
-      console.log("🚪 Cerrando sesión...");
       const response = await fetch(logoutEndpoint, {
         method: "POST",
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
-        },
+        headers: buildHeaders(),
       });
 
-      if (response.ok) {
-        console.log("✅ Sesión cerrada correctamente.");
-      } else {
-        console.log("❌ Error al cerrar sesión.");
+      if (!response.ok) {
+        console.error("Error al cerrar sesión");
       }
-      console.log("Response status.", response.status);
     } catch (error) {
-      console.error("❌ Error:", error);
+      console.error("Error:", error);
     } finally {
       setLoading(false);
       setAuthenticated(false);
