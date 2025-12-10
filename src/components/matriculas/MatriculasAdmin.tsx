@@ -336,7 +336,7 @@ export const MatriculasAdmin = () => {
   };
 
   // Agrupar matrículas por grado
-  const enrollmentsByGrade: EnrollmentsByGrade = enrollments
+  const enrollmentsByGradeTemp: EnrollmentsByGrade = enrollments
     .filter(
       (enrollment) =>
         selectedYear !== null &&
@@ -357,6 +357,17 @@ export const MatriculasAdmin = () => {
       acc[gradeName].push(enrollment);
       return acc;
     }, {} as EnrollmentsByGrade);
+
+  // Crear objeto con TODOS los grados de la DB, ordenados por el campo 'order'
+  const enrollmentsByGrade: EnrollmentsByGrade = {};
+  
+  // Ordenar grados por el campo 'order' y crear entradas para todos
+  grades
+    .sort((a, b) => (a as any).order - (b as any).order)
+    .forEach((grade) => {
+      const gradeName = grade.description;
+      enrollmentsByGrade[gradeName] = enrollmentsByGradeTemp[gradeName] || [];
+    });
 
   // Función para obtener el color del badge según el estado (deprecated - usar getStatusBadgeClass)
   const getStatusBadge = (status: string) => {
@@ -414,7 +425,7 @@ export const MatriculasAdmin = () => {
             Registrar estudiante
           </button>
           <button
-            className="btn btn-secondary ml-0.5"
+            className="btn btn-success ml-0.5"
             onClick={() => setShowUpdateModal(true)}
           >
             <UserCog size={18} className="mr-1" />
