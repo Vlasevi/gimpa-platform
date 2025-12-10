@@ -258,8 +258,6 @@ const COLOMBIA_DEPARTMENTS = [
   "Vichada",
 ];
 
-
-
 // --- COMPONENTES AUXILIARES ---
 const FormInput = ({
   label,
@@ -282,8 +280,9 @@ const FormInput = ({
       name={name}
       type={type}
       placeholder={placeholder || label}
-      className={`input input-bordered w-full focus:input-primary transition-all ${disabled ? "bg-gray-100 text-gray-500" : ""
-        }`}
+      className={`input input-bordered w-full focus:input-primary transition-all ${
+        disabled ? "bg-gray-100 text-gray-500" : ""
+      }`}
       value={value || ""}
       onChange={onChange}
       disabled={disabled}
@@ -306,13 +305,16 @@ const FormSelect = ({
     <label className="label">
       <span className="label-text font-medium text-gray-600">
         {label}
-        {disabled ? '' : props.required && <span className="text-error ml-1">*</span>}
+        {disabled
+          ? ""
+          : props.required && <span className="text-error ml-1">*</span>}
       </span>
     </label>
     <select
       name={name}
-      className={`select select-bordered w-full focus:select-primary ${disabled ? "bg-gray-100" : ""
-        }`}
+      className={`select select-bordered w-full focus:select-primary ${
+        disabled ? "bg-gray-100" : ""
+      }`}
       value={value || ""}
       onChange={onChange}
       disabled={disabled}
@@ -354,7 +356,7 @@ const PhotoUploadField = ({
   // Helper function to check if a value is empty (null, undefined, or empty object)
   const isEmpty = (value: any) => {
     if (!value) return true;
-    if (typeof value === 'object' && !(value instanceof File)) {
+    if (typeof value === "object" && !(value instanceof File)) {
       return Object.keys(value).length === 0;
     }
     return false;
@@ -393,12 +395,12 @@ const PhotoUploadField = ({
     update({
       [dataKey]: null,
       [`${dataKey}_uploaded`]: false,
-      [removedKey]: true
+      [removedKey]: true,
     });
 
     // Also remove from uploaded files
     updateUploadedFiles({
-      [dataKey]: null
+      [dataKey]: null,
     });
 
     setUseExisting(false);
@@ -410,13 +412,13 @@ const PhotoUploadField = ({
     if (selectedFile) {
       // Store the File object separately (not in formData JSON)
       updateUploadedFiles({
-        [dataKey]: selectedFile
+        [dataKey]: selectedFile,
       });
 
       // Mark that we have a new file (for form validation)
       update({
         [`${dataKey}_uploaded`]: true,
-        [removedKey]: false // Reset manually removed flag
+        [removedKey]: false, // Reset manually removed flag
       });
     }
   };
@@ -479,23 +481,32 @@ const SectionCard = ({ title, isOpen, onToggle, children }: any) => (
         {title}
       </h3>
       <span
-        className={`transform transition-transform duration-300 ${isOpen ? "rotate-180" : "rotate-0"
-          }`}
+        className={`transform transition-transform duration-300 ${
+          isOpen ? "rotate-180" : "rotate-0"
+        }`}
       >
         {/* SVG omitido */}
       </span>
     </button>
 
     <div
-      className={`border-t border-gray-100 transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? "max-h-[5000px] opacity-100" : "max-h-0 opacity-0"
-        }`}
+      className={`border-t border-gray-100 transition-all duration-300 ease-in-out overflow-hidden ${
+        isOpen ? "max-h-[5000px] opacity-100" : "max-h-0 opacity-0"
+      }`}
     >
       <div className="p-6">{children}</div>
     </div>
   </div>
 );
 
-const ComboBox = ({ value, setValue, options, label, disabled, required }: any) => {
+const ComboBox = ({
+  value,
+  setValue,
+  options,
+  label,
+  disabled,
+  required,
+}: any) => {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -512,7 +523,10 @@ const ComboBox = ({ value, setValue, options, label, disabled, required }: any) 
   useEffect(() => {
     const handleScroll = (e: Event) => {
       // No cerrar si el scroll es dentro del dropdown
-      if (dropdownRef.current && dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        dropdownRef.current.contains(e.target as Node)
+      ) {
         return;
       }
 
@@ -522,11 +536,11 @@ const ComboBox = ({ value, setValue, options, label, disabled, required }: any) 
     };
 
     if (open) {
-      window.addEventListener('scroll', handleScroll, true);
+      window.addEventListener("scroll", handleScroll, true);
     }
 
     return () => {
-      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener("scroll", handleScroll, true);
     };
   }, [open]);
 
@@ -544,18 +558,18 @@ const ComboBox = ({ value, setValue, options, label, disabled, required }: any) 
     inputValue === ""
       ? options
       : options.filter((o) => {
-        const normalizedOption = normalizeText(o);
-        const normalizedInput = normalizeText(inputValue);
+          const normalizedOption = normalizeText(o);
+          const normalizedInput = normalizeText(inputValue);
 
-        // Buscar si el nombre completo empieza con el input O si alguna palabra empieza con el input
-        if (normalizedOption.startsWith(normalizedInput)) {
-          return true;
-        }
+          // Buscar si el nombre completo empieza con el input O si alguna palabra empieza con el input
+          if (normalizedOption.startsWith(normalizedInput)) {
+            return true;
+          }
 
-        // Buscar si alguna palabra del barrio empieza con el input
-        const words = normalizedOption.split(' ');
-        return words.some(word => word.startsWith(normalizedInput));
-      });
+          // Buscar si alguna palabra del barrio empieza con el input
+          const words = normalizedOption.split(" ");
+          return words.some((word) => word.startsWith(normalizedInput));
+        });
 
   return (
     <div className="form-control w-full relative">
@@ -568,8 +582,9 @@ const ComboBox = ({ value, setValue, options, label, disabled, required }: any) 
       <input
         ref={inputRef}
         type="text"
-        className={`input input-bordered w-full focus:input-primary transition-all truncate ${disabled ? "!bg-base-200 text-gray-500 cursor-not-allowed" : ""
-          }`}
+        className={`input input-bordered w-full focus:input-primary transition-all truncate ${
+          disabled ? "!bg-base-200 text-gray-500 cursor-not-allowed" : ""
+        }`}
         placeholder={label}
         value={inputValue}
         onChange={(e) => {
@@ -591,16 +606,23 @@ const ComboBox = ({ value, setValue, options, label, disabled, required }: any) 
           ref={dropdownRef}
           className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-auto"
           style={{
-            top: inputRef.current ? inputRef.current.getBoundingClientRect().bottom + 4 : 0,
-            left: inputRef.current ? inputRef.current.getBoundingClientRect().left : 0,
-            width: inputRef.current ? inputRef.current.getBoundingClientRect().width : 'auto'
+            top: inputRef.current
+              ? inputRef.current.getBoundingClientRect().bottom + 4
+              : 0,
+            left: inputRef.current
+              ? inputRef.current.getBoundingClientRect().left
+              : 0,
+            width: inputRef.current
+              ? inputRef.current.getBoundingClientRect().width
+              : "auto",
           }}
         >
           {filteredOptions.map((o) => (
             <li
               key={o}
-              className={`px-4 py-2 cursor-pointer hover:bg-primary hover:text-white truncate ${o === value ? "bg-primary text-white" : ""
-                }`}
+              className={`px-4 py-2 cursor-pointer hover:bg-primary hover:text-white truncate ${
+                o === value ? "bg-primary text-white" : ""
+              }`}
               onMouseDown={() => {
                 setValue(o);
                 setQuery(o);
@@ -630,10 +652,9 @@ export const Step3StudentData = ({
   enrollmentId,
   preloadedDocuments,
 }: any) => {
-
-  console.log('Step3StudentData - enrollmentInfo:', enrollmentInfo);
-  console.log('Step3StudentData - enrollmentId:', enrollmentId);
-  console.log('Step3StudentData - preloadedDocuments:', preloadedDocuments);
+  console.log("Step3StudentData - enrollmentInfo:", enrollmentInfo);
+  console.log("Step3StudentData - enrollmentId:", enrollmentId);
+  console.log("Step3StudentData - preloadedDocuments:", preloadedDocuments);
 
   // Estado para colapsar secciones
   const [openSections, setOpenSections] = useState({
@@ -740,8 +761,6 @@ export const Step3StudentData = ({
     update,
   ]);
 
-
-
   // Handler para input/select
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -791,6 +810,10 @@ export const Step3StudentData = ({
         guardian_document_type: data.father_document_type,
         guardian_religion: data.father_religion,
         guardian_relationship: "Padre",
+        guardian_profession: data.father_profession,
+        guardian_company_name: data.father_company_name,
+        guardian_company_address: data.father_company_address,
+        guardian_work_phone: data.father_work_phone,
       };
       const needsUpdate = Object.keys(newGuardian).some(
         (key) => data[key] !== newGuardian[key]
@@ -829,12 +852,51 @@ export const Step3StudentData = ({
         guardian_document_type: data.mother_document_type,
         guardian_religion: data.mother_religion,
         guardian_relationship: "Madre",
+        guardian_profession: data.mother_profession,
+        guardian_company_name: data.mother_company_name,
+        guardian_company_address: data.mother_company_address,
+        guardian_work_phone: data.mother_work_phone,
       };
       const needsUpdate = Object.keys(newGuardian).some(
         (key) => data[key] !== newGuardian[key]
       );
       if (needsUpdate) {
         update(newGuardian);
+      }
+    } else if (data.guardian_type === "Otro") {
+      // Limpiar los campos de acudiente cuando se selecciona "Otro"
+      const fieldsToClean = {
+        guardian_lastname1: "",
+        guardian_lastname2: "",
+        guardian_firstname1: "",
+        guardian_firstname2: "",
+        guardian_full_name: "",
+        guardian_id_number: "",
+        guardian_email: "",
+        guardian_phone: "",
+        guardian_country: "",
+        guardian_department: "",
+        guardian_city: "",
+        guardian_residence_country: "",
+        guardian_residence_department: "",
+        guardian_residence_city: "",
+        guardian_residence_barrio: "",
+        guardian_residence_address: "",
+        guardian_residence_address_complement: "",
+        guardian_residence_stratum: "",
+        guardian_document_type: "",
+        guardian_religion: "",
+        guardian_relationship: "",
+        guardian_profession: "",
+        guardian_company_name: "",
+        guardian_company_address: "",
+        guardian_work_phone: "",
+      };
+      const needsCleaning = Object.keys(fieldsToClean).some(
+        (key) => data[key] !== ""
+      );
+      if (needsCleaning) {
+        update(fieldsToClean);
       }
     }
   }, [
@@ -892,7 +954,7 @@ export const Step3StudentData = ({
         data.father_residence_barrio !== data.residence_barrio ||
         data.father_residence_address !== data.residence_address ||
         data.father_residence_address_complement !==
-        data.residence_address_complement ||
+          data.residence_address_complement ||
         data.father_residence_stratum !== data.residence_stratum;
       if (needsUpdate) {
         update({
@@ -936,7 +998,7 @@ export const Step3StudentData = ({
         data.mother_residence_barrio !== data.residence_barrio ||
         data.mother_residence_address !== data.residence_address ||
         data.mother_residence_address_complement !==
-        data.residence_address_complement ||
+          data.residence_address_complement ||
         data.mother_residence_stratum !== data.residence_stratum;
       if (needsUpdate) {
         update({
@@ -977,88 +1039,126 @@ export const Step3StudentData = ({
       : null;
 
   const handleSubmit = async (e?: React.FormEvent) => {
-    console.log('🚀 handleSubmit ejecutado');
+    console.log("🚀 handleSubmit ejecutado");
 
     if (e) {
       e.preventDefault();
-      console.log('✋ preventDefault llamado');
+      console.log("✋ preventDefault llamado");
     }
 
     // Obtener todos los inputs, selects y textareas del formulario
-    const form = document.querySelector('form');
-    console.log('📋 Formulario encontrado:', form);
-    console.log('✅ Formulario válido?:', form?.checkValidity());
+    const form = document.querySelector("form");
+    console.log("📋 Formulario encontrado:", form);
+    console.log("✅ Formulario válido?:", form?.checkValidity());
 
     if (form && !form.checkValidity()) {
       // Encontrar el primer campo inválido
-      const invalidField = form.querySelector(':invalid') as HTMLInputElement | HTMLSelectElement;
+      const invalidField = form.querySelector(":invalid") as
+        | HTMLInputElement
+        | HTMLSelectElement;
 
       if (invalidField) {
         // Determinar a qué sección pertenece basándose en el nombre del campo
-        let sectionToOpen = '';
-        const fieldName = invalidField.name || '';
+        let sectionToOpen = "";
+        const fieldName = invalidField.name || "";
 
-        console.log('🔍 Campo inválido detectado:', fieldName);
-        console.log('🔍 Elemento completo:', invalidField);
-        console.log('🔍 ID del campo:', invalidField.id);
-        console.log('🔍 Placeholder:', (invalidField as HTMLInputElement).placeholder);
-        console.log('🔍 Label asociado:', invalidField.labels?.[0]?.textContent);
+        console.log("🔍 Campo inválido detectado:", fieldName);
+        console.log("🔍 Elemento completo:", invalidField);
+        console.log("🔍 ID del campo:", invalidField.id);
+        console.log(
+          "🔍 Placeholder:",
+          (invalidField as HTMLInputElement).placeholder
+        );
+        console.log(
+          "🔍 Label asociado:",
+          invalidField.labels?.[0]?.textContent
+        );
 
         // Si no tiene name, intentar usar el placeholder para identificar la sección
         if (!fieldName) {
-          const placeholder = (invalidField as HTMLInputElement).placeholder || '';
-          console.log('⚠️ Campo sin name, usando placeholder:', placeholder);
+          const placeholder =
+            (invalidField as HTMLInputElement).placeholder || "";
+          console.log("⚠️ Campo sin name, usando placeholder:", placeholder);
 
           // Identificar sección por palabras clave en el placeholder
-          if (placeholder.includes('Estudiante') || placeholder.includes('Fecha') || placeholder.includes('Matrícula')) {
-            sectionToOpen = 'estudiante';
-          } else if (placeholder.includes('Residencia') || placeholder.includes('Barrio')) {
-            sectionToOpen = 'residencia';
-          } else if (placeholder.includes('Médica') || placeholder.includes('EPS') || placeholder.includes('Salud')) {
-            sectionToOpen = 'medica';
-          } else if (placeholder.includes('Padre')) {
-            sectionToOpen = 'padre';
-          } else if (placeholder.includes('Madre')) {
-            sectionToOpen = 'madre';
-          } else if (placeholder.includes('Acudiente') || placeholder.includes('Tutor') || placeholder.includes('Guardian')) {
-            sectionToOpen = 'acudiente';
+          if (
+            placeholder.includes("Estudiante") ||
+            placeholder.includes("Fecha") ||
+            placeholder.includes("Matrícula")
+          ) {
+            sectionToOpen = "estudiante";
+          } else if (
+            placeholder.includes("Residencia") ||
+            placeholder.includes("Barrio")
+          ) {
+            sectionToOpen = "residencia";
+          } else if (
+            placeholder.includes("Médica") ||
+            placeholder.includes("EPS") ||
+            placeholder.includes("Salud")
+          ) {
+            sectionToOpen = "medica";
+          } else if (placeholder.includes("Padre")) {
+            sectionToOpen = "padre";
+          } else if (placeholder.includes("Madre")) {
+            sectionToOpen = "madre";
+          } else if (
+            placeholder.includes("Acudiente") ||
+            placeholder.includes("Tutor") ||
+            placeholder.includes("Guardian")
+          ) {
+            sectionToOpen = "acudiente";
           }
         }
 
-        if (fieldName.startsWith('student_') || fieldName === 'enrollment_date' || fieldName === 'enrollment_id') {
-          sectionToOpen = 'estudiante';
-        } else if (fieldName.startsWith('residence_')) {
-          sectionToOpen = 'residencia';
-        } else if (fieldName.startsWith('medical_')) {
-          sectionToOpen = 'medica';
-        } else if (fieldName === 'father_lives_with_student' || fieldName === 'mother_lives_with_student' || fieldName === 'lives_with_other') {
-          sectionToOpen = 'convivencia';
-        } else if (fieldName.startsWith('father_')) {
-          sectionToOpen = 'padre';
-        } else if (fieldName.startsWith('mother_')) {
-          sectionToOpen = 'madre';
-        } else if (fieldName.startsWith('guardian_')) {
-          sectionToOpen = 'acudiente';
+        if (
+          fieldName.startsWith("student_") ||
+          fieldName === "enrollment_date" ||
+          fieldName === "enrollment_id"
+        ) {
+          sectionToOpen = "estudiante";
+        } else if (fieldName.startsWith("residence_")) {
+          sectionToOpen = "residencia";
+        } else if (fieldName.startsWith("medical_")) {
+          sectionToOpen = "medica";
+        } else if (
+          fieldName === "father_lives_with_student" ||
+          fieldName === "mother_lives_with_student" ||
+          fieldName === "lives_with_other"
+        ) {
+          sectionToOpen = "convivencia";
+        } else if (fieldName.startsWith("father_")) {
+          sectionToOpen = "padre";
+        } else if (fieldName.startsWith("mother_")) {
+          sectionToOpen = "madre";
+        } else if (fieldName.startsWith("guardian_")) {
+          sectionToOpen = "acudiente";
         }
 
-        console.log('📂 Sección a abrir:', sectionToOpen);
-        console.log('📊 Estado actual de secciones:', openSections);
+        console.log("📂 Sección a abrir:", sectionToOpen);
+        console.log("📊 Estado actual de secciones:", openSections);
 
         // Expandir la sección si está colapsada
-        if (sectionToOpen && !openSections[sectionToOpen as keyof typeof openSections]) {
-          console.log('✅ Expandiendo sección:', sectionToOpen);
+        if (
+          sectionToOpen &&
+          !openSections[sectionToOpen as keyof typeof openSections]
+        ) {
+          console.log("✅ Expandiendo sección:", sectionToOpen);
           toggleSection(sectionToOpen as keyof typeof openSections);
 
           // Esperar un momento para que la sección se expanda antes de mostrar el error
           setTimeout(() => {
-            console.log('⏰ Mostrando validación después de expandir');
+            console.log("⏰ Mostrando validación después de expandir");
             form.reportValidity();
             invalidField.focus();
-            invalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            invalidField.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
           }, 300);
           return;
         } else {
-          console.log('⚠️ Sección ya está abierta o no se encontró');
+          console.log("⚠️ Sección ya está abierta o no se encontró");
         }
       }
 
@@ -1226,7 +1326,7 @@ export const Step3StudentData = ({
               name="student_gender"
               value={data.student_gender}
               onChange={handleChange}
-              options={["Masculino", "Femenino", "No especificado"]}
+              options={["Masculino", "Femenino"]}
               required={true}
             />
 
@@ -1245,7 +1345,6 @@ export const Step3StudentData = ({
               value={data.student_age}
               onChange={handleChange}
               disabled
-
             />
             <ComboBox
               value={data.student_birth_country}
@@ -1258,7 +1357,9 @@ export const Step3StudentData = ({
             {data.student_birth_country === "Colombia" ? (
               <ComboBox
                 value={data.student_birth_department}
-                setValue={(value) => update({ student_birth_department: value })}
+                setValue={(value) =>
+                  update({ student_birth_department: value })
+                }
                 options={COLOMBIA_DEPARTMENTS}
                 label="Departamento"
                 disabled={data.student_birth_country !== "Colombia"}
@@ -1275,7 +1376,7 @@ export const Step3StudentData = ({
               />
             )}
             {data.student_birth_country === "Colombia" &&
-              data.student_birth_department === "Atlántico" ? (
+            data.student_birth_department === "Atlántico" ? (
               <ComboBox
                 value={data.student_birth_city}
                 setValue={(value) => update({ student_birth_city: value })}
@@ -1343,7 +1444,7 @@ export const Step3StudentData = ({
               />
             )}
             {data.student_id_country === "Colombia" &&
-              data.student_id_department === "Atlántico" ? (
+            data.student_id_department === "Atlántico" ? (
               <ComboBox
                 value={data.student_id_city}
                 setValue={(value) => update({ student_id_city: value })}
@@ -1489,7 +1590,7 @@ export const Step3StudentData = ({
               />
             )}
             {data.residence_country === "Colombia" &&
-              data.residence_department === "Atlántico" ? (
+            data.residence_department === "Atlántico" ? (
               <ComboBox
                 value={data.residence_city}
                 setValue={(value) => update({ residence_city: value })}
@@ -1693,7 +1794,7 @@ export const Step3StudentData = ({
               disabled={false}
               required={true}
             />
-            {(data.medical_has_diagnosis === "Otros") && (
+            {data.medical_has_diagnosis === "Otros" && (
               <FormInput
                 label="Especifique"
                 name="medical_diagnosis_other"
@@ -1754,14 +1855,17 @@ export const Step3StudentData = ({
                 checked={data.lives_with_other || false}
                 onChange={handleChange}
                 disabled={
-                  data.father_lives_with_student || data.mother_lives_with_student
+                  data.father_lives_with_student ||
+                  data.mother_lives_with_student
                 }
               />
               <span
-                className={`label-text font-normal text-xs leading-tight ${data.father_lives_with_student || data.mother_lives_with_student
-                  ? "text-gray-400"
-                  : ""
-                  }`}
+                className={`label-text font-normal text-xs leading-tight ${
+                  data.father_lives_with_student ||
+                  data.mother_lives_with_student
+                    ? "text-gray-400"
+                    : ""
+                }`}
               >
                 Vive con otra persona
               </span>
@@ -1795,7 +1899,7 @@ export const Step3StudentData = ({
               value={data.father_lastname1}
               onChange={handleChange}
               pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+"
-              required={true}
+              required={data.father_lives_with_student}
             />
             <FormInput
               label="Segundo Apellido"
@@ -1803,7 +1907,7 @@ export const Step3StudentData = ({
               value={data.father_lastname2}
               onChange={handleChange}
               pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+"
-              required={true}
+              required={data.father_lives_with_student}
             />
             <FormInput
               label="Primer Nombre"
@@ -1811,7 +1915,7 @@ export const Step3StudentData = ({
               value={data.father_firstname1}
               onChange={handleChange}
               pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+"
-              required={true}
+              required={data.father_lives_with_student}
             />
             <FormInput
               label="Segundo Nombre"
@@ -1819,7 +1923,7 @@ export const Step3StudentData = ({
               value={data.father_firstname2}
               onChange={handleChange}
               pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+"
-              required={true}
+              required={data.father_lives_with_student}
             />
 
             <FormSelect
@@ -1828,7 +1932,7 @@ export const Step3StudentData = ({
               value={data.father_document_type}
               onChange={handleChange}
               options={DOCUMENT_TYPES}
-              required={true}
+              required={data.father_lives_with_student}
             />
             <FormInput
               label="Número de ID"
@@ -1837,7 +1941,7 @@ export const Step3StudentData = ({
               onChange={handleChange}
               pattern="[0-9]*"
               inputMode="numeric"
-              required={true}
+              required={data.father_lives_with_student}
             />
 
             <FormInput
@@ -1849,7 +1953,7 @@ export const Step3StudentData = ({
               pattern="[0-9]{10}"
               inputMode="numeric"
               maxLength={10}
-              required={true}
+              required={data.father_lives_with_student}
             />
             <FormInput
               label="Email"
@@ -1857,7 +1961,7 @@ export const Step3StudentData = ({
               type="email"
               value={data.father_email}
               onChange={handleChange}
-              required={true}
+              required={data.father_lives_with_student}
             />
 
             <ComboBox
@@ -1866,7 +1970,7 @@ export const Step3StudentData = ({
               options={COUNTRIES}
               label="País del Padre"
               disabled={false}
-              required={true}
+              required={data.father_lives_with_student}
             />
             {data.father_country === "Colombia" ? (
               <ComboBox
@@ -1875,7 +1979,7 @@ export const Step3StudentData = ({
                 options={COLOMBIA_DEPARTMENTS}
                 label="Departamento de Nacimiento"
                 disabled={data.father_country !== "Colombia"}
-                required={true}
+                required={data.father_lives_with_student}
               />
             ) : (
               <FormInput
@@ -1884,11 +1988,11 @@ export const Step3StudentData = ({
                 value={data.father_department}
                 onChange={handleChange}
                 disabled={false}
-                required={true}
+                required={data.father_lives_with_student}
               />
             )}
             {data.father_country === "Colombia" &&
-              data.father_department === "Atlántico" ? (
+            data.father_department === "Atlántico" ? (
               <ComboBox
                 value={fatherCity}
                 setValue={(value) => {
@@ -1898,7 +2002,7 @@ export const Step3StudentData = ({
                 options={ATLANTICO_CITIES}
                 label="Ciudad de Nacimiento"
                 disabled={false}
-                required={true}
+                required={data.father_lives_with_student}
               />
             ) : (
               <FormInput
@@ -1910,7 +2014,7 @@ export const Step3StudentData = ({
                   update({ father_city: e.target.value });
                 }}
                 disabled={false}
-                required={true}
+                required={data.father_lives_with_student}
               />
             )}
 
@@ -1920,7 +2024,7 @@ export const Step3StudentData = ({
               value={data.father_religion}
               onChange={handleChange}
               options={RELIGIONS}
-              required={true}
+              required={data.father_lives_with_student}
             />
 
             <ComboBox
@@ -1953,7 +2057,7 @@ export const Step3StudentData = ({
               />
             )}
             {data.father_residence_country === "Colombia" &&
-              data.father_residence_department === "Atlántico" ? (
+            data.father_residence_department === "Atlántico" ? (
               <ComboBox
                 value={data.father_residence_city}
                 setValue={(value) => update({ father_residence_city: value })}
@@ -1976,7 +2080,9 @@ export const Step3StudentData = ({
               <>
                 <ComboBox
                   value={data.father_residence_barrio}
-                  setValue={(value) => update({ father_residence_barrio: value })}
+                  setValue={(value) =>
+                    update({ father_residence_barrio: value })
+                  }
                   options={BARRIOS_BARRANQUILLA}
                   label="Barrio de Residencia"
                   disabled={data.father_lives_with_student}
@@ -2031,6 +2137,39 @@ export const Step3StudentData = ({
               disabled={data.father_lives_with_student}
               required={!data.father_lives_with_student}
             />
+
+            {/* Información Laboral del Padre */}
+            <FormInput
+              label="Profesión"
+              name="father_profession"
+              value={data.father_profession}
+              onChange={handleChange}
+              required={data.father_lives_with_student}
+            />
+            <FormInput
+              label="Nombre Empresa donde Labora"
+              name="father_company_name"
+              value={data.father_company_name}
+              onChange={handleChange}
+              required={data.father_lives_with_student}
+            />
+            <FormInput
+              label="Dirección Empresa donde Labora"
+              name="father_company_address"
+              value={data.father_company_address}
+              onChange={handleChange}
+              required={data.father_lives_with_student}
+            />
+            <FormInput
+              label="Número de contacto laboral"
+              name="father_work_phone"
+              type="tel"
+              value={data.father_work_phone}
+              onChange={handleChange}
+              pattern="[0-9]*"
+              inputMode="numeric"
+              required={data.father_lives_with_student}
+            />
           </div>
         </SectionCard>
 
@@ -2060,7 +2199,7 @@ export const Step3StudentData = ({
               value={data.mother_lastname1}
               onChange={handleChange}
               pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+"
-              required={true}
+              required={data.mother_lives_with_student}
             />
             <FormInput
               label="Segundo Apellido"
@@ -2068,7 +2207,7 @@ export const Step3StudentData = ({
               value={data.mother_lastname2}
               onChange={handleChange}
               pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+"
-              required={true}
+              required={data.mother_lives_with_student}
             />
             <FormInput
               label="Primer Nombre"
@@ -2076,7 +2215,7 @@ export const Step3StudentData = ({
               value={data.mother_firstname1}
               onChange={handleChange}
               pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+"
-              required={true}
+              required={data.mother_lives_with_student}
             />
             <FormInput
               label="Segundo Nombre"
@@ -2084,7 +2223,7 @@ export const Step3StudentData = ({
               value={data.mother_firstname2}
               onChange={handleChange}
               pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+"
-              required={true}
+              required={data.mother_lives_with_student}
             />
 
             <FormSelect
@@ -2093,7 +2232,7 @@ export const Step3StudentData = ({
               value={data.mother_document_type}
               onChange={handleChange}
               options={DOCUMENT_TYPES}
-              required={true}
+              required={data.mother_lives_with_student}
             />
             <FormInput
               label="Número de ID"
@@ -2102,7 +2241,7 @@ export const Step3StudentData = ({
               onChange={handleChange}
               pattern="[0-9]*"
               inputMode="numeric"
-              required={true}
+              required={data.mother_lives_with_student}
             />
 
             <FormInput
@@ -2114,7 +2253,7 @@ export const Step3StudentData = ({
               pattern="[0-9]{10}"
               inputMode="numeric"
               maxLength={10}
-              required={true}
+              required={data.mother_lives_with_student}
             />
             <FormInput
               label="Email"
@@ -2122,7 +2261,7 @@ export const Step3StudentData = ({
               type="email"
               value={data.mother_email}
               onChange={handleChange}
-              required={true}
+              required={data.mother_lives_with_student}
             />
 
             <ComboBox
@@ -2131,7 +2270,7 @@ export const Step3StudentData = ({
               options={COUNTRIES}
               label="País"
               disabled={false}
-              required={true}
+              required={data.mother_lives_with_student}
             />
             {data.mother_country === "Colombia" ? (
               <ComboBox
@@ -2140,7 +2279,7 @@ export const Step3StudentData = ({
                 options={COLOMBIA_DEPARTMENTS}
                 label="Departamento de Nacimiento"
                 disabled={data.mother_country !== "Colombia"}
-                required={true}
+                required={data.mother_lives_with_student}
               />
             ) : (
               <FormInput
@@ -2149,11 +2288,11 @@ export const Step3StudentData = ({
                 value={data.mother_department}
                 onChange={handleChange}
                 disabled={false}
-                required={true}
+                required={data.mother_lives_with_student}
               />
             )}
             {data.mother_country === "Colombia" &&
-              data.mother_department === "Atlántico" ? (
+            data.mother_department === "Atlántico" ? (
               <ComboBox
                 value={motherCity}
                 setValue={(value) => {
@@ -2163,7 +2302,7 @@ export const Step3StudentData = ({
                 options={ATLANTICO_CITIES}
                 label="Ciudad de Nacimiento"
                 disabled={false}
-                required={true}
+                required={data.mother_lives_with_student}
               />
             ) : (
               <FormInput
@@ -2175,7 +2314,7 @@ export const Step3StudentData = ({
                   update({ mother_city: e.target.value });
                 }}
                 disabled={false}
-                required={true}
+                required={data.mother_lives_with_student}
               />
             )}
 
@@ -2185,7 +2324,7 @@ export const Step3StudentData = ({
               value={data.mother_religion}
               onChange={handleChange}
               options={RELIGIONS}
-              required={true}
+              required={data.mother_lives_with_student}
             />
 
             <ComboBox
@@ -2218,7 +2357,7 @@ export const Step3StudentData = ({
               />
             )}
             {data.mother_residence_country === "Colombia" &&
-              data.mother_residence_department === "Atlántico" ? (
+            data.mother_residence_department === "Atlántico" ? (
               <ComboBox
                 value={data.mother_residence_city}
                 setValue={(value) => update({ mother_residence_city: value })}
@@ -2241,7 +2380,9 @@ export const Step3StudentData = ({
               <>
                 <ComboBox
                   value={data.mother_residence_barrio}
-                  setValue={(value) => update({ mother_residence_barrio: value })}
+                  setValue={(value) =>
+                    update({ mother_residence_barrio: value })
+                  }
                   options={BARRIOS_BARRANQUILLA}
                   label="Barrio de Residencia"
                   disabled={data.mother_lives_with_student}
@@ -2296,12 +2437,45 @@ export const Step3StudentData = ({
               disabled={data.mother_lives_with_student}
               required={!data.mother_lives_with_student}
             />
+
+            {/* Información Laboral de la Madre */}
+            <FormInput
+              label="Profesión"
+              name="mother_profession"
+              value={data.mother_profession}
+              onChange={handleChange}
+              required={data.mother_lives_with_student}
+            />
+            <FormInput
+              label="Nombre Empresa donde Labora"
+              name="mother_company_name"
+              value={data.mother_company_name}
+              onChange={handleChange}
+              required={data.mother_lives_with_student}
+            />
+            <FormInput
+              label="Dirección Empresa donde Labora"
+              name="mother_company_address"
+              value={data.mother_company_address}
+              onChange={handleChange}
+              required={data.mother_lives_with_student}
+            />
+            <FormInput
+              label="Número de contacto laboral"
+              name="mother_work_phone"
+              type="tel"
+              value={data.mother_work_phone}
+              onChange={handleChange}
+              pattern="[0-9]*"
+              inputMode="numeric"
+              required={data.mother_lives_with_student}
+            />
           </div>
         </SectionCard>
 
         {/* 7. Acudiente */}
         <SectionCard
-          title="7. Acudiente / Tutor"
+          title="7. Acudiente / Adulto Responsable"
           isOpen={openSections.acudiente}
           onToggle={() => toggleSection("acudiente")}
         >
@@ -2428,7 +2602,8 @@ export const Step3StudentData = ({
                 options={COLOMBIA_DEPARTMENTS}
                 label="Departamento"
                 disabled={
-                  data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                  data.guardian_type === "Padre" ||
+                  data.guardian_type === "Madre"
                 }
                 required={data.guardian_type === "Otro"}
               />
@@ -2439,20 +2614,22 @@ export const Step3StudentData = ({
                 value={data.guardian_department}
                 onChange={handleChange}
                 disabled={
-                  data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                  data.guardian_type === "Padre" ||
+                  data.guardian_type === "Madre"
                 }
                 required={data.guardian_type === "Otro"}
               />
             )}
             {data.guardian_country === "Colombia" &&
-              data.guardian_department === "Atlántico" ? (
+            data.guardian_department === "Atlántico" ? (
               <ComboBox
                 value={data.guardian_city}
                 setValue={(value) => update({ guardian_city: value })}
                 options={ATLANTICO_CITIES}
                 label="Ciudad"
                 disabled={
-                  data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                  data.guardian_type === "Padre" ||
+                  data.guardian_type === "Madre"
                 }
                 required={data.guardian_type === "Otro"}
               />
@@ -2463,7 +2640,8 @@ export const Step3StudentData = ({
                 value={data.guardian_city}
                 onChange={handleChange}
                 disabled={
-                  data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                  data.guardian_type === "Padre" ||
+                  data.guardian_type === "Madre"
                 }
                 required={data.guardian_type === "Otro"}
               />
@@ -2483,7 +2661,9 @@ export const Step3StudentData = ({
 
             <ComboBox
               value={data.guardian_residence_country}
-              setValue={(value) => update({ guardian_residence_country: value })}
+              setValue={(value) =>
+                update({ guardian_residence_country: value })
+              }
               options={COUNTRIES}
               label="País de Residencia"
               disabled={
@@ -2500,7 +2680,8 @@ export const Step3StudentData = ({
                 options={COLOMBIA_DEPARTMENTS}
                 label="Departamento"
                 disabled={
-                  data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                  data.guardian_type === "Padre" ||
+                  data.guardian_type === "Madre"
                 }
                 required={data.guardian_type === "Otro"}
               />
@@ -2511,20 +2692,22 @@ export const Step3StudentData = ({
                 value={data.guardian_residence_department}
                 onChange={handleChange}
                 disabled={
-                  data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                  data.guardian_type === "Padre" ||
+                  data.guardian_type === "Madre"
                 }
                 required={data.guardian_type === "Otro"}
               />
             )}
             {data.guardian_residence_country === "Colombia" &&
-              data.guardian_residence_department === "Atlántico" ? (
+            data.guardian_residence_department === "Atlántico" ? (
               <ComboBox
                 value={data.guardian_residence_city}
                 setValue={(value) => update({ guardian_residence_city: value })}
                 options={ATLANTICO_CITIES}
                 label="Ciudad"
                 disabled={
-                  data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                  data.guardian_type === "Padre" ||
+                  data.guardian_type === "Madre"
                 }
                 required={data.guardian_type === "Otro"}
               />
@@ -2535,7 +2718,8 @@ export const Step3StudentData = ({
                 value={data.guardian_residence_city}
                 onChange={handleChange}
                 disabled={
-                  data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                  data.guardian_type === "Padre" ||
+                  data.guardian_type === "Madre"
                 }
                 required={data.guardian_type === "Otro"}
               />
@@ -2582,7 +2766,8 @@ export const Step3StudentData = ({
                 value={data.guardian_residence_barrio}
                 onChange={handleChange}
                 disabled={
-                  data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                  data.guardian_type === "Padre" ||
+                  data.guardian_type === "Madre"
                 }
                 required={data.guardian_type === "Otro"}
               />
@@ -2627,6 +2812,51 @@ export const Step3StudentData = ({
                 required={true}
               />
             )}
+
+            {/* Información Laboral del Acudiente */}
+            <FormInput
+              label="Profesión"
+              name="guardian_profession"
+              value={data.guardian_profession}
+              onChange={handleChange}
+              disabled={
+                data.guardian_type === "Padre" || data.guardian_type === "Madre"
+              }
+              required={data.guardian_type === "Otro"}
+            />
+            <FormInput
+              label="Nombre Empresa donde Labora"
+              name="guardian_company_name"
+              value={data.guardian_company_name}
+              onChange={handleChange}
+              disabled={
+                data.guardian_type === "Padre" || data.guardian_type === "Madre"
+              }
+              required={data.guardian_type === "Otro"}
+            />
+            <FormInput
+              label="Dirección Empresa donde Labora"
+              name="guardian_company_address"
+              value={data.guardian_company_address}
+              onChange={handleChange}
+              disabled={
+                data.guardian_type === "Padre" || data.guardian_type === "Madre"
+              }
+              required={data.guardian_type === "Otro"}
+            />
+            <FormInput
+              label="Número de contacto laboral"
+              name="guardian_work_phone"
+              type="tel"
+              value={data.guardian_work_phone}
+              onChange={handleChange}
+              pattern="[0-9]*"
+              inputMode="numeric"
+              disabled={
+                data.guardian_type === "Padre" || data.guardian_type === "Madre"
+              }
+              required={data.guardian_type === "Otro"}
+            />
           </div>
         </SectionCard>
 
@@ -2639,10 +2869,7 @@ export const Step3StudentData = ({
           >
             Atrás
           </button>
-          <button
-            type="submit"
-            className="btn btn-primary w-full sm:w-auto"
-          >
+          <button type="submit" className="btn btn-primary w-full sm:w-auto">
             Siguiente
           </button>
         </div>

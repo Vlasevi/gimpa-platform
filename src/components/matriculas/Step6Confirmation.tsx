@@ -10,6 +10,7 @@ export const Step6Confirmation = ({
 }: any) => {
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [hasDiagnosis, setHasDiagnosis] = useState(false);
 
   const handleFinalSubmit = async () => {
     const enrollmentId = enrollmentInfo?.current_enrollment?.id;
@@ -26,8 +27,24 @@ export const Step6Confirmation = ({
       const storageKey = `enrollment_step3_${enrollmentId}`;
       const step3DataStr = localStorage.getItem(storageKey);
 
+      // Verificar si tiene diagnóstico y extraer información de convivencia
+      let studentHasDiagnosis = false;
+      let showFatherID = false;
+      let showMotherID = false;
+      let showGuardianID = false;
+      let guardianRelationship = "";
+
       if (step3DataStr) {
         const studentData = JSON.parse(step3DataStr);
+        const diagnosis = studentData.medical_has_diagnosis;
+        studentHasDiagnosis = diagnosis && diagnosis !== "Ninguno";
+        setHasDiagnosis(studentHasDiagnosis);
+
+        // Extraer información de convivencia para documentos adicionales
+        showFatherID = studentData.father_lives_with_student || false;
+        showMotherID = studentData.mother_lives_with_student || false;
+        showGuardianID = studentData.lives_with_other || false;
+        guardianRelationship = studentData.guardian_relationship || "";
 
         console.log("Enviando datos del estudiante al backend...");
         const updateResponse = await fetch(
@@ -70,10 +87,12 @@ export const Step6Confirmation = ({
       );
 
       const getRequiredDocuments = () => {
+        let docs = [];
+
         if (isFirstEnrollment) {
           // Estudiantes NUEVOS
           if (isPreescolar) {
-            return [
+            docs = [
               { key: "registro_civil", label: "Registro Civil" },
               { key: "registro_vacunacion", label: "Registro de vacunación" },
               { key: "cert_eps", label: "Certificado vinculación EPS" },
@@ -83,7 +102,7 @@ export const Step6Confirmation = ({
             ];
           } else {
             // Primaria/Bachillerato
-            return [
+            docs = [
               {
                 key: "registro_civil_ti",
                 label: "Registro civil y/o tarjeta de identidad",
@@ -110,7 +129,7 @@ export const Step6Confirmation = ({
         } else {
           // Estudiantes ANTIGUOS (renovación)
           if (isPreescolar) {
-            return [
+            docs = [
               { key: "registro_civil", label: "Registro Civil" },
               { key: "registro_vacunacion", label: "Registro de vacunación" },
               { key: "cert_eps", label: "Certificado vinculación EPS" },
@@ -120,7 +139,7 @@ export const Step6Confirmation = ({
             ];
           } else {
             // Primaria/Bachillerato
-            return [
+            docs = [
               {
                 key: "registro_civil_ti",
                 label: "Registro civil y/o tarjeta de identidad",
@@ -131,6 +150,46 @@ export const Step6Confirmation = ({
             ];
           }
         }
+
+        // Agregar certificado de diagnóstico si el estudiante tiene algún diagnóstico
+        if (studentHasDiagnosis) {
+          docs.push({
+            key: "cert_diagnostico",
+            label: "Certificado de diagnóstico médico",
+          });
+        }
+
+        // Agregar cédulas de padres/acudiente según con quién vive el estudiante
+        if (showFatherID) {
+          docs.push({
+            key: "father_id",
+            label: "Cédula del Padre",
+          });
+        }
+
+        if (showMotherID) {
+          docs.push({
+            key: "mother_id",
+            label: "Cédula de la Madre",
+          });
+        }
+
+        if (showGuardianID) {
+          docs.push({
+            key: "guardian_id",
+            label: "Cédula del Acudiente",
+          });
+        }
+
+        // Agregar certificado laboral del responsable económico (según guardian_relationship)
+        if (guardianRelationship) {
+          docs.push({
+            key: "work_certificate",
+            label: "Certificado laboral del responsable",
+          });
+        }
+
+        return docs;
       };
 
       const requiredDocuments = getRequiredDocuments();
@@ -175,10 +234,22 @@ export const Step6Confirmation = ({
       }
 
       // Documentos requeridos (Step5) - desde uploadedFiles
+      console.log(
+        "Documentos requeridos a enviar:",
+        requiredDocuments.map((d) => d.key)
+      );
+      console.log(
+        "Archivos disponibles en uploadedFiles:",
+        Object.keys(uploadedFiles)
+      );
+
       requiredDocuments.forEach((doc) => {
         const file = uploadedFiles?.[doc.key];
         if (file instanceof File) {
+          console.log(`Agregando documento: ${doc.key} (${file.name})`);
           formData.append(doc.key, file);
+        } else {
+          console.log(`Documento ${doc.key} no encontrado en uploadedFiles`);
         }
       });
 
@@ -368,8 +439,8 @@ export const Step6Confirmation = ({
           />
         </svg>
         <span>
-          Al hacer clic en Confirmar, aceptas legalmente el compromiso de
-          matrícula y tus datos serán enviados a revisión.
+          Al hacer clic en Confirmar, aceptas legalmente el pagaré y el contrato
+          de servicios educativos y tus datos serán enviados a revisión.
         </span>
       </div>
 

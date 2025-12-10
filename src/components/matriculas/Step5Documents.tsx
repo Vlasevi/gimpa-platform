@@ -74,11 +74,45 @@ export const Step5Documents = ({
   isSubmitting = false,
 }: any) => {
   const [replacingDocs, setReplacingDocs] = useState<any>({});
+  const [hasDiagnosis, setHasDiagnosis] = useState(false);
+  const [showFatherID, setShowFatherID] = useState(false);
+  const [showMotherID, setShowMotherID] = useState(false);
+  const [showGuardianID, setShowGuardianID] = useState(false);
+  const [guardianRelationship, setGuardianRelationship] = useState("");
 
   // Determinar grado y tipo de matrícula
   const currentEnrollment = enrollmentInfo?.current_enrollment;
   const isFirstEnrollment = currentEnrollment?.is_first_enrollment || false;
   const gradeName = currentEnrollment?.grade?.name || "";
+  const enrollmentId = currentEnrollment?.id;
+
+  // Leer datos del Step3 para verificar si tiene diagnóstico y con quién vive
+  useEffect(() => {
+    if (enrollmentId) {
+      const storageKey = `enrollment_step3_${enrollmentId}`;
+      const step3DataStr = localStorage.getItem(storageKey);
+
+      if (step3DataStr) {
+        try {
+          const step3Data = JSON.parse(step3DataStr);
+          const diagnosis = step3Data.medical_has_diagnosis;
+
+          // Si tiene cualquier diagnóstico diferente a "Ninguno", habilitar el documento
+          setHasDiagnosis(diagnosis && diagnosis !== "Ninguno");
+
+          // Determinar qué cédulas se necesitan según con quién vive
+          setShowFatherID(step3Data.father_lives_with_student || false);
+          setShowMotherID(step3Data.mother_lives_with_student || false);
+          setShowGuardianID(step3Data.lives_with_other || false);
+
+          // Obtener quién es el responsable para el certificado laboral
+          setGuardianRelationship(step3Data.guardian_relationship || "");
+        } catch (error) {
+          console.error("Error leyendo datos del Step3:", error);
+        }
+      }
+    }
+  }, [enrollmentId]);
 
   // Determinar si es Preescolar (Caminadores a Transición)
   const preescolarGrades = [
@@ -94,10 +128,12 @@ export const Step5Documents = ({
 
   // Definir documentos requeridos según grado y tipo de matrícula
   const getRequiredDocuments = () => {
+    let docs = [];
+
     if (isFirstEnrollment) {
       // Estudiantes NUEVOS
       if (isPreescolar) {
-        return [
+        docs = [
           { key: "registro_civil", label: "Registro Civil" },
           { key: "registro_vacunacion", label: "Registro de vacunación" },
           { key: "cert_eps", label: "Certificado vinculación EPS" },
@@ -107,7 +143,7 @@ export const Step5Documents = ({
         ];
       } else {
         // Primaria/Bachillerato
-        return [
+        docs = [
           {
             key: "registro_civil_ti",
             label: "Registro civil y/o tarjeta de identidad",
@@ -134,7 +170,7 @@ export const Step5Documents = ({
     } else {
       // Estudiantes ANTIGUOS (renovación)
       if (isPreescolar) {
-        return [
+        docs = [
           { key: "registro_civil", label: "Registro Civil" },
           { key: "registro_vacunacion", label: "Registro de vacunación" },
           { key: "cert_eps", label: "Certificado vinculación EPS" },
@@ -144,7 +180,7 @@ export const Step5Documents = ({
         ];
       } else {
         // Primaria/Bachillerato
-        return [
+        docs = [
           {
             key: "registro_civil_ti",
             label: "Registro civil y/o tarjeta de identidad",
@@ -155,6 +191,55 @@ export const Step5Documents = ({
         ];
       }
     }
+
+    // Agregar certificado de diagnóstico si el estudiante tiene algún diagnóstico
+    if (hasDiagnosis) {
+      docs.push({
+        key: "cert_diagnostico",
+        label: "Certificado de diagnóstico médico",
+      });
+    }
+
+    // Agregar cédulas de padres/acudiente según con quién vive el estudiante
+    if (showFatherID) {
+      docs.push({
+        key: "father_id",
+        label: "Cédula del Padre",
+      });
+    }
+
+    if (showMotherID) {
+      docs.push({
+        key: "mother_id",
+        label: "Cédula de la Madre",
+      });
+    }
+
+    if (showGuardianID) {
+      docs.push({
+        key: "guardian_id",
+        label: "Cédula del Acudiente",
+      });
+    }
+
+    // Agregar certificado laboral del responsable económico (según guardian_relationship)
+    if (guardianRelationship) {
+      let workCertLabel = "Certificado laboral";
+      if (guardianRelationship === "Padre") {
+        workCertLabel = "Certificado laboral del Padre";
+      } else if (guardianRelationship === "Madre") {
+        workCertLabel = "Certificado laboral de la Madre";
+      } else {
+        workCertLabel = `Certificado laboral del Acudiente (${guardianRelationship})`;
+      }
+
+      docs.push({
+        key: "work_certificate",
+        label: workCertLabel,
+      });
+    }
+
+    return docs;
   };
 
   const requiredDocuments = getRequiredDocuments();
@@ -190,6 +275,32 @@ export const Step5Documents = ({
           </div>
         </div>
       </div>
+
+      {/* Alerta adicional si tiene diagnóstico */}
+      {hasDiagnosis && (
+        <div className="alert alert-warning">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="stroke-current shrink-0 h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
+          </svg>
+          <div>
+            <h3 className="font-bold">Certificado de diagnóstico requerido</h3>
+            <div className="text-xs">
+              Se ha detectado que el estudiante tiene un diagnóstico registrado.
+              Es necesario subir el certificado médico correspondiente.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sección de Documentos Requeridos */}
       <div className="space-y-4">

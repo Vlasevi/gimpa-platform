@@ -497,7 +497,6 @@ export const MatriculasAdmin = () => {
                         <th>Estudiante</th>
                         <th>Fecha de Matrícula</th>
                         <th>Estado</th>
-                        <th>Editable</th>
                         <th>Acciones</th>
                       </tr>
                     </thead>
@@ -518,20 +517,10 @@ export const MatriculasAdmin = () => {
                             <span
                               className={`badge ${getStatusBadge(
                                 enrollment.status
-                              )}`}
+                              )} whitespace-nowrap`}
                             >
                               {getStatusLabel(enrollment.status)}
                             </span>
-                          </td>
-                          <td>
-                            <input
-                              type="checkbox"
-                              className="checkbox checkbox-sm"
-                              checked={enrollment.is_editable}
-                              onChange={() => {
-                                // TODO: Implementar toggle de is_editable
-                              }}
-                            />
                           </td>
                           <td>
                             <div className="flex gap-2">
@@ -1032,7 +1021,7 @@ export const MatriculasAdmin = () => {
                   <span
                     className={`badge ${getStatusBadge(
                       selectedEnrollment.status
-                    )}`}
+                    )} whitespace-nowrap`}
                   >
                     {selectedEnrollment.status}
                   </span>
