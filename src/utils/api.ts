@@ -91,20 +91,8 @@ export const API_ENDPOINTS = {
   enrollments: "/api/enrollments/",
   enrollmentById: (id: number) => `/api/enrollments/${id}/`,
   enrollmentDocuments: (id: number) => `/api/enrollments/${id}/documents/`,
-  enrollmentUpdateData: (id: number) => `/api/enrollments/${id}/update-data/`,
-  enrollmentSubmit: (id: number) => `/api/enrollments/${id}/submit/`,
-  enrollmentApprove: (id: number) => `/api/enrollments/${id}/approve/`,
-  enrollmentReject: (id: number) => `/api/enrollments/${id}/reject/`,
-  enrollmentCancel: (id: number) => `/api/enrollments/${id}/cancel/`,
-  enrollmentDelete: (id: number) => `/api/enrollments/${id}/delete/`,
-  enrollmentUpdateGradeYear: (id: number) =>
-    `/api/enrollments/${id}/update-grade-year/`,
-  enrollmentRequestCorrection: (id: number) =>
-    `/api/enrollments/${id}/request-correction/`,
   enrollmentGeneratePdfs: (id: number) =>
     `/api/enrollments/${id}/generate-pdfs/`,
-  enrollmentDocumentsFolder: (id: number) =>
-    `/api/enrollments/${id}/documents-folder/`,
   requestOtp: "/api/enrollments/request-otp/",
   validateOtp: "/api/enrollments/validate-otp/",
 

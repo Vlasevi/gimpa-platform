@@ -81,7 +81,7 @@ export const Step5Documents = ({
   const [guardianRelationship, setGuardianRelationship] = useState("");
 
   // Determinar grado y tipo de matrícula
-  const currentEnrollment = enrollmentInfo?.current_enrollment;
+  const currentEnrollment = enrollmentInfo?.actual_enrollment;
   const isFirstEnrollment = currentEnrollment?.is_first_enrollment || false;
   const gradeName = currentEnrollment?.grade?.name || "";
   const enrollmentId = currentEnrollment?.id;

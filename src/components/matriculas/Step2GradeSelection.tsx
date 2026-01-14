@@ -13,11 +13,11 @@ export const Step2GradeSelection = ({
   back,
   enrollmentInfo,
 }: Step2Props) => {
-  const suggestedGrade = enrollmentInfo?.eligibility?.suggested_grade;
-  const targetYear = enrollmentInfo?.eligibility?.target_academic_year;
-  const currentEnrollment = enrollmentInfo?.current_enrollment;
+  const suggestedGrade = enrollmentInfo?.suggested_enrollment?.grade;
+  const targetYear = enrollmentInfo?.suggested_enrollment?.academic_year;
+  const actualEnrollment = enrollmentInfo?.actual_enrollment;
 
-  const isFirstEnrollment = currentEnrollment?.is_first_enrollment === true;
+  const isFirstEnrollment = actualEnrollment?.is_first_enrollment === true;
 
   return (
     <div className="space-y-6">
@@ -26,7 +26,7 @@ export const Step2GradeSelection = ({
       </h2>
 
       {/* Matrícula actual: solo si NO es primera matrícula */}
-      {!isFirstEnrollment && currentEnrollment && (
+      {!isFirstEnrollment && actualEnrollment && (
         <div className="alert alert-info">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -44,8 +44,8 @@ export const Step2GradeSelection = ({
           <div>
             <h3 className="font-bold">Matrícula Actual</h3>
             <div className="text-sm">
-              Grado: <strong>{currentEnrollment.grade?.description}</strong> -
-              Año: <strong>{currentEnrollment.academic_year}</strong>
+              Grado: <strong>{actualEnrollment.grade?.description}</strong> -
+              Año: <strong>{actualEnrollment.academic_year}</strong>
             </div>
           </div>
         </div>

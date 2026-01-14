@@ -71,7 +71,7 @@ export const Sidebar = () => {
 
         if (response.ok) {
           const data = await response.json();
-          setHasActiveEnrollment(data?.current_enrollment?.status === "ACTIVE");
+          setHasActiveEnrollment(data?.actual_enrollment?.status === "ACTIVE");
         }
       } catch (error) {
         console.error("Error checking enrollment:", error);
@@ -84,15 +84,15 @@ export const Sidebar = () => {
   // Agregar dinámicamente el item de Documentos Pendientes si tiene matrícula activa
   const menuItemsWithDynamicOptions = hasActiveEnrollment
     ? [
-        ...ALL_MENU_ITEMS.slice(0, 2), // Notas, Matrículas
-        {
-          label: "Documentos Pendientes",
-          path: "/documentos-pendientes",
-          icon: FileUp,
-          permissionKey: ["make_enrollment"],
-        },
-        ...ALL_MENU_ITEMS.slice(2), // Pagos, Certificados
-      ]
+      ...ALL_MENU_ITEMS.slice(0, 2), // Notas, Matrículas
+      {
+        label: "Documentos Pendientes",
+        path: "/documentos-pendientes",
+        icon: FileUp,
+        permissionKey: ["make_enrollment"],
+      },
+      ...ALL_MENU_ITEMS.slice(2), // Pagos, Certificados
+    ]
     : ALL_MENU_ITEMS;
 
   const filteredMenuItems = menuItemsWithDynamicOptions.filter(
@@ -129,10 +129,9 @@ export const Sidebar = () => {
             key={item.path}
             to={item.path}
             className={({ isActive }) =>
-              `flex items-center px-4 py-3 text-sm font-inter rounded-lg transition-colors ${
-                isActive
-                  ? "bg-[hsl(var(--accent))] text-white shadow-sm"
-                  : "text-gray-700 hover:bg-gray-100 hover:text-primary"
+              `flex items-center px-4 py-3 text-sm font-inter rounded-lg transition-colors ${isActive
+                ? "bg-[hsl(var(--accent))] text-white shadow-sm"
+                : "text-gray-700 hover:bg-gray-100 hover:text-primary"
               }`
             }
           >

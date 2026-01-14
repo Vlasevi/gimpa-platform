@@ -280,9 +280,8 @@ const FormInput = ({
       name={name}
       type={type}
       placeholder={placeholder || label}
-      className={`input input-bordered w-full focus:input-primary transition-all ${
-        disabled ? "bg-gray-100 text-gray-500" : ""
-      }`}
+      className={`input input-bordered w-full focus:input-primary transition-all ${disabled ? "bg-gray-100 text-gray-500" : ""
+        }`}
       value={value || ""}
       onChange={onChange}
       disabled={disabled}
@@ -312,9 +311,8 @@ const FormSelect = ({
     </label>
     <select
       name={name}
-      className={`select select-bordered w-full focus:select-primary ${
-        disabled ? "bg-gray-100" : ""
-      }`}
+      className={`select select-bordered w-full focus:select-primary ${disabled ? "bg-gray-100" : ""
+        }`}
       value={value || ""}
       onChange={onChange}
       disabled={disabled}
@@ -481,18 +479,16 @@ const SectionCard = ({ title, isOpen, onToggle, children }: any) => (
         {title}
       </h3>
       <span
-        className={`transform transition-transform duration-300 ${
-          isOpen ? "rotate-180" : "rotate-0"
-        }`}
+        className={`transform transition-transform duration-300 ${isOpen ? "rotate-180" : "rotate-0"
+          }`}
       >
         {/* SVG omitido */}
       </span>
     </button>
 
     <div
-      className={`border-t border-gray-100 transition-all duration-300 ease-in-out overflow-hidden ${
-        isOpen ? "max-h-[5000px] opacity-100" : "max-h-0 opacity-0"
-      }`}
+      className={`border-t border-gray-100 transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? "max-h-[5000px] opacity-100" : "max-h-0 opacity-0"
+        }`}
     >
       <div className="p-6">{children}</div>
     </div>
@@ -558,18 +554,18 @@ const ComboBox = ({
     inputValue === ""
       ? options
       : options.filter((o) => {
-          const normalizedOption = normalizeText(o);
-          const normalizedInput = normalizeText(inputValue);
+        const normalizedOption = normalizeText(o);
+        const normalizedInput = normalizeText(inputValue);
 
-          // Buscar si el nombre completo empieza con el input O si alguna palabra empieza con el input
-          if (normalizedOption.startsWith(normalizedInput)) {
-            return true;
-          }
+        // Buscar si el nombre completo empieza con el input O si alguna palabra empieza con el input
+        if (normalizedOption.startsWith(normalizedInput)) {
+          return true;
+        }
 
-          // Buscar si alguna palabra del barrio empieza con el input
-          const words = normalizedOption.split(" ");
-          return words.some((word) => word.startsWith(normalizedInput));
-        });
+        // Buscar si alguna palabra del barrio empieza con el input
+        const words = normalizedOption.split(" ");
+        return words.some((word) => word.startsWith(normalizedInput));
+      });
 
   return (
     <div className="form-control w-full relative">
@@ -582,9 +578,8 @@ const ComboBox = ({
       <input
         ref={inputRef}
         type="text"
-        className={`input input-bordered w-full focus:input-primary transition-all truncate ${
-          disabled ? "!bg-base-200 text-gray-500 cursor-not-allowed" : ""
-        }`}
+        className={`input input-bordered w-full focus:input-primary transition-all truncate ${disabled ? "!bg-base-200 text-gray-500 cursor-not-allowed" : ""
+          }`}
         placeholder={label}
         value={inputValue}
         onChange={(e) => {
@@ -620,9 +615,8 @@ const ComboBox = ({
           {filteredOptions.map((o) => (
             <li
               key={o}
-              className={`px-4 py-2 cursor-pointer hover:bg-primary hover:text-white truncate ${
-                o === value ? "bg-primary text-white" : ""
-              }`}
+              className={`px-4 py-2 cursor-pointer hover:bg-primary hover:text-white truncate ${o === value ? "bg-primary text-white" : ""
+                }`}
               onMouseDown={() => {
                 setValue(o);
                 setQuery(o);
@@ -674,12 +668,12 @@ export const Step3StudentData = ({
   const canEnroll = enrollmentInfo?.eligibility?.can_enroll;
   const existingData = enrollmentInfo?.eligibility?.existing_data || {};
   const suggestedGradeObj =
-    enrollmentInfo?.eligibility?.suggested_grade || null;
+    enrollmentInfo?.suggested_enrollment?.grade || null;
   const suggestedGrade =
-    enrollmentInfo?.eligibility?.suggested_grade?.description || "";
-  const targetYear = enrollmentInfo?.eligibility?.target_academic_year || "";
+    enrollmentInfo?.suggested_enrollment?.grade?.description || "";
+  const targetYear = enrollmentInfo?.suggested_enrollment?.academic_year || "";
   const isFirstEnrollment =
-    enrollmentInfo?.current_enrollment?.is_first_enrollment === true;
+    enrollmentInfo?.actual_enrollment?.is_first_enrollment === true;
 
   // Inicialización (existing_data + grado + año) solo una vez
   const initializedRef = useRef(false);
@@ -706,7 +700,8 @@ export const Step3StudentData = ({
 
     // Determinar si necesita corrección
     const needsCorrection =
-      enrollmentInfo?.eligibility?.needs_correction || false;
+      enrollmentInfo?.actual_enrollment?.needs_correction || false;
+
 
     // Precargar existing_data si:
     // 1. Puede matricularse Y
@@ -714,7 +709,6 @@ export const Step3StudentData = ({
     // 3. Hay datos existentes
     const shouldPreloadExisting =
       canEnroll &&
-      (!isFirstEnrollment || needsCorrection) &&
       existingData &&
       Object.keys(existingData).length > 0;
 
@@ -954,7 +948,7 @@ export const Step3StudentData = ({
         data.father_residence_barrio !== data.residence_barrio ||
         data.father_residence_address !== data.residence_address ||
         data.father_residence_address_complement !==
-          data.residence_address_complement ||
+        data.residence_address_complement ||
         data.father_residence_stratum !== data.residence_stratum;
       if (needsUpdate) {
         update({
@@ -998,7 +992,7 @@ export const Step3StudentData = ({
         data.mother_residence_barrio !== data.residence_barrio ||
         data.mother_residence_address !== data.residence_address ||
         data.mother_residence_address_complement !==
-          data.residence_address_complement ||
+        data.residence_address_complement ||
         data.mother_residence_stratum !== data.residence_stratum;
       if (needsUpdate) {
         update({
@@ -1376,7 +1370,7 @@ export const Step3StudentData = ({
               />
             )}
             {data.student_birth_country === "Colombia" &&
-            data.student_birth_department === "Atlántico" ? (
+              data.student_birth_department === "Atlántico" ? (
               <ComboBox
                 value={data.student_birth_city}
                 setValue={(value) => update({ student_birth_city: value })}
@@ -1444,7 +1438,7 @@ export const Step3StudentData = ({
               />
             )}
             {data.student_id_country === "Colombia" &&
-            data.student_id_department === "Atlántico" ? (
+              data.student_id_department === "Atlántico" ? (
               <ComboBox
                 value={data.student_id_city}
                 setValue={(value) => update({ student_id_city: value })}
@@ -1590,7 +1584,7 @@ export const Step3StudentData = ({
               />
             )}
             {data.residence_country === "Colombia" &&
-            data.residence_department === "Atlántico" ? (
+              data.residence_department === "Atlántico" ? (
               <ComboBox
                 value={data.residence_city}
                 setValue={(value) => update({ residence_city: value })}
@@ -1860,12 +1854,11 @@ export const Step3StudentData = ({
                 }
               />
               <span
-                className={`label-text font-normal text-xs leading-tight ${
-                  data.father_lives_with_student ||
+                className={`label-text font-normal text-xs leading-tight ${data.father_lives_with_student ||
                   data.mother_lives_with_student
-                    ? "text-gray-400"
-                    : ""
-                }`}
+                  ? "text-gray-400"
+                  : ""
+                  }`}
               >
                 Vive con otra persona
               </span>
@@ -1992,7 +1985,7 @@ export const Step3StudentData = ({
               />
             )}
             {data.father_country === "Colombia" &&
-            data.father_department === "Atlántico" ? (
+              data.father_department === "Atlántico" ? (
               <ComboBox
                 value={fatherCity}
                 setValue={(value) => {
@@ -2057,7 +2050,7 @@ export const Step3StudentData = ({
               />
             )}
             {data.father_residence_country === "Colombia" &&
-            data.father_residence_department === "Atlántico" ? (
+              data.father_residence_department === "Atlántico" ? (
               <ComboBox
                 value={data.father_residence_city}
                 setValue={(value) => update({ father_residence_city: value })}
@@ -2292,7 +2285,7 @@ export const Step3StudentData = ({
               />
             )}
             {data.mother_country === "Colombia" &&
-            data.mother_department === "Atlántico" ? (
+              data.mother_department === "Atlántico" ? (
               <ComboBox
                 value={motherCity}
                 setValue={(value) => {
@@ -2357,7 +2350,7 @@ export const Step3StudentData = ({
               />
             )}
             {data.mother_residence_country === "Colombia" &&
-            data.mother_residence_department === "Atlántico" ? (
+              data.mother_residence_department === "Atlántico" ? (
               <ComboBox
                 value={data.mother_residence_city}
                 setValue={(value) => update({ mother_residence_city: value })}
@@ -2621,7 +2614,7 @@ export const Step3StudentData = ({
               />
             )}
             {data.guardian_country === "Colombia" &&
-            data.guardian_department === "Atlántico" ? (
+              data.guardian_department === "Atlántico" ? (
               <ComboBox
                 value={data.guardian_city}
                 setValue={(value) => update({ guardian_city: value })}
@@ -2699,7 +2692,7 @@ export const Step3StudentData = ({
               />
             )}
             {data.guardian_residence_country === "Colombia" &&
-            data.guardian_residence_department === "Atlántico" ? (
+              data.guardian_residence_department === "Atlántico" ? (
               <ComboBox
                 value={data.guardian_residence_city}
                 setValue={(value) => update({ guardian_residence_city: value })}

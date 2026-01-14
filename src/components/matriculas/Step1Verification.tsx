@@ -90,7 +90,7 @@ export const Step1Verification = ({
       console.log("📋 Información de matrícula cargada");
 
       // 3. Load documents if enrollment exists
-      const enrollmentId = enrollmentData?.current_enrollment?.id;
+      const enrollmentId = enrollmentData?.actual_enrollment?.id;
 
       if (enrollmentId) {
         setLoadingMessage("Cargando documentos...");

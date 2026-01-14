@@ -1,10 +1,22 @@
 // components/Matriculas/MatriculasAdmin.tsx
 import { useState, useEffect } from "react";
-import { FilePlus, UserPlus, UserCog } from "lucide-react";
+import {
+  FilePlus,
+  UserPlus,
+  UserCog,
+  X,
+  MoreVertical,
+  Eye,
+  Check,
+  MessageSquare,
+  FileText,
+  Ban,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import UserRegister from "@/components/auxiliar/userRegister";
 import UserUpdate from "@/components/auxiliar/userUpdate";
 import UserEnroll from "@/components/auxiliar/userEnroll";
-import { X } from "lucide-react";
 import { getStatusLabel, getStatusBadgeClass } from "@/utils/statusHelpers";
 import { apiUrl, API_ENDPOINTS, buildHeaders } from "@/utils/api";
 
@@ -15,6 +27,7 @@ interface Grade {
 }
 
 interface Student {
+  id: number;
   first_name: string;
   last_name: string;
   email: string;
@@ -31,6 +44,7 @@ interface Enrollment {
   correction_comment?: string;
   submitted_at?: string;
   approved_at?: string;
+  documents_folder_url?: string | null;
 }
 
 interface EnrollmentsByGrade {
@@ -55,6 +69,10 @@ export const MatriculasAdmin = () => {
   const [correctionMessage, setCorrectionMessage] = useState("");
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [folderLoading, setFolderLoading] = useState<number | null>(null);
+  const [showStudentDataModal, setShowStudentDataModal] = useState(false);
+  const [selectedEnrollmentData, setSelectedEnrollmentData] =
+    useState<any | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
 
   // Fetch de matrículas y grados (solo una vez al montar)
   useEffect(() => {
@@ -79,14 +97,10 @@ export const MatriculasAdmin = () => {
       setEnrollments(enrollmentsData);
       setGrades(gradesData);
 
-      // Establecer año seleccionado al más reciente si no está definido
-      if (selectedYear === null && enrollmentsData.length > 0) {
-        const years = enrollmentsData.map((e: Enrollment) => e.academic_year);
-        const mostRecentYear = Math.max(...years);
-        setSelectedYear(mostRecentYear);
-      } else if (selectedYear === null) {
-        // Si no hay matrículas, usar año actual
-        setSelectedYear(new Date().getFullYear());
+      // Establecer año actual por defecto
+      if (selectedYear === null) {
+        const currentYear = new Date().getFullYear();
+        setSelectedYear(currentYear);
       }
 
       setError(null);
@@ -103,11 +117,12 @@ export const MatriculasAdmin = () => {
     setActionLoading(enrollmentId);
     try {
       const response = await fetch(
-        apiUrl(API_ENDPOINTS.enrollmentApprove(enrollmentId)),
+        apiUrl(API_ENDPOINTS.enrollmentById(enrollmentId)),
         {
-          method: "POST",
+          method: "PATCH",
           credentials: "include",
           headers: buildHeaders(),
+          body: JSON.stringify({ status: "ACTIVE" }),
         }
       );
 
@@ -135,14 +150,13 @@ export const MatriculasAdmin = () => {
     setActionLoading(selectedEnrollment.id);
     try {
       const response = await fetch(
-        apiUrl(
-          API_ENDPOINTS.enrollmentRequestCorrection(selectedEnrollment.id)
-        ),
+        apiUrl(API_ENDPOINTS.enrollmentById(selectedEnrollment.id)),
         {
-          method: "POST",
+          method: "PATCH",
           credentials: "include",
           headers: buildHeaders(),
           body: JSON.stringify({
+            status: "PENDING",
             correction_comment: correctionMessage,
           }),
         }
@@ -174,11 +188,12 @@ export const MatriculasAdmin = () => {
     setActionLoading(enrollmentId);
     try {
       const response = await fetch(
-        apiUrl(API_ENDPOINTS.enrollmentCancel(enrollmentId)),
+        apiUrl(API_ENDPOINTS.enrollmentById(enrollmentId)),
         {
-          method: "POST",
+          method: "PATCH",
           credentials: "include",
           headers: buildHeaders(),
+          body: JSON.stringify({ status: "CANCELLED" }),
         }
       );
 
@@ -209,7 +224,7 @@ export const MatriculasAdmin = () => {
     setActionLoading(enrollmentId);
     try {
       const response = await fetch(
-        apiUrl(API_ENDPOINTS.enrollmentDelete(enrollmentId)),
+        apiUrl(API_ENDPOINTS.enrollmentById(enrollmentId)),
         {
           method: "DELETE",
           credentials: "include",
@@ -240,13 +255,13 @@ export const MatriculasAdmin = () => {
     setActionLoading(enrollmentId);
     try {
       const response = await fetch(
-        apiUrl(API_ENDPOINTS.enrollmentUpdateGradeYear(enrollmentId)),
+        apiUrl(API_ENDPOINTS.enrollmentById(enrollmentId)),
         {
           method: "PATCH",
           credentials: "include",
           headers: buildHeaders(),
           body: JSON.stringify({
-            grade_id: gradeId,
+            grade: gradeId,
             academic_year: academicYear,
           }),
         }
@@ -302,36 +317,72 @@ export const MatriculasAdmin = () => {
     }
   };
 
-  const openDocumentsFolder = async (enrollmentId: number) => {
-    setFolderLoading(enrollmentId);
+  const openDocumentsFolder = () => {
+    // Usar documents_folder_url directamente del estado (ya viene de GET /api/enrollments/{id})
+    if (selectedEnrollmentData?.documents_folder_url) {
+      window.open(selectedEnrollmentData.documents_folder_url, "_blank");
+    } else {
+      alert("No se encontró la carpeta del estudiante en OneDrive");
+    }
+  };
+
+  const fetchEnrollmentDetails = async (enrollment: Enrollment) => {
+    // Abrir modal inmediatamente con spinner
+    setSelectedEnrollmentData(null);
+    setDetailsLoading(true);
+    setShowStudentDataModal(true);
+
     try {
-      const response = await fetch(
-        apiUrl(API_ENDPOINTS.enrollmentDocumentsFolder(enrollmentId)),
+      const studentEmail = enrollment.student.email;
+
+      if (!studentEmail) {
+        throw new Error("No se encontró el email del estudiante");
+      }
+
+      // Fetch enrollment details to get documents_folder_url
+      const enrollmentResponse = await fetch(
+        apiUrl(`${API_ENDPOINTS.enrollments}${enrollment.id}/`),
         {
           credentials: "include",
           headers: buildHeaders(),
         }
       );
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error || "Error al obtener la carpeta de documentos"
-        );
+      if (!enrollmentResponse.ok) {
+        throw new Error("Error al obtener detalles de la matrícula");
       }
 
-      const data = await response.json();
+      const enrollmentData = await enrollmentResponse.json();
 
-      if (data.folder_url) {
-        window.open(data.folder_url, "_blank");
-      } else {
-        alert("No se encontró la carpeta del estudiante en OneDrive");
+      // Fetch the complete student data using email in URL path (same as userUpdate.tsx)
+      const studentResponse = await fetch(
+        apiUrl(`${API_ENDPOINTS.users}${encodeURIComponent(studentEmail)}/`),
+        {
+          credentials: "include",
+          headers: buildHeaders(),
+        }
+      );
+
+      if (!studentResponse.ok) {
+        const errorData = await studentResponse.json();
+        throw new Error(errorData.error || "Error al obtener datos del estudiante");
       }
-    } catch (error: any) {
-      console.error("Error al abrir carpeta:", error);
-      alert(error.message || "Error al obtener la carpeta de documentos");
+
+      const studentData = await studentResponse.json();
+
+      // Combine enrollment info with student data for the modal
+      const combinedData = {
+        ...enrollmentData,
+        student: studentData,
+      };
+
+      setSelectedEnrollmentData(combinedData);
+    } catch (err: any) {
+      alert(err.message || "Error al obtener datos del estudiante");
+      console.error(err);
+      setShowStudentDataModal(false);
     } finally {
-      setFolderLoading(null);
+      setDetailsLoading(false);
     }
   };
 
@@ -360,7 +411,7 @@ export const MatriculasAdmin = () => {
 
   // Crear objeto con TODOS los grados de la DB, ordenados por el campo 'order'
   const enrollmentsByGrade: EnrollmentsByGrade = {};
-  
+
   // Ordenar grados por el campo 'order' y crear entradas para todos
   grades
     .sort((a, b) => (a as any).order - (b as any).order)
@@ -491,7 +542,7 @@ export const MatriculasAdmin = () => {
           ([gradeName, gradeEnrollments]) => (
             <div
               key={gradeName}
-              className="collapse collapse-arrow bg-base-200"
+              className="collapse collapse-arrow bg-base-200 overflow-visible"
             >
               <input type="checkbox" />
               <div className="collapse-title text-xl font-medium flex items-center gap-3">
@@ -500,8 +551,8 @@ export const MatriculasAdmin = () => {
                   {gradeEnrollments.length} Estudiantes
                 </span>
               </div>
-              <div className="collapse-content">
-                <div className="overflow-x-auto mt-4">
+              <div className="collapse-content overflow-visible">
+                <div className="overflow-x-auto mt-4 lg:overflow-visible">
                   <table className="table table-zebra w-full">
                     <thead>
                       <tr>
@@ -512,205 +563,207 @@ export const MatriculasAdmin = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {gradeEnrollments.map((enrollment) => (
-                        <tr key={enrollment.id}>
-                          <td>
-                            <div className="font-medium">
-                              {enrollment.student.first_name}{" "}
-                              {enrollment.student.last_name}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {enrollment.student.email}
-                            </div>
-                          </td>
-                          <td>{formatDate(enrollment.enrollment_date)}</td>
-                          <td>
-                            <span
-                              className={`badge ${getStatusBadge(
-                                enrollment.status
-                              )} whitespace-nowrap`}
-                            >
-                              {getStatusLabel(enrollment.status)}
-                            </span>
-                          </td>
-                          <td>
-                            <div className="flex gap-2">
-                              {enrollment.status === "IN_REVIEW" && (
-                                <>
-                                  <button
-                                    className="btn btn-sm btn-secondary"
-                                    onClick={() =>
-                                      openDocumentsFolder(enrollment.id)
-                                    }
-                                    disabled={actionLoading === enrollment.id}
-                                  >
-                                    {actionLoading === enrollment.id ? (
-                                      <span className="loading loading-spinner loading-xs"></span>
-                                    ) : (
-                                      "📁 Ver Documentos"
-                                    )}
-                                  </button>
-                                  <button
-                                    className="btn btn-sm btn-success"
-                                    onClick={() =>
-                                      approveEnrollment(enrollment.id)
-                                    }
-                                    disabled={actionLoading === enrollment.id}
-                                  >
-                                    {actionLoading === enrollment.id ? (
-                                      <span className="loading loading-spinner loading-xs"></span>
-                                    ) : (
-                                      "✓ Aprobar"
-                                    )}
-                                  </button>
-                                  <button
-                                    className="btn btn-sm btn-warning"
-                                    onClick={() => {
-                                      setSelectedEnrollment(enrollment);
-                                      setShowCorrectionModal(true);
-                                    }}
-                                    disabled={actionLoading === enrollment.id}
-                                  >
-                                    ✏️ Corregir
-                                  </button>
-                                  <button
-                                    className="btn btn-sm btn-accent"
-                                    onClick={() => generatePDFs(enrollment.id)}
-                                    disabled={actionLoading === enrollment.id}
-                                  >
-                                    {actionLoading === enrollment.id ? (
-                                      <span className="loading loading-spinner loading-xs"></span>
-                                    ) : (
-                                      "📄 Generar PDFs"
-                                    )}
-                                  </button>
-                                  <button
-                                    className="btn btn-sm btn-error"
-                                    onClick={() =>
-                                      cancelEnrollment(enrollment.id)
-                                    }
-                                    disabled={actionLoading === enrollment.id}
-                                  >
-                                    {actionLoading === enrollment.id ? (
-                                      <span className="loading loading-spinner loading-xs"></span>
-                                    ) : (
-                                      "✕ Cancelar"
-                                    )}
-                                  </button>
-                                </>
-                              )}
+                      {gradeEnrollments.map((enrollment, index) => {
+                        // Determinar si es una de las últimas filas (aumentado a 3 y sin restricción de length)
+                        // Esto hace que en listas cortas (ej. 2 items) también se abra hacia arriba
+                        const isLastRows = index >= gradeEnrollments.length - 3;
 
-                              {enrollment.status === "PENDING" && (
-                                <>
-                                  <button
-                                    className="btn btn-sm btn-secondary"
-                                    onClick={() =>
-                                      openDocumentsFolder(enrollment.id)
-                                    }
-                                    disabled={folderLoading === enrollment.id}
-                                  >
-                                    {folderLoading === enrollment.id ? (
-                                      <span className="loading loading-spinner loading-xs"></span>
-                                    ) : (
-                                      "📁 Ver Documentos"
-                                    )}
-                                  </button>
-                                  <button
-                                    className="btn btn-sm btn-primary"
-                                    onClick={() => {
-                                      setSelectedEnrollment(enrollment);
-                                      setShowEditModal(true);
-                                    }}
-                                    disabled={actionLoading === enrollment.id}
-                                  >
-                                    ✏️ Editar
-                                  </button>
-                                  <button
-                                    className="btn btn-sm btn-error"
-                                    onClick={() =>
-                                      cancelEnrollment(enrollment.id)
-                                    }
-                                    disabled={actionLoading === enrollment.id}
-                                  >
-                                    {actionLoading === enrollment.id ? (
-                                      <span className="loading loading-spinner loading-xs"></span>
-                                    ) : (
-                                      "✕ Cancelar"
-                                    )}
-                                  </button>
-                                </>
-                              )}
-
-                              {enrollment.status === "ACTIVE" && (
-                                <>
-                                  <button
-                                    className="btn btn-sm btn-secondary"
-                                    onClick={() =>
-                                      openDocumentsFolder(enrollment.id)
-                                    }
-                                    disabled={folderLoading === enrollment.id}
-                                  >
-                                    {folderLoading === enrollment.id ? (
-                                      <span className="loading loading-spinner loading-xs"></span>
-                                    ) : (
-                                      "📁 Ver Documentos"
-                                    )}
-                                  </button>
-                                  <button
-                                    className="btn btn-sm btn-info"
-                                    onClick={() => {
-                                      setSelectedEnrollment(enrollment);
-                                      setShowViewModal(true);
-                                    }}
-                                  >
-                                    👁️ Ver
-                                  </button>
-                                  <button
-                                    className="btn btn-sm btn-accent"
-                                    onClick={() => generatePDFs(enrollment.id)}
-                                    disabled={actionLoading === enrollment.id}
-                                  >
-                                    {actionLoading === enrollment.id ? (
-                                      <span className="loading loading-spinner loading-xs"></span>
-                                    ) : (
-                                      "📄 Generar PDFs"
-                                    )}
-                                  </button>
-                                  <button
-                                    className="btn btn-sm btn-error"
-                                    onClick={() =>
-                                      cancelEnrollment(enrollment.id)
-                                    }
-                                    disabled={actionLoading === enrollment.id}
-                                  >
-                                    {actionLoading === enrollment.id ? (
-                                      <span className="loading loading-spinner loading-xs"></span>
-                                    ) : (
-                                      "✕ Cancelar"
-                                    )}
-                                  </button>
-                                </>
-                              )}
-
-                              {enrollment.status === "CANCELLED" && (
+                        return (
+                          <tr key={enrollment.id}>
+                            <td>
+                              <div className="font-medium">
+                                {enrollment.student.first_name}{" "}
+                                {enrollment.student.last_name}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {enrollment.student.email}
+                              </div>
+                            </td>
+                            <td>{formatDate(enrollment.enrollment_date)}</td>
+                            <td>
+                              <span
+                                className={`badge ${getStatusBadge(
+                                  enrollment.status
+                                )} whitespace-nowrap`}
+                              >
+                                {getStatusLabel(enrollment.status)}
+                              </span>
+                            </td>
+                            <td>
+                              <div className="flex items-center gap-1">
                                 <button
-                                  className="btn btn-sm btn-error"
+                                  className="btn btn-ghost btn-sm btn-circle text-info"
                                   onClick={() =>
-                                    deleteEnrollment(enrollment.id)
+                                    fetchEnrollmentDetails(enrollment)
                                   }
                                   disabled={actionLoading === enrollment.id}
+                                  title="Ver detalles"
                                 >
-                                  {actionLoading === enrollment.id ? (
-                                    <span className="loading loading-spinner loading-xs"></span>
-                                  ) : (
-                                    "🗑️ Eliminar"
-                                  )}
+                                  <Eye size={18} />
                                 </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+
+                                {/* Dropdown de Acciones */}
+                                <div
+                                  className={`dropdown dropdown-end ${isLastRows ? "dropdown-top" : "dropdown-bottom"
+                                    }`}
+                                >
+                                  <label
+                                    tabIndex={0}
+                                    className="btn btn-ghost btn-sm btn-circle"
+                                  >
+                                    <MoreVertical size={18} />
+                                  </label>
+                                  <ul
+                                    tabIndex={0}
+                                    className="dropdown-content z-50 menu p-2 shadow bg-base-100 rounded-box w-52"
+                                  >
+
+                                    {/* ESTADO: IN_REVIEW */}
+                                    {enrollment.status === "IN_REVIEW" && (
+                                      <>
+                                        <li>
+                                          <button
+                                            onClick={() =>
+                                              approveEnrollment(enrollment.id)
+                                            }
+                                            className="text-success"
+                                            disabled={
+                                              actionLoading === enrollment.id
+                                            }
+                                          >
+                                            <Check size={16} /> Aprobar
+                                          </button>
+                                        </li>
+                                        <li>
+                                          <button
+                                            onClick={() => {
+                                              setSelectedEnrollment(enrollment);
+                                              setShowCorrectionModal(true);
+                                            }}
+                                            className="text-warning"
+                                            disabled={
+                                              actionLoading === enrollment.id
+                                            }
+                                          >
+                                            <MessageSquare size={16} /> Solicitar
+                                            cambios
+                                          </button>
+                                        </li>
+                                        <li>
+                                          <button
+                                            onClick={() =>
+                                              generatePDFs(enrollment.id)
+                                            }
+                                            disabled={
+                                              actionLoading === enrollment.id
+                                            }
+                                          >
+                                            <FileText size={16} /> Generar PDFs
+                                          </button>
+                                        </li>
+                                        <li>
+                                          <button
+                                            onClick={() =>
+                                              cancelEnrollment(enrollment.id)
+                                            }
+                                            className="text-error"
+                                            disabled={
+                                              actionLoading === enrollment.id
+                                            }
+                                          >
+                                            <Ban size={16} /> Cancelar matrícula
+                                          </button>
+                                        </li>
+                                      </>
+                                    )}
+
+                                    {/* ESTADO: PENDING */}
+                                    {enrollment.status === "PENDING" && (
+                                      <>
+                                        <li>
+                                          <button
+                                            onClick={() => {
+                                              setSelectedEnrollment(enrollment);
+                                              setShowEditModal(true);
+                                            }}
+                                            disabled={
+                                              actionLoading === enrollment.id
+                                            }
+                                          >
+                                            <Pencil size={16} /> Editar
+                                          </button>
+                                        </li>
+                                        <li>
+                                          <button
+                                            onClick={() =>
+                                              cancelEnrollment(enrollment.id)
+                                            }
+                                            className="text-error"
+                                            disabled={
+                                              actionLoading === enrollment.id
+                                            }
+                                          >
+                                            <Ban size={16} /> Cancelar matrícula
+                                          </button>
+                                        </li>
+                                      </>
+                                    )}
+
+                                    {/* ESTADO: ACTIVE */}
+                                    {enrollment.status === "ACTIVE" && (
+                                      <>
+                                        <li>
+                                          <button
+                                            onClick={() =>
+                                              generatePDFs(enrollment.id)
+                                            }
+                                            disabled={
+                                              actionLoading === enrollment.id
+                                            }
+                                          >
+                                            <FileText size={16} /> Generar PDFs
+                                          </button>
+                                        </li>
+                                        <li>
+                                          <button
+                                            onClick={() =>
+                                              cancelEnrollment(enrollment.id)
+                                            }
+                                            className="text-error"
+                                            disabled={
+                                              actionLoading === enrollment.id
+                                            }
+                                          >
+                                            <Ban size={16} /> Cancelar matrícula
+                                          </button>
+                                        </li>
+                                      </>
+                                    )}
+
+                                    {/* ESTADO: CANCELLED */}
+                                    {enrollment.status === "CANCELLED" && (
+                                      <li>
+                                        <button
+                                          onClick={() =>
+                                            deleteEnrollment(enrollment.id)
+                                          }
+                                          className="text-error"
+                                          disabled={
+                                            actionLoading === enrollment.id
+                                          }
+                                        >
+                                          <Trash2 size={16} /> Eliminar
+                                          permanentemente
+                                        </button>
+                                      </li>
+                                    )}
+                                  </ul>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -1074,6 +1127,263 @@ export const MatriculasAdmin = () => {
           </div>
         </>
       )}
+
+      {/* Modal de Ver Datos Completos del Estudiante (Step3 Style) */}
+      {
+        showStudentDataModal && (
+          <>
+            {/* Fondo opaco */}
+            <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm"></div>
+            {/* Modal */}
+            <div
+              role="dialog"
+              aria-modal="true"
+              className="fixed left-1/2 top-1/2 z-50 w-full max-w-5xl max-h-[90vh] translate-x-[-50%] translate-y-[-50%] border border-gray-300 bg-white shadow-lg duration-200 animate-in sm:rounded-lg overflow-hidden flex flex-col"
+              tabIndex={-1}
+            >
+              {/* Header - Fixed */}
+              <div className="flex-shrink-0 p-6 border-b border-gray-200">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-800">
+                      Información Completa
+                    </h2>
+                    {!detailsLoading && selectedEnrollmentData && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        {selectedEnrollmentData.student.first_name}{" "}
+                        {selectedEnrollmentData.student.last_name} -{" "}
+                        {selectedEnrollmentData.grade.description || selectedEnrollmentData.grade.name} - {selectedEnrollmentData.academic_year}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {/* Botón Ver Documentos (Solo si hay data) */}
+                    {!detailsLoading && selectedEnrollmentData && (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-ghost gap-2"
+                        onClick={() => openDocumentsFolder()}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Documentos
+                      </button>
+                    )}
+                    {/* Botón Cerrar */}
+                    <button
+                      type="button"
+                      className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      onClick={() => {
+                        setShowStudentDataModal(false);
+                        setSelectedEnrollmentData(null);
+                      }}
+                    >
+                      <X className="h-5 w-5" />
+                      <span className="sr-only">Cerrar</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content - Scrollable */}
+              <div className="flex-1 overflow-y-auto p-6">
+                {detailsLoading ? (
+                  <div className="flex justify-center items-center h-full min-h-[300px]">
+                    <span className="loading loading-spinner loading-lg text-primary"></span>
+                  </div>
+                ) : (
+                  selectedEnrollmentData && (() => {
+                    const studentData = selectedEnrollmentData.student?.student_data || {};
+                    const student = selectedEnrollmentData.student || {};
+                    // Helper component for SectionCard
+                    const SectionCard = ({ title, children }: any) => {
+                      const [isOpen, setIsOpen] = useState(title === "Información del Estudiante");
+                      return (
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md">
+                          <button
+                            type="button"
+                            className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors"
+                            onClick={() => setIsOpen(!isOpen)}
+                          >
+                            <h3 className="text-lg font-bold text-primary uppercase tracking-wide flex items-center gap-2">
+                              {title}
+                            </h3>
+                            <span className={`transform transition-transform duration-300 ${isOpen ? "rotate-180" : "rotate-0"}`}>
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </span>
+                          </button>
+                          <div className={`border-t border-gray-100 transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? "max-h-[5000px] opacity-100" : "max-h-0 opacity-0"}`}>
+                            <div className="p-6">{children}</div>
+                          </div>
+                        </div>
+                      );
+                    };
+                    // Helper component for displaying field
+                    const DisplayField = ({ label, value }: any) => {
+                      if (!value && value !== 0 && value !== false) return null;
+                      return (
+                        <div className="form-control w-full">
+                          <label className="label">
+                            <span className="label-text font-medium text-gray-600">{label}</span>
+                          </label>
+                          <div className="input input-bordered w-full bg-gray-50 cursor-default flex items-center">
+                            {typeof value === "boolean" ? (value ? "Sí" : "No") : value}
+                          </div>
+                        </div>
+                      );
+                    };
+                    return (
+                      <div className="space-y-4">
+                        {/* Sección: Información del Estudiante */}
+                        <SectionCard title="Información del Estudiante">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <DisplayField label="Primer Nombre" value={studentData.student_firstname1} />
+                            <DisplayField label="Segundo Nombre" value={studentData.student_firstname2} />
+                            <DisplayField label="Primer Apellido" value={studentData.student_lastname1} />
+                            <DisplayField label="Segundo Apellido" value={studentData.student_lastname2} />
+                            <DisplayField label="Email" value={student.email} />
+                            <DisplayField label="Tipo de Documento" value={studentData.student_id_type} />
+                            <DisplayField label="Número de Documento" value={studentData.student_id_number} />
+                            <DisplayField label="Fecha de Nacimiento" value={studentData.student_birth_date} />
+                            <DisplayField label="Edad" value={studentData.student_age} />
+                            <DisplayField label="Género" value={studentData.student_gender} />
+                            <DisplayField label="Grupo Sanguíneo" value={studentData.student_blood_abo} />
+                            <DisplayField label="RH" value={studentData.student_blood_rh} />
+                            <DisplayField label="Ciudad de Nacimiento" value={studentData.student_birth_city} />
+                            <DisplayField label="Religión" value={studentData.student_religion} />
+                          </div>
+                        </SectionCard>
+                        {/* Sección: Datos de Residencia */}
+                        <SectionCard title="Datos de Residencia">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <DisplayField label="Dirección" value={studentData.residence_address} />
+                            <DisplayField label="Complemento" value={studentData.residence_address_complement} />
+                            <DisplayField label="Barrio" value={studentData.residence_barrio} />
+                            <DisplayField label="Estrato" value={studentData.residence_stratum} />
+                            <DisplayField label="Ciudad" value={studentData.residence_city} />
+                            <DisplayField label="Departamento" value={studentData.residence_department} />
+                            <DisplayField label="País" value={studentData.residence_country} />
+                          </div>
+                        </SectionCard>
+                        {/* Sección: Información Médica */}
+                        <SectionCard title="Información Médica">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <DisplayField label="EPS" value={studentData.student_health_eps} />
+                            <DisplayField label="Tiene Alergias" value={studentData.medical_has_allergies} />
+                            <DisplayField label="Detalle de Alergias" value={studentData.medical_allergies_detail} />
+                            <DisplayField label="Toma Medicamentos" value={studentData.medical_has_medications} />
+                            <DisplayField label="Detalle de Medicamentos" value={studentData.medical_medications_detail} />
+                            <DisplayField label="Tiene Historial Médico" value={studentData.medical_has_history} />
+                            <DisplayField label="Detalle de Historial" value={studentData.medical_history_detail} />
+                            <DisplayField label="Tiene Diagnóstico" value={studentData.medical_has_diagnosis} />
+                            <DisplayField label="Información Adicional" value={studentData.medical_diagnosis_additional_info} />
+                          </div>
+                        </SectionCard>
+                        {/* Sección: Datos del Padre */}
+                        <SectionCard title="Datos del Padre">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <DisplayField label="Primer Nombre" value={studentData.father_firstname1} />
+                            <DisplayField label="Segundo Nombre" value={studentData.father_firstname2} />
+                            <DisplayField label="Primer Apellido" value={studentData.father_lastname1} />
+                            <DisplayField label="Segundo Apellido" value={studentData.father_lastname2} />
+                            <DisplayField label="Tipo de Documento" value={studentData.father_document_type} />
+                            <DisplayField label="Número de Documento" value={studentData.father_id_number} />
+                            <DisplayField label="Ciudad de Expedición" value={studentData.father_id_city} />
+                            <DisplayField label="Email" value={studentData.father_email} />
+                            <DisplayField label="Teléfono" value={studentData.father_phone} />
+                            <DisplayField label="Ocupación" value={studentData.father_occupation} />
+                            <DisplayField label="Lugar de Trabajo" value={studentData.father_workplace} />
+                            <DisplayField label="Dirección de Trabajo" value={studentData.father_work_address} />
+                            <DisplayField label="Teléfono de Trabajo" value={studentData.father_work_phone} />
+                            <DisplayField label="País" value={studentData.father_country} />
+                            <DisplayField label="Departamento" value={studentData.father_department} />
+                            <DisplayField label="Ciudad" value={studentData.father_city} />
+                            <DisplayField label="Vive con el Estudiante" value={studentData.father_lives_with_student} />
+                          </div>
+                        </SectionCard>
+                        {/* Sección: Datos de la Madre */}
+                        <SectionCard title="Datos de la Madre">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <DisplayField label="Primer Nombre" value={studentData.mother_firstname1} />
+                            <DisplayField label="Segundo Nombre" value={studentData.mother_firstname2} />
+                            <DisplayField label="Primer Apellido" value={studentData.mother_lastname1} />
+                            <DisplayField label="Segundo Apellido" value={studentData.mother_lastname2} />
+                            <DisplayField label="Tipo de Documento" value={studentData.mother_document_type} />
+                            <DisplayField label="Número de Documento" value={studentData.mother_id_number} />
+                            <DisplayField label="Ciudad de Expedición" value={studentData.mother_id_city} />
+                            <DisplayField label="Email" value={studentData.mother_email} />
+                            <DisplayField label="Teléfono" value={studentData.mother_phone} />
+                            <DisplayField label="Ocupación" value={studentData.mother_occupation} />
+                            <DisplayField label="Lugar de Trabajo" value={studentData.mother_workplace} />
+                            <DisplayField label="Dirección de Trabajo" value={studentData.mother_work_address} />
+                            <DisplayField label="Teléfono de Trabajo" value={studentData.mother_work_phone} />
+                            <DisplayField label="País" value={studentData.mother_country} />
+                            <DisplayField label="Departamento" value={studentData.mother_department} />
+                            <DisplayField label="Ciudad" value={studentData.mother_city} />
+                            <DisplayField label="Vive con el Estudiante" value={studentData.mother_lives_with_student} />
+                          </div>
+                        </SectionCard>
+                        {/* Sección: Datos del Acudiente */}
+                        <SectionCard title="Datos del Acudiente">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <DisplayField label="Tipo de Acudiente" value={studentData.guardian_type} />
+                            <DisplayField label="Relación" value={studentData.guardian_relationship} />
+                            <DisplayField label="Primer Nombre" value={studentData.guardian_firstname1} />
+                            <DisplayField label="Segundo Nombre" value={studentData.guardian_firstname2} />
+                            <DisplayField label="Primer Apellido" value={studentData.guardian_lastname1} />
+                            <DisplayField label="Segundo Apellido" value={studentData.guardian_lastname2} />
+                            <DisplayField label="Nombre Completo" value={studentData.guardian_full_name} />
+                            <DisplayField label="Tipo de Documento" value={studentData.guardian_document_type} />
+                            <DisplayField label="Número de Documento" value={studentData.guardian_id_number} />
+                            <DisplayField label="Ciudad de Expedición" value={studentData.guardian_id_city} />
+                            <DisplayField label="Email" value={studentData.guardian_email} />
+                            <DisplayField label="Teléfono" value={studentData.guardian_phone} />
+                            <DisplayField label="Ocupación" value={studentData.guardian_occupation} />
+                            <DisplayField label="Lugar de Trabajo" value={studentData.guardian_workplace} />
+                            <DisplayField label="País" value={studentData.guardian_country} />
+                            <DisplayField label="Departamento" value={studentData.guardian_department} />
+                            <DisplayField label="Ciudad" value={studentData.guardian_city} />
+                          </div>
+                        </SectionCard>
+                        {/* Sección: Información Académica y Otros Datos */}
+                        <SectionCard title="Información Académica y Otros Datos">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <DisplayField label="Grado" value={studentData.grade} />
+                            <DisplayField label="Año Escolar" value={studentData.school_year} />
+                            <DisplayField label="Estado Civil de los Padres" value={studentData.parents_marital_status} />
+                            <DisplayField label="Tiene Hermanos" value={studentData.student_has_siblings} />
+                            <DisplayField label="Hermanos en el Colegio" value={studentData.student_siblings_in_school} />
+                            <DisplayField label="Tiene Celular" value={studentData.student_has_cellphone} />
+                            <DisplayField label="Fecha del Formulario" value={studentData.form_date} />
+                          </div>
+                        </SectionCard>
+                      </div>
+                    );
+                  })()
+                )}
+              </div>
+              {/* Footer - Fixed */}
+              <div className="flex-shrink-0 p-6 border-t border-gray-200 bg-gray-50">
+                <div className="flex justify-end">
+                  <button
+                    className="btn btn-ghost"
+                    onClick={() => {
+                      setShowStudentDataModal(false);
+                      setSelectedEnrollmentData(null);
+                    }}
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )
+      }
     </div>
   );
 };
+

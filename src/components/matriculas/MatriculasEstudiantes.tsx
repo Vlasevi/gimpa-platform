@@ -10,44 +10,37 @@ import { EnrollmentBlockedMessage } from "./EnrollmentBlockedMessage";
 import { useAuth } from "@/components/Login/loginLogic";
 import { apiUrl, API_ENDPOINTS } from "@/utils/api";
 
-// Tipado de la respuesta del backend
+// Tipado de la respuesta del backend (estructura optimizada)
 export interface EnrollmentResponse {
-  current_enrollment: {
-    id: number | null;
-    student: {
-      email: string;
-      first_name: string;
-      last_name: string;
-    } | null;
+  actual_enrollment: {
+    id: number;
     grade: {
       id: number;
       name: string;
       description: string;
-    } | null;
-    academic_year: number | null;
-    enrollment_date: string | null;
-    status: string | null;
-    is_editable: boolean | null;
-    is_first_enrollment: boolean | null;
+    };
+    academic_year: number;
+    status: string;
+    is_editable: boolean;
+    is_first_enrollment: boolean;
+    needs_correction: boolean;
+    correction_comment: string | null;
   } | null;
-  eligibility: {
-    can_enroll: boolean;
-    is_completing: boolean;
-    is_new_enrollment: boolean;
-    existing_enrollment_id: number | null;
-    target_academic_year: number | null;
-    suggested_grade: {
+  suggested_enrollment: {
+    grade: {
       id: number;
       name: string;
       description: string;
-    } | null;
-    existing_data: Record<string, any>;
-    needs_correction: boolean;
-    correction_message: string;
-    enrollment_status: string | null;
+    };
+    academic_year: number;
+  } | null;
+  eligibility: {
+    can_enroll: boolean;
     message: string;
+    existing_data: Record<string, any>;
   };
 }
+
 
 export const MatriculasEstudiantes = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -96,7 +89,7 @@ export const MatriculasEstudiantes = () => {
   // Use eligibility logic from backend
   const canEnroll = enrollmentInfo?.eligibility?.can_enroll ?? true;
   const eligibilityMessage = enrollmentInfo?.eligibility?.message ?? "";
-  const enrollmentStatus = enrollmentInfo?.current_enrollment?.status;
+  const enrollmentStatus = enrollmentInfo?.actual_enrollment?.status;
 
   return (
     <div className="container mx-auto p-6">
@@ -114,15 +107,15 @@ export const MatriculasEstudiantes = () => {
               <EnrollmentBlockedMessage
                 message={eligibilityMessage}
                 targetYear={
-                  enrollmentInfo.eligibility.target_academic_year ||
+                  enrollmentInfo.suggested_enrollment?.academic_year ||
                   new Date().getFullYear()
                 }
                 existingEnrollment={
-                  enrollmentInfo.current_enrollment
+                  enrollmentInfo.actual_enrollment
                     ? {
-                        grade: enrollmentInfo.current_enrollment.grade!,
-                        status: enrollmentInfo.current_enrollment.status!,
-                      }
+                      grade: enrollmentInfo.actual_enrollment.grade,
+                      status: enrollmentInfo.actual_enrollment.status,
+                    }
                     : undefined
                 }
               />
@@ -191,7 +184,7 @@ export const MatriculasEstudiantes = () => {
                       updateUploadedFiles={updateUploadedFiles}
                       enrollmentInfo={enrollmentInfo}
                       enrollmentId={
-                        enrollmentInfo.current_enrollment?.id ?? null
+                        enrollmentInfo.actual_enrollment?.id ?? null
                       }
                       preloadedDocuments={documents}
                     />

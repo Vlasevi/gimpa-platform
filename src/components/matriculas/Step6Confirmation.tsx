@@ -13,7 +13,7 @@ export const Step6Confirmation = ({
   const [hasDiagnosis, setHasDiagnosis] = useState(false);
 
   const handleFinalSubmit = async () => {
-    const enrollmentId = enrollmentInfo?.current_enrollment?.id;
+    const enrollmentId = enrollmentInfo?.actual_enrollment?.id;
 
     if (!enrollmentId) {
       alert("No se encontró la matrícula");
@@ -33,9 +33,10 @@ export const Step6Confirmation = ({
       let showMotherID = false;
       let showGuardianID = false;
       let guardianRelationship = "";
+      let studentData: any = {};
 
       if (step3DataStr) {
-        const studentData = JSON.parse(step3DataStr);
+        studentData = JSON.parse(step3DataStr);
         const diagnosis = studentData.medical_has_diagnosis;
         studentHasDiagnosis = diagnosis && diagnosis !== "Ninguno";
         setHasDiagnosis(studentHasDiagnosis);
@@ -45,35 +46,13 @@ export const Step6Confirmation = ({
         showMotherID = studentData.mother_lives_with_student || false;
         showGuardianID = studentData.lives_with_other || false;
         guardianRelationship = studentData.guardian_relationship || "";
-
-        console.log("Enviando datos del estudiante al backend...");
-        const updateResponse = await fetch(
-          apiUrl(API_ENDPOINTS.enrollmentUpdateData(enrollmentId)),
-          {
-            method: "PATCH",
-            headers: buildHeaders(),
-            body: JSON.stringify({ student_data: studentData }),
-            credentials: "include",
-          }
-        );
-
-        if (!updateResponse.ok) {
-          const error = await updateResponse.json();
-          alert(
-            `Error al guardar datos: ${error.error || "Error desconocido"}`
-          );
-          setSending(false);
-          return;
-        }
-
-        console.log("Datos del estudiante guardados correctamente");
       }
 
       // ---------- PASO 2: Subir firma y documentos (Step4) ----------
       // Determinar si es primera matrícula y si es preescolar
-      const currentEnrollment = enrollmentInfo?.current_enrollment;
-      const isFirstEnrollment = currentEnrollment?.is_first_enrollment || false;
-      const gradeName = currentEnrollment?.grade?.name || "";
+      const actualEnrollment = enrollmentInfo?.actual_enrollment;
+      const isFirstEnrollment = actualEnrollment?.is_first_enrollment || false;
+      const gradeName = actualEnrollment?.grade?.name || "";
 
       const preescolarGrades = [
         "Caminadores",
@@ -283,13 +262,14 @@ export const Step6Confirmation = ({
         console.log("No hay documentos nuevos que subir, continuando...");
       }
 
-      // ---------- PASO 3: Enviar matrícula a revisión ----------
+      // ---------- PASO 3: Enviar matrícula a revisión (UNIFICADO) ----------
       console.log("Enviando matrícula a revisión...");
       const response = await fetch(
-        apiUrl(API_ENDPOINTS.enrollmentSubmit(enrollmentId)),
+        apiUrl(API_ENDPOINTS.enrollmentById(enrollmentId)),
         {
-          method: "POST",
+          method: "PATCH",
           headers: buildHeaders(),
+          body: JSON.stringify({ student_data: studentData }),
           credentials: "include",
         }
       );
@@ -388,10 +368,10 @@ export const Step6Confirmation = ({
 
   // Datos para el resumen (grado sugerido / año objetivo)
   const suggestedGrade =
-    enrollmentInfo?.eligibility?.suggested_grade?.description ||
-    enrollmentInfo?.current_enrollment?.grade?.name ||
+    enrollmentInfo?.suggested_enrollment?.grade?.description ||
+    enrollmentInfo?.actual_enrollment?.grade?.name ||
     "N/A";
-  const targetYear = enrollmentInfo?.eligibility?.target_academic_year || "N/A";
+  const targetYear = enrollmentInfo?.suggested_enrollment?.academic_year || "N/A";
 
   return (
     <div className="space-y-6">

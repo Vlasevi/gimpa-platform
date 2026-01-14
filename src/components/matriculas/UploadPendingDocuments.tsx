@@ -34,11 +34,11 @@ export const UploadPendingDocuments = () => {
           setEnrollmentInfo(enrollmentData);
 
           // Si hay una matrícula activa, cargar documentos
-          if (enrollmentData.current_enrollment?.id) {
+          if (enrollmentData.actual_enrollment?.id) {
             const docsRes = await fetch(
               apiUrl(
                 API_ENDPOINTS.enrollmentDocuments(
-                  enrollmentData.current_enrollment.id
+                  enrollmentData.actual_enrollment.id
                 )
               ),
               { credentials: "include" }
@@ -61,7 +61,7 @@ export const UploadPendingDocuments = () => {
   }, []);
 
   const handleSubmit = async () => {
-    if (!enrollmentInfo?.current_enrollment?.id) {
+    if (!enrollmentInfo?.actual_enrollment?.id) {
       alert("No se encontró una matrícula activa");
       return;
     }
@@ -84,7 +84,7 @@ export const UploadPendingDocuments = () => {
       const response = await fetch(
         apiUrl(
           API_ENDPOINTS.enrollmentDocuments(
-            enrollmentInfo.current_enrollment.id
+            enrollmentInfo.actual_enrollment.id
           )
         ),
         {
@@ -126,7 +126,7 @@ export const UploadPendingDocuments = () => {
 
   // Verificar si hay matrícula activa
   const hasActiveEnrollment =
-    enrollmentInfo?.current_enrollment?.status === "ACTIVE";
+    enrollmentInfo?.actual_enrollment?.status === "ACTIVE";
 
   if (!hasActiveEnrollment) {
     return (
