@@ -1,9 +1,14 @@
 interface DisplayFieldProps {
     label: string;
     value: string | number | boolean | null | undefined;
+    highlight?: boolean;
 }
 
-export const DisplayField = ({ label, value }: DisplayFieldProps) => {
+export const DisplayField = ({
+    label,
+    value,
+    highlight = false,
+}: DisplayFieldProps) => {
     // Don't render if value is empty (but allow 0 and false)
     if (value === null || value === undefined || value === "") return null;
 
@@ -12,13 +17,16 @@ export const DisplayField = ({ label, value }: DisplayFieldProps) => {
         typeof value === "boolean" ? (value ? "Sí" : "No") : value;
 
     return (
-        <div className="form-control w-full">
-            <label className="label">
-                <span className="label-text font-medium text-gray-600">{label}</span>
-            </label>
-            <div className="input input-bordered w-full bg-gray-50 cursor-default flex items-center">
+        <div className="flex flex-col gap-1 py-1">
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                {label}
+            </span>
+            <span
+                className={`font-medium text-sm text-gray-700 leading-snug border-b border-gray-100 pb-1 ${highlight ? "text-red-500 font-bold" : ""
+                    }`}
+            >
                 {displayValue}
-            </div>
+            </span>
         </div>
     );
 };

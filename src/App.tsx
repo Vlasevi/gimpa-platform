@@ -9,6 +9,7 @@ import Matriculas from "./pages/Matriculas";
 import Notas from "./pages/Notas";
 import Pagos from "./pages/Pagos";
 import Certificados from "./pages/Certificados";
+import Usuarios from "./pages/Usuarios";
 import NotAuthorized from "./pages/NotAuthorized";
 import NotFound from "./pages/NotFound";
 import DocumentosPendientes from "./pages/DocumentosPendientes";
@@ -36,6 +37,7 @@ const App = () => (
               <Route path="/notas" element={<Notas />} />
               <Route path="/pagos" element={<Pagos />} />
               <Route path="/certificados" element={<Certificados />} />
+              <Route path="/usuarios" element={<Usuarios />} />
             </Route>
           </Route>
 

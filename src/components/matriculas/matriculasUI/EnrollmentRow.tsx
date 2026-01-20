@@ -1,14 +1,15 @@
 import {
     Eye,
-    MoreVertical,
+    MoreHorizontal,
     Check,
     MessageSquare,
     FileText,
     Ban,
     Pencil,
     Trash2,
+    User,
 } from "lucide-react";
-import { getStatusLabel, getStatusBadgeClass } from "@/utils/statusHelpers";
+import { getStatusLabel } from "@/utils/statusHelpers";
 
 // Types
 interface Student {
@@ -16,6 +17,7 @@ interface Student {
     first_name: string;
     last_name: string;
     email: string;
+    photo_url?: string;
 }
 
 interface Grade {
@@ -52,6 +54,22 @@ interface EnrollmentRowProps {
     formatDate: (dateString: string) => string;
 }
 
+// Helper function for status badge styles using theme colors with opacity and border
+const getStatusBadgeStyle = (status: string) => {
+    switch (status) {
+        case "ACTIVE":
+            return "bg-success/15 text-success border border-success/20";
+        case "PENDING":
+            return "bg-warning/15 text-warning border border-warning/20";
+        case "IN_REVIEW":
+            return "bg-info/15 text-info border border-info/20";
+        case "CANCELLED":
+            return "bg-error/15 text-error border border-error/20";
+        default:
+            return "bg-base-300 text-base-content border border-base-300";
+    }
+};
+
 export const EnrollmentRow = ({
     enrollment,
     isLastRows,
@@ -68,40 +86,60 @@ export const EnrollmentRow = ({
     const isLoading = actionLoading === enrollment.id;
 
     return (
-        <tr>
-            {/* Estudiante */}
-            <td>
-                <div className="font-medium">
-                    {enrollment.student.first_name} {enrollment.student.last_name}
+        <tr className="hover:bg-base-200/50 transition-colors">
+            {/* Estudiante con Avatar */}
+            <td className="py-4 px-6 align-middle">
+                <div className="flex items-center gap-3">
+                    {/* Avatar más grande con borde */}
+                    <div className="w-10 h-10 rounded-full bg-primary/10 shrink-0 border border-base-300 overflow-hidden flex items-center justify-center">
+                        {enrollment.student.photo_url ? (
+                            <img
+                                src={enrollment.student.photo_url}
+                                alt={enrollment.student.first_name}
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <User className="w-5 h-5 text-primary/60" />
+                        )}
+                    </div>
+                    <div>
+                        <p className="font-bold text-base-content leading-tight">
+                            {enrollment.student.first_name} {enrollment.student.last_name}
+                        </p>
+                        <p className="text-xs text-base-content/50">
+                            {enrollment.student.email}
+                        </p>
+                    </div>
                 </div>
-                <div className="text-xs text-gray-500">{enrollment.student.email}</div>
             </td>
 
             {/* Fecha de Matrícula */}
-            <td>{formatDate(enrollment.enrollment_date)}</td>
+            <td className="py-4 px-6 text-base-content text-sm align-middle">
+                {formatDate(enrollment.enrollment_date)}
+            </td>
 
             {/* Estado */}
-            <td>
+            <td className="py-4 px-6 text-center align-middle">
                 <span
-                    className={`badge ${getStatusBadgeClass(
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${getStatusBadgeStyle(
                         enrollment.status
-                    )} whitespace-nowrap`}
+                    )}`}
                 >
                     {getStatusLabel(enrollment.status)}
                 </span>
             </td>
 
             {/* Acciones */}
-            <td>
-                <div className="flex items-center gap-1">
+            <td className="py-4 px-6 text-right align-middle">
+                <div className="flex justify-end gap-2">
                     {/* Botón Ver Detalles */}
                     <button
-                        className="btn btn-ghost btn-sm btn-circle text-info"
+                        className="p-2 text-base-content/40 hover:text-primary hover:bg-primary/10 rounded-full transition-all"
                         onClick={() => onViewDetails(enrollment)}
                         disabled={isLoading}
                         title="Ver detalles"
                     >
-                        <Eye size={18} />
+                        <Eye className="h-5 w-5" />
                     </button>
 
                     {/* Dropdown de Acciones */}
@@ -109,12 +147,15 @@ export const EnrollmentRow = ({
                         className={`dropdown dropdown-end ${isLastRows ? "dropdown-top" : "dropdown-bottom"
                             }`}
                     >
-                        <label tabIndex={0} className="btn btn-ghost btn-sm btn-circle">
-                            <MoreVertical size={18} />
+                        <label
+                            tabIndex={0}
+                            className="p-2 text-base-content/40 hover:text-base-content hover:bg-base-200 rounded-full transition-all cursor-pointer inline-flex"
+                        >
+                            <MoreHorizontal className="h-5 w-5" />
                         </label>
                         <ul
                             tabIndex={0}
-                            className="dropdown-content z-50 menu p-2 shadow bg-base-100 rounded-box w-52"
+                            className="dropdown-content z-50 menu p-2 shadow-lg bg-base-100 rounded-lg w-52 border border-base-300"
                         >
                             {/* ESTADO: IN_REVIEW */}
                             {enrollment.status === "IN_REVIEW" && (

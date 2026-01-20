@@ -7,6 +7,7 @@ import {
   BookUser,
   NotebookText,
   FileUp,
+  Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -19,11 +20,12 @@ interface MenuItem {
   permissionKey: string[]; // <-- La llave que el backend debe enviar
 }
 
-const featureEnvMap = {
+const featureEnvMap: Record<string, boolean> = {
   Notas: import.meta.env.VITE_FEATURE_NOTAS === "true",
   Matrículas: import.meta.env.VITE_FEATURE_MATRICULAS === "true",
   Pagos: import.meta.env.VITE_FEATURE_PAGOS === "true",
   Certificados: import.meta.env.VITE_FEATURE_CERTIFICADOS === "true",
+  Usuarios: import.meta.env.VITE_FEATURE_USUARIOS === "true",
 };
 
 // 1. Esta lista es tu "mapa" del frontend
@@ -51,6 +53,12 @@ const ALL_MENU_ITEMS: MenuItem[] = [
     path: "/certificados",
     icon: NotebookText,
     permissionKey: ["manage_certifications", "make_certification"],
+  },
+  {
+    label: "Usuarios",
+    path: "/usuarios",
+    icon: Users,
+    permissionKey: ["create_user", "edit_user", "delete_user"],
   },
 ];
 export const Sidebar = () => {

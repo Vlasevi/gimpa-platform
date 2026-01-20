@@ -892,6 +892,35 @@ export const Step3StudentData = ({
       if (needsCleaning) {
         update(fieldsToClean);
       }
+    } else if (data.guardian_type === "Empresa") {
+      // Limpiar campos de persona natural cuando se selecciona "Empresa"
+      const fieldsToClean = {
+        // Nombres separados (para Empresa se usa guardian_full_name = Razón Social)
+        guardian_lastname1: "",
+        guardian_lastname2: "",
+        guardian_firstname1: "",
+        guardian_firstname2: "",
+        // Tipo de documento (para Empresa se usa NIT directamente en guardian_id_number)
+        guardian_document_type: "",
+        // Datos personales que no aplican para empresas
+        guardian_country: "",
+        guardian_department: "",
+        guardian_city: "",
+        guardian_religion: "",
+        guardian_residence_stratum: "",
+        guardian_relationship: "",
+        // Información laboral (no aplica para empresas)
+        guardian_profession: "",
+        guardian_company_name: "",
+        guardian_company_address: "",
+        guardian_work_phone: "",
+      };
+      const needsCleaning = Object.keys(fieldsToClean).some(
+        (key) => data[key] !== ""
+      );
+      if (needsCleaning) {
+        update(fieldsToClean);
+      }
     }
   }, [
     data.guardian_type,
@@ -2478,179 +2507,210 @@ export const Step3StudentData = ({
               name="guardian_type"
               value={data.guardian_type}
               onChange={handleChange}
-              options={["Padre", "Madre", "Otro"]}
+              options={["Padre", "Madre", "Otro", "Empresa"]}
               placeholder="Seleccionar..."
               required={true}
             />
 
-            <FormInput
-              label="Primer Apellido"
-              name="guardian_lastname1"
-              value={data.guardian_lastname1}
-              onChange={handleChange}
-              pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+"
-              required={data.guardian_type === "Otro"}
-              disabled={
-                data.guardian_type === "Padre" || data.guardian_type === "Madre"
-              }
-            />
-            <FormInput
-              label="Segundo Apellido"
-              name="guardian_lastname2"
-              value={data.guardian_lastname2}
-              onChange={handleChange}
-              pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+"
-              required={data.guardian_type === "Otro"}
-              disabled={
-                data.guardian_type === "Padre" || data.guardian_type === "Madre"
-              }
-            />
-            <FormInput
-              label="Primer Nombre"
-              name="guardian_firstname1"
-              value={data.guardian_firstname1}
-              onChange={handleChange}
-              pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+"
-              required={data.guardian_type === "Otro"}
-              disabled={
-                data.guardian_type === "Padre" || data.guardian_type === "Madre"
-              }
-            />
-            <FormInput
-              label="Segundo Nombre"
-              name="guardian_firstname2"
-              value={data.guardian_firstname2}
-              onChange={handleChange}
-              pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+"
-              required={data.guardian_type === "Otro"}
-              disabled={
-                data.guardian_type === "Padre" || data.guardian_type === "Madre"
-              }
-            />
+            {/* Campos para Empresa */}
+            {data.guardian_type === "Empresa" && (
+              <>
+                <FormInput
+                  label="Razón Social"
+                  name="guardian_full_name"
+                  value={data.guardian_full_name}
+                  onChange={handleChange}
+                  required={true}
+                />
+                <FormInput
+                  label="NIT"
+                  name="guardian_id_number"
+                  value={data.guardian_id_number}
+                  onChange={handleChange}
+                  placeholder="Ej: 900123456-7"
+                  required={true}
+                />
+              </>
+            )}
 
-            <FormSelect
-              label="Tipo de Documento"
-              name="guardian_document_type"
-              value={data.guardian_document_type}
-              onChange={handleChange}
-              options={DOCUMENT_TYPES}
-              required={data.guardian_type === "Otro"}
-              disabled={
-                data.guardian_type === "Padre" || data.guardian_type === "Madre"
-              }
-            />
-            <FormInput
-              label="Número de ID"
-              name="guardian_id_number"
-              value={data.guardian_id_number}
-              onChange={handleChange}
-              pattern="[0-9]*"
-              inputMode="numeric"
-              required={data.guardian_type === "Otro"}
-              disabled={
-                data.guardian_type === "Padre" || data.guardian_type === "Madre"
-              }
-            />
+            {/* Campos para Persona Natural (Padre, Madre, Otro) */}
+            {data.guardian_type !== "Empresa" && (
+              <>
+                <FormInput
+                  label="Primer Apellido"
+                  name="guardian_lastname1"
+                  value={data.guardian_lastname1}
+                  onChange={handleChange}
+                  pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+"
+                  required={data.guardian_type === "Otro"}
+                  disabled={
+                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                  }
+                />
+                <FormInput
+                  label="Segundo Apellido"
+                  name="guardian_lastname2"
+                  value={data.guardian_lastname2}
+                  onChange={handleChange}
+                  pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+"
+                  required={data.guardian_type === "Otro"}
+                  disabled={
+                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                  }
+                />
+                <FormInput
+                  label="Primer Nombre"
+                  name="guardian_firstname1"
+                  value={data.guardian_firstname1}
+                  onChange={handleChange}
+                  pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+"
+                  required={data.guardian_type === "Otro"}
+                  disabled={
+                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                  }
+                />
+                <FormInput
+                  label="Segundo Nombre"
+                  name="guardian_firstname2"
+                  value={data.guardian_firstname2}
+                  onChange={handleChange}
+                  pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+"
+                  required={data.guardian_type === "Otro"}
+                  disabled={
+                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                  }
+                />
+
+                <FormSelect
+                  label="Tipo de Documento"
+                  name="guardian_document_type"
+                  value={data.guardian_document_type}
+                  onChange={handleChange}
+                  options={DOCUMENT_TYPES}
+                  required={data.guardian_type === "Otro"}
+                  disabled={
+                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                  }
+                />
+                <FormInput
+                  label="Número de ID"
+                  name="guardian_id_number"
+                  value={data.guardian_id_number}
+                  onChange={handleChange}
+                  pattern="[0-9]*"
+                  inputMode="numeric"
+                  required={data.guardian_type === "Otro"}
+                  disabled={
+                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                  }
+                />
+              </>
+            )}
 
             <FormInput
-              label="Celular"
+              label={data.guardian_type === "Empresa" ? "Teléfono de contacto" : "Celular"}
               name="guardian_phone"
               value={data.guardian_phone}
               onChange={handleChange}
               type="tel"
-              pattern="[0-9]{10}"
+              pattern={data.guardian_type === "Empresa" ? "[0-9]*" : "[0-9]{10}"}
               inputMode="numeric"
-              maxLength={10}
-              required={data.guardian_type === "Otro"}
+              maxLength={data.guardian_type === "Empresa" ? 15 : 10}
+              required={data.guardian_type === "Otro" || data.guardian_type === "Empresa"}
               disabled={
                 data.guardian_type === "Padre" || data.guardian_type === "Madre"
               }
             />
             <FormInput
-              label="Email"
+              label={data.guardian_type === "Empresa" ? "Email corporativo" : "Email"}
               name="guardian_email"
               type="email"
               value={data.guardian_email}
               onChange={handleChange}
-              required={data.guardian_type === "Otro"}
+              required={data.guardian_type === "Otro" || data.guardian_type === "Empresa"}
               disabled={
                 data.guardian_type === "Padre" || data.guardian_type === "Madre"
               }
             />
 
-            <ComboBox
-              value={data.guardian_country}
-              setValue={(value) => update({ guardian_country: value })}
-              options={COUNTRIES}
-              label="País de nacimiento"
-              disabled={
-                data.guardian_type === "Padre" || data.guardian_type === "Madre"
-              }
-              required={data.guardian_type === "Otro"}
-            />
-            {data.guardian_country === "Colombia" ? (
-              <ComboBox
-                value={data.guardian_department}
-                setValue={(value) => update({ guardian_department: value })}
-                options={COLOMBIA_DEPARTMENTS}
-                label="Departamento"
-                disabled={
-                  data.guardian_type === "Padre" ||
-                  data.guardian_type === "Madre"
-                }
-                required={data.guardian_type === "Otro"}
-              />
-            ) : (
-              <FormInput
-                label="Departamento"
-                name="guardian_department"
-                value={data.guardian_department}
-                onChange={handleChange}
-                disabled={
-                  data.guardian_type === "Padre" ||
-                  data.guardian_type === "Madre"
-                }
-                required={data.guardian_type === "Otro"}
-              />
-            )}
-            {data.guardian_country === "Colombia" &&
-              data.guardian_department === "Atlántico" ? (
-              <ComboBox
-                value={data.guardian_city}
-                setValue={(value) => update({ guardian_city: value })}
-                options={ATLANTICO_CITIES}
-                label="Ciudad"
-                disabled={
-                  data.guardian_type === "Padre" ||
-                  data.guardian_type === "Madre"
-                }
-                required={data.guardian_type === "Otro"}
-              />
-            ) : (
-              <FormInput
-                label="Ciudad"
-                name="guardian_city"
-                value={data.guardian_city}
-                onChange={handleChange}
-                disabled={
-                  data.guardian_type === "Padre" ||
-                  data.guardian_type === "Madre"
-                }
-                required={data.guardian_type === "Otro"}
-              />
-            )}
+            {/* Campos de lugar de nacimiento y religión - Solo para personas naturales */}
+            {data.guardian_type !== "Empresa" && (
+              <>
+                <ComboBox
+                  value={data.guardian_country}
+                  setValue={(value) => update({ guardian_country: value })}
+                  options={COUNTRIES}
+                  label="País de nacimiento"
+                  disabled={
+                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                  }
+                  required={data.guardian_type === "Otro"}
+                />
+                {data.guardian_country === "Colombia" ? (
+                  <ComboBox
+                    value={data.guardian_department}
+                    setValue={(value) => update({ guardian_department: value })}
+                    options={COLOMBIA_DEPARTMENTS}
+                    label="Departamento"
+                    disabled={
+                      data.guardian_type === "Padre" ||
+                      data.guardian_type === "Madre"
+                    }
+                    required={data.guardian_type === "Otro"}
+                  />
+                ) : (
+                  <FormInput
+                    label="Departamento"
+                    name="guardian_department"
+                    value={data.guardian_department}
+                    onChange={handleChange}
+                    disabled={
+                      data.guardian_type === "Padre" ||
+                      data.guardian_type === "Madre"
+                    }
+                    required={data.guardian_type === "Otro"}
+                  />
+                )}
+                {data.guardian_country === "Colombia" &&
+                  data.guardian_department === "Atlántico" ? (
+                  <ComboBox
+                    value={data.guardian_city}
+                    setValue={(value) => update({ guardian_city: value })}
+                    options={ATLANTICO_CITIES}
+                    label="Ciudad"
+                    disabled={
+                      data.guardian_type === "Padre" ||
+                      data.guardian_type === "Madre"
+                    }
+                    required={data.guardian_type === "Otro"}
+                  />
+                ) : (
+                  <FormInput
+                    label="Ciudad"
+                    name="guardian_city"
+                    value={data.guardian_city}
+                    onChange={handleChange}
+                    disabled={
+                      data.guardian_type === "Padre" ||
+                      data.guardian_type === "Madre"
+                    }
+                    required={data.guardian_type === "Otro"}
+                  />
+                )}
 
-            <FormSelect
-              label="Religión"
-              name="guardian_religion"
-              value={data.guardian_religion}
-              onChange={handleChange}
-              options={RELIGIONS}
-              disabled={
-                data.guardian_type === "Padre" || data.guardian_type === "Madre"
-              }
-              required={data.guardian_type === "Otro"}
-            />
+                <FormSelect
+                  label="Religión"
+                  name="guardian_religion"
+                  value={data.guardian_religion}
+                  onChange={handleChange}
+                  options={RELIGIONS}
+                  disabled={
+                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                  }
+                  required={data.guardian_type === "Otro"}
+                />
+              </>
+            )}
 
             <ComboBox
               value={data.guardian_residence_country}
@@ -2658,11 +2718,11 @@ export const Step3StudentData = ({
                 update({ guardian_residence_country: value })
               }
               options={COUNTRIES}
-              label="País de Residencia"
+              label={data.guardian_type === "Empresa" ? "País de la sede" : "País de Residencia"}
               disabled={
                 data.guardian_type === "Padre" || data.guardian_type === "Madre"
               }
-              required={data.guardian_type === "Otro"}
+              required={data.guardian_type === "Otro" || data.guardian_type === "Empresa"}
             />
             {data.guardian_residence_country === "Colombia" ? (
               <ComboBox
@@ -2676,7 +2736,7 @@ export const Step3StudentData = ({
                   data.guardian_type === "Padre" ||
                   data.guardian_type === "Madre"
                 }
-                required={data.guardian_type === "Otro"}
+                required={data.guardian_type === "Otro" || data.guardian_type === "Empresa"}
               />
             ) : (
               <FormInput
@@ -2766,14 +2826,14 @@ export const Step3StudentData = ({
               />
             )}
             <FormInput
-              label="Dirección de Residencia"
+              label={data.guardian_type === "Empresa" ? "Dirección de la sede" : "Dirección de Residencia"}
               name="guardian_residence_address"
               value={data.guardian_residence_address}
               onChange={handleChange}
               disabled={
                 data.guardian_type === "Padre" || data.guardian_type === "Madre"
               }
-              required={data.guardian_type === "Otro"}
+              required={data.guardian_type === "Otro" || data.guardian_type === "Empresa"}
             />
             <FormInput
               label="Complemento (Apto, Torre)"
@@ -2784,17 +2844,20 @@ export const Step3StudentData = ({
                 data.guardian_type === "Padre" || data.guardian_type === "Madre"
               }
             />
-            <FormSelect
-              label="Estrato"
-              name="guardian_residence_stratum"
-              value={data.guardian_residence_stratum}
-              onChange={handleChange}
-              options={ESTRATOS}
-              disabled={
-                data.guardian_type === "Padre" || data.guardian_type === "Madre"
-              }
-              required={data.guardian_type === "Otro"}
-            />
+            {/* Estrato - Solo para personas naturales */}
+            {data.guardian_type !== "Empresa" && (
+              <FormSelect
+                label="Estrato"
+                name="guardian_residence_stratum"
+                value={data.guardian_residence_stratum}
+                onChange={handleChange}
+                options={ESTRATOS}
+                disabled={
+                  data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                }
+                required={data.guardian_type === "Otro"}
+              />
+            )}
 
             {data.guardian_type === "Otro" && (
               <FormInput
@@ -2806,50 +2869,54 @@ export const Step3StudentData = ({
               />
             )}
 
-            {/* Información Laboral del Acudiente */}
-            <FormInput
-              label="Profesión"
-              name="guardian_profession"
-              value={data.guardian_profession}
-              onChange={handleChange}
-              disabled={
-                data.guardian_type === "Padre" || data.guardian_type === "Madre"
-              }
-              required={data.guardian_type === "Otro"}
-            />
-            <FormInput
-              label="Nombre Empresa donde Labora"
-              name="guardian_company_name"
-              value={data.guardian_company_name}
-              onChange={handleChange}
-              disabled={
-                data.guardian_type === "Padre" || data.guardian_type === "Madre"
-              }
-              required={data.guardian_type === "Otro"}
-            />
-            <FormInput
-              label="Dirección Empresa donde Labora"
-              name="guardian_company_address"
-              value={data.guardian_company_address}
-              onChange={handleChange}
-              disabled={
-                data.guardian_type === "Padre" || data.guardian_type === "Madre"
-              }
-              required={data.guardian_type === "Otro"}
-            />
-            <FormInput
-              label="Número de contacto laboral"
-              name="guardian_work_phone"
-              type="tel"
-              value={data.guardian_work_phone}
-              onChange={handleChange}
-              pattern="[0-9]*"
-              inputMode="numeric"
-              disabled={
-                data.guardian_type === "Padre" || data.guardian_type === "Madre"
-              }
-              required={data.guardian_type === "Otro"}
-            />
+            {/* Información Laboral del Acudiente - Solo para personas naturales */}
+            {data.guardian_type !== "Empresa" && (
+              <>
+                <FormInput
+                  label="Profesión"
+                  name="guardian_profession"
+                  value={data.guardian_profession}
+                  onChange={handleChange}
+                  disabled={
+                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                  }
+                  required={data.guardian_type === "Otro"}
+                />
+                <FormInput
+                  label="Nombre Empresa donde Labora"
+                  name="guardian_company_name"
+                  value={data.guardian_company_name}
+                  onChange={handleChange}
+                  disabled={
+                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                  }
+                  required={data.guardian_type === "Otro"}
+                />
+                <FormInput
+                  label="Dirección Empresa donde Labora"
+                  name="guardian_company_address"
+                  value={data.guardian_company_address}
+                  onChange={handleChange}
+                  disabled={
+                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                  }
+                  required={data.guardian_type === "Otro"}
+                />
+                <FormInput
+                  label="Número de contacto laboral"
+                  name="guardian_work_phone"
+                  type="tel"
+                  value={data.guardian_work_phone}
+                  onChange={handleChange}
+                  pattern="[0-9]*"
+                  inputMode="numeric"
+                  disabled={
+                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                  }
+                  required={data.guardian_type === "Otro"}
+                />
+              </>
+            )}
           </div>
         </SectionCard>
 

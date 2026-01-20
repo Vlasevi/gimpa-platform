@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @plugin "daisyui";
+@plugin "tailwindcss-animate";
 
 @plugin "daisyui/theme" {
   name: "gimpa";
@@ -52,4 +53,20 @@
     --primary-dark: 230 50% 35%;
     --accent-dark: 123 44% 38%;
   }
+}
+
+@keyframes modal-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.animate-modal-pop {
+  animation: modal-pop 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
