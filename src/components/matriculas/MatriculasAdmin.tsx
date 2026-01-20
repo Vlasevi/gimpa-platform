@@ -1,24 +1,14 @@
 // components/Matriculas/MatriculasAdmin.tsx
 import { useState, useEffect } from "react";
-import {
-  FilePlus,
-  UserPlus,
-  UserCog,
-  X,
-  MoreVertical,
-  Eye,
-  Check,
-  MessageSquare,
-  FileText,
-  Ban,
-  Pencil,
-  Trash2,
-} from "lucide-react";
+import { FilePlus, UserPlus, UserCog, X } from "lucide-react";
 import UserRegister from "@/components/auxiliar/userRegister";
 import UserUpdate from "@/components/auxiliar/userUpdate";
 import UserEnroll from "@/components/auxiliar/userEnroll";
 import { getStatusLabel, getStatusBadgeClass } from "@/utils/statusHelpers";
 import { apiUrl, API_ENDPOINTS, buildHeaders } from "@/utils/api";
+import { GradeAccordion } from "./matriculasUI/GradeAccordion";
+import { SectionCard } from "./matriculasUI/SectionCard";
+import { DisplayField } from "./matriculasUI/DisplayField";
 
 interface Grade {
   id: number;
@@ -540,235 +530,26 @@ export const MatriculasAdmin = () => {
       <div className="space-y-3">
         {Object.entries(enrollmentsByGrade).map(
           ([gradeName, gradeEnrollments]) => (
-            <div
+            <GradeAccordion
               key={gradeName}
-              className="collapse collapse-arrow bg-base-200 overflow-visible"
-            >
-              <input type="checkbox" />
-              <div className="collapse-title text-xl font-medium flex items-center gap-3">
-                <span>{gradeName}</span>
-                <span className="badge badge-neutral ml-auto">
-                  {gradeEnrollments.length} Estudiantes
-                </span>
-              </div>
-              <div className="collapse-content overflow-visible">
-                <div className="overflow-x-auto mt-4 lg:overflow-visible">
-                  <table className="table table-zebra w-full">
-                    <thead>
-                      <tr>
-                        <th>Estudiante</th>
-                        <th>Fecha de Matrícula</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {gradeEnrollments.map((enrollment, index) => {
-                        // Determinar si es una de las últimas filas (aumentado a 3 y sin restricción de length)
-                        // Esto hace que en listas cortas (ej. 2 items) también se abra hacia arriba
-                        const isLastRows = index >= gradeEnrollments.length - 3;
-
-                        return (
-                          <tr key={enrollment.id}>
-                            <td>
-                              <div className="font-medium">
-                                {enrollment.student.first_name}{" "}
-                                {enrollment.student.last_name}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {enrollment.student.email}
-                              </div>
-                            </td>
-                            <td>{formatDate(enrollment.enrollment_date)}</td>
-                            <td>
-                              <span
-                                className={`badge ${getStatusBadge(
-                                  enrollment.status
-                                )} whitespace-nowrap`}
-                              >
-                                {getStatusLabel(enrollment.status)}
-                              </span>
-                            </td>
-                            <td>
-                              <div className="flex items-center gap-1">
-                                <button
-                                  className="btn btn-ghost btn-sm btn-circle text-info"
-                                  onClick={() =>
-                                    fetchEnrollmentDetails(enrollment)
-                                  }
-                                  disabled={actionLoading === enrollment.id}
-                                  title="Ver detalles"
-                                >
-                                  <Eye size={18} />
-                                </button>
-
-                                {/* Dropdown de Acciones */}
-                                <div
-                                  className={`dropdown dropdown-end ${isLastRows ? "dropdown-top" : "dropdown-bottom"
-                                    }`}
-                                >
-                                  <label
-                                    tabIndex={0}
-                                    className="btn btn-ghost btn-sm btn-circle"
-                                  >
-                                    <MoreVertical size={18} />
-                                  </label>
-                                  <ul
-                                    tabIndex={0}
-                                    className="dropdown-content z-50 menu p-2 shadow bg-base-100 rounded-box w-52"
-                                  >
-
-                                    {/* ESTADO: IN_REVIEW */}
-                                    {enrollment.status === "IN_REVIEW" && (
-                                      <>
-                                        <li>
-                                          <button
-                                            onClick={() =>
-                                              approveEnrollment(enrollment.id)
-                                            }
-                                            className="text-success"
-                                            disabled={
-                                              actionLoading === enrollment.id
-                                            }
-                                          >
-                                            <Check size={16} /> Aprobar
-                                          </button>
-                                        </li>
-                                        <li>
-                                          <button
-                                            onClick={() => {
-                                              setSelectedEnrollment(enrollment);
-                                              setShowCorrectionModal(true);
-                                            }}
-                                            className="text-warning"
-                                            disabled={
-                                              actionLoading === enrollment.id
-                                            }
-                                          >
-                                            <MessageSquare size={16} /> Solicitar
-                                            cambios
-                                          </button>
-                                        </li>
-                                        <li>
-                                          <button
-                                            onClick={() =>
-                                              generatePDFs(enrollment.id)
-                                            }
-                                            disabled={
-                                              actionLoading === enrollment.id
-                                            }
-                                          >
-                                            <FileText size={16} /> Generar PDFs
-                                          </button>
-                                        </li>
-                                        <li>
-                                          <button
-                                            onClick={() =>
-                                              cancelEnrollment(enrollment.id)
-                                            }
-                                            className="text-error"
-                                            disabled={
-                                              actionLoading === enrollment.id
-                                            }
-                                          >
-                                            <Ban size={16} /> Cancelar matrícula
-                                          </button>
-                                        </li>
-                                      </>
-                                    )}
-
-                                    {/* ESTADO: PENDING */}
-                                    {enrollment.status === "PENDING" && (
-                                      <>
-                                        <li>
-                                          <button
-                                            onClick={() => {
-                                              setSelectedEnrollment(enrollment);
-                                              setShowEditModal(true);
-                                            }}
-                                            disabled={
-                                              actionLoading === enrollment.id
-                                            }
-                                          >
-                                            <Pencil size={16} /> Editar
-                                          </button>
-                                        </li>
-                                        <li>
-                                          <button
-                                            onClick={() =>
-                                              cancelEnrollment(enrollment.id)
-                                            }
-                                            className="text-error"
-                                            disabled={
-                                              actionLoading === enrollment.id
-                                            }
-                                          >
-                                            <Ban size={16} /> Cancelar matrícula
-                                          </button>
-                                        </li>
-                                      </>
-                                    )}
-
-                                    {/* ESTADO: ACTIVE */}
-                                    {enrollment.status === "ACTIVE" && (
-                                      <>
-                                        <li>
-                                          <button
-                                            onClick={() =>
-                                              generatePDFs(enrollment.id)
-                                            }
-                                            disabled={
-                                              actionLoading === enrollment.id
-                                            }
-                                          >
-                                            <FileText size={16} /> Generar PDFs
-                                          </button>
-                                        </li>
-                                        <li>
-                                          <button
-                                            onClick={() =>
-                                              cancelEnrollment(enrollment.id)
-                                            }
-                                            className="text-error"
-                                            disabled={
-                                              actionLoading === enrollment.id
-                                            }
-                                          >
-                                            <Ban size={16} /> Cancelar matrícula
-                                          </button>
-                                        </li>
-                                      </>
-                                    )}
-
-                                    {/* ESTADO: CANCELLED */}
-                                    {enrollment.status === "CANCELLED" && (
-                                      <li>
-                                        <button
-                                          onClick={() =>
-                                            deleteEnrollment(enrollment.id)
-                                          }
-                                          className="text-error"
-                                          disabled={
-                                            actionLoading === enrollment.id
-                                          }
-                                        >
-                                          <Trash2 size={16} /> Eliminar
-                                          permanentemente
-                                        </button>
-                                      </li>
-                                    )}
-                                  </ul>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
+              gradeName={gradeName}
+              enrollments={gradeEnrollments}
+              onViewDetails={fetchEnrollmentDetails}
+              onApprove={approveEnrollment}
+              onRequestCorrection={(enrollment) => {
+                setSelectedEnrollment(enrollment);
+                setShowCorrectionModal(true);
+              }}
+              onCancel={cancelEnrollment}
+              onDelete={deleteEnrollment}
+              onEdit={(enrollment) => {
+                setSelectedEnrollment(enrollment);
+                setShowEditModal(true);
+              }}
+              onGeneratePDFs={generatePDFs}
+              actionLoading={actionLoading}
+              formatDate={formatDate}
+            />
           )
         )}
 
@@ -1196,45 +977,6 @@ export const MatriculasAdmin = () => {
                   selectedEnrollmentData && (() => {
                     const studentData = selectedEnrollmentData.student?.student_data || {};
                     const student = selectedEnrollmentData.student || {};
-                    // Helper component for SectionCard
-                    const SectionCard = ({ title, children }: any) => {
-                      const [isOpen, setIsOpen] = useState(title === "Información del Estudiante");
-                      return (
-                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-md">
-                          <button
-                            type="button"
-                            className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors"
-                            onClick={() => setIsOpen(!isOpen)}
-                          >
-                            <h3 className="text-lg font-bold text-primary uppercase tracking-wide flex items-center gap-2">
-                              {title}
-                            </h3>
-                            <span className={`transform transition-transform duration-300 ${isOpen ? "rotate-180" : "rotate-0"}`}>
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                              </svg>
-                            </span>
-                          </button>
-                          <div className={`border-t border-gray-100 transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? "max-h-[5000px] opacity-100" : "max-h-0 opacity-0"}`}>
-                            <div className="p-6">{children}</div>
-                          </div>
-                        </div>
-                      );
-                    };
-                    // Helper component for displaying field
-                    const DisplayField = ({ label, value }: any) => {
-                      if (!value && value !== 0 && value !== false) return null;
-                      return (
-                        <div className="form-control w-full">
-                          <label className="label">
-                            <span className="label-text font-medium text-gray-600">{label}</span>
-                          </label>
-                          <div className="input input-bordered w-full bg-gray-50 cursor-default flex items-center">
-                            {typeof value === "boolean" ? (value ? "Sí" : "No") : value}
-                          </div>
-                        </div>
-                      );
-                    };
                     return (
                       <div className="space-y-4">
                         {/* Sección: Información del Estudiante */}
