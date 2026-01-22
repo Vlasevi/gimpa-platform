@@ -1,14 +1,13 @@
 // components/Matriculas/MatriculasAdmin.tsx
 import { useState, useEffect, useMemo } from "react";
-import { FilePlus, UserCog, X, User, Heart, Home, Briefcase, Users, GraduationCap, FileText } from "lucide-react";
+import { FilePlus, UserCog, X, User } from "lucide-react";
 import UserRegister from "@/components/auxiliar/userRegister";
 import EnrollmentUpdate from "@/components/auxiliar/enrollmentUpdate";
 import UserEnroll from "@/components/auxiliar/userEnroll";
 import { getStatusLabel, getStatusBadgeClass } from "@/utils/statusHelpers";
 import { apiUrl, API_ENDPOINTS, buildHeaders } from "@/utils/api";
 import { GradeAccordion } from "./matriculasUI/GradeAccordion";
-import { SectionCard } from "./matriculasUI/SectionCard";
-import { DisplayField } from "./matriculasUI/DisplayField";
+import { StudentDataTabs } from "./StudentDataTabs";
 
 interface Grade {
   id: number;
@@ -962,16 +961,6 @@ export const MatriculasAdmin = () => {
                     <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs font-bold rounded-full uppercase tracking-wider">
                       {selectedEnrollmentData.grade.description || selectedEnrollmentData.grade.name}
                     </span>
-
-                    {/* Botón Ver Documentos integrado aquí */}
-                    <button
-                      type="button"
-                      className="flex items-center gap-1 text-primary hover:text-secondary text-xs font-semibold transition-colors"
-                      onClick={() => openDocumentsFolder()}
-                    >
-                      <FileText className="h-3.5 w-3.5" />
-                      <span>Ver Documentos</span>
-                    </button>
                   </div>
                 </>
               )}
@@ -1003,137 +992,13 @@ export const MatriculasAdmin = () => {
               <span className="loading loading-spinner loading-lg text-primary"></span>
             </div>
           ) : (
-            selectedEnrollmentData && (() => {
-              const studentData = selectedEnrollmentData.student?.student_data || {};
-              const student = selectedEnrollmentData.student || {};
-              return (
-                <div className="space-y-4">
-                  {/* Sección: Información del Estudiante */}
-                  <SectionCard title="Información del Estudiante" icon={<User className="h-5 w-5" />} iconColor="primary">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <DisplayField label="Primer Nombre" value={studentData.student_firstname1} />
-                      <DisplayField label="Segundo Nombre" value={studentData.student_firstname2} />
-                      <DisplayField label="Primer Apellido" value={studentData.student_lastname1} />
-                      <DisplayField label="Segundo Apellido" value={studentData.student_lastname2} />
-                      <DisplayField label="Email" value={student.email} />
-                      <DisplayField label="Tipo de Documento" value={studentData.student_id_type} />
-                      <DisplayField label="Número de Documento" value={studentData.student_id_number} />
-                      <DisplayField label="Fecha de Nacimiento" value={studentData.student_birth_date} />
-                      <DisplayField label="Edad" value={studentData.student_age} />
-                      <DisplayField label="Género" value={studentData.student_gender} />
-                      <DisplayField label="Grupo Sanguíneo" value={studentData.student_blood_abo} />
-                      <DisplayField label="RH" value={studentData.student_blood_rh} />
-                      <DisplayField label="Ciudad de Nacimiento" value={studentData.student_birth_city} />
-                      <DisplayField label="Religión" value={studentData.student_religion} />
-                    </div>
-                  </SectionCard>
-                  {/* Sección: Datos de Residencia */}
-                  <SectionCard title="Datos de Residencia" icon={<Home className="h-5 w-5" />} iconColor="primary">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <DisplayField label="Dirección" value={studentData.residence_address} />
-                      <DisplayField label="Complemento" value={studentData.residence_address_complement} />
-                      <DisplayField label="Barrio" value={studentData.residence_barrio} />
-                      <DisplayField label="Estrato" value={studentData.residence_stratum} />
-                      <DisplayField label="Ciudad" value={studentData.residence_city} />
-                      <DisplayField label="Departamento" value={studentData.residence_department} />
-                      <DisplayField label="País" value={studentData.residence_country} />
-                    </div>
-                  </SectionCard>
-                  {/* Sección: Información Médica */}
-                  <SectionCard title="Información Médica" icon={<Heart className="h-5 w-5" />} iconColor="primary">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <DisplayField label="EPS" value={studentData.student_health_eps} />
-                      <DisplayField label="Tiene Alergias" value={studentData.medical_has_allergies} />
-                      <DisplayField label="Detalle de Alergias" value={studentData.medical_allergies_detail} />
-                      <DisplayField label="Toma Medicamentos" value={studentData.medical_has_medications} />
-                      <DisplayField label="Detalle de Medicamentos" value={studentData.medical_medications_detail} />
-                      <DisplayField label="Tiene Historial Médico" value={studentData.medical_has_history} />
-                      <DisplayField label="Detalle de Historial" value={studentData.medical_history_detail} />
-                      <DisplayField label="Tiene Diagnóstico" value={studentData.medical_has_diagnosis} />
-                      <DisplayField label="Información Adicional" value={studentData.medical_diagnosis_additional_info} />
-                    </div>
-                  </SectionCard>
-                  {/* Sección: Datos del Padre */}
-                  <SectionCard title="Datos del Padre" icon={<User className="h-5 w-5" />} iconColor="primary">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <DisplayField label="Primer Nombre" value={studentData.father_firstname1} />
-                      <DisplayField label="Segundo Nombre" value={studentData.father_firstname2} />
-                      <DisplayField label="Primer Apellido" value={studentData.father_lastname1} />
-                      <DisplayField label="Segundo Apellido" value={studentData.father_lastname2} />
-                      <DisplayField label="Tipo de Documento" value={studentData.father_document_type} />
-                      <DisplayField label="Número de Documento" value={studentData.father_id_number} />
-                      <DisplayField label="Ciudad de Expedición" value={studentData.father_id_city} />
-                      <DisplayField label="Email" value={studentData.father_email} />
-                      <DisplayField label="Teléfono" value={studentData.father_phone} />
-                      <DisplayField label="Ocupación" value={studentData.father_occupation} />
-                      <DisplayField label="Lugar de Trabajo" value={studentData.father_workplace} />
-                      <DisplayField label="Dirección de Trabajo" value={studentData.father_work_address} />
-                      <DisplayField label="Teléfono de Trabajo" value={studentData.father_work_phone} />
-                      <DisplayField label="País" value={studentData.father_country} />
-                      <DisplayField label="Departamento" value={studentData.father_department} />
-                      <DisplayField label="Ciudad" value={studentData.father_city} />
-                      <DisplayField label="Vive con el Estudiante" value={studentData.father_lives_with_student} />
-                    </div>
-                  </SectionCard>
-                  {/* Sección: Datos de la Madre */}
-                  <SectionCard title="Datos de la Madre" icon={<User className="h-5 w-5" />} iconColor="primary">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <DisplayField label="Primer Nombre" value={studentData.mother_firstname1} />
-                      <DisplayField label="Segundo Nombre" value={studentData.mother_firstname2} />
-                      <DisplayField label="Primer Apellido" value={studentData.mother_lastname1} />
-                      <DisplayField label="Segundo Apellido" value={studentData.mother_lastname2} />
-                      <DisplayField label="Tipo de Documento" value={studentData.mother_document_type} />
-                      <DisplayField label="Número de Documento" value={studentData.mother_id_number} />
-                      <DisplayField label="Ciudad de Expedición" value={studentData.mother_id_city} />
-                      <DisplayField label="Email" value={studentData.mother_email} />
-                      <DisplayField label="Teléfono" value={studentData.mother_phone} />
-                      <DisplayField label="Ocupación" value={studentData.mother_occupation} />
-                      <DisplayField label="Lugar de Trabajo" value={studentData.mother_workplace} />
-                      <DisplayField label="Dirección de Trabajo" value={studentData.mother_work_address} />
-                      <DisplayField label="Teléfono de Trabajo" value={studentData.mother_work_phone} />
-                      <DisplayField label="País" value={studentData.mother_country} />
-                      <DisplayField label="Departamento" value={studentData.mother_department} />
-                      <DisplayField label="Ciudad" value={studentData.mother_city} />
-                      <DisplayField label="Vive con el Estudiante" value={studentData.mother_lives_with_student} />
-                    </div>
-                  </SectionCard>
-                  {/* Sección: Datos del Acudiente */}
-                  <SectionCard title="Datos del Acudiente" icon={<Users className="h-5 w-5" />} iconColor="primary">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <DisplayField label="Tipo de Acudiente" value={studentData.guardian_type} />
-                      <DisplayField label="Relación" value={studentData.guardian_relationship} />
-                      <DisplayField label="Primer Nombre" value={studentData.guardian_firstname1} />
-                      <DisplayField label="Segundo Nombre" value={studentData.guardian_firstname2} />
-                      <DisplayField label="Primer Apellido" value={studentData.guardian_lastname1} />
-                      <DisplayField label="Segundo Apellido" value={studentData.guardian_lastname2} />
-                      <DisplayField label="Nombre Completo" value={studentData.guardian_full_name} />
-                      <DisplayField label="Tipo de Documento" value={studentData.guardian_document_type} />
-                      <DisplayField label="Número de Documento" value={studentData.guardian_id_number} />
-                      <DisplayField label="Ciudad de Expedición" value={studentData.guardian_id_city} />
-                      <DisplayField label="Email" value={studentData.guardian_email} />
-                      <DisplayField label="Teléfono" value={studentData.guardian_phone} />
-                      <DisplayField label="Ocupación" value={studentData.guardian_occupation} />
-                      <DisplayField label="Lugar de Trabajo" value={studentData.guardian_workplace} />
-                      <DisplayField label="País" value={studentData.guardian_country} />
-                      <DisplayField label="Departamento" value={studentData.guardian_department} />
-                      <DisplayField label="Ciudad" value={studentData.guardian_city} />
-                    </div>
-                  </SectionCard>
-                  {/* Sección: Información Académica y Otros Datos */}
-                  <SectionCard title="Información Académica" icon={<GraduationCap className="h-5 w-5" />} iconColor="primary">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <DisplayField label="Grado" value={studentData.grade} />
-                      <DisplayField label="Año Escolar" value={studentData.school_year} />
-                      <DisplayField label="Estado Civil de los Padres" value={studentData.parents_marital_status} />
-                      <DisplayField label="Tiene Hermanos" value={studentData.student_has_siblings} />
-                      <DisplayField label="Hermanos en el Colegio" value={studentData.student_siblings_in_school} />
-                      <DisplayField label="Tiene Celular" value={studentData.student_has_cellphone} />
-                      <DisplayField label="Fecha del Formulario" value={studentData.form_date} />
-                    </div>
-                  </SectionCard>
-                </div>
-              );
-            })()
+            selectedEnrollmentData && (
+              <StudentDataTabs
+                studentData={selectedEnrollmentData.student?.student_data || {}}
+                student={selectedEnrollmentData.student || {}}
+                documentsFolderUrl={selectedEnrollmentData.documents_folder_url}
+              />
+            )
           )}
         </div>
       </AnimatedModal>

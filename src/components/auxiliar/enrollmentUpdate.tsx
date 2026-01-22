@@ -127,7 +127,8 @@ export default function EnrollmentUpdate({
     const [form, setForm] = useState({
         grade_id: "",
         academic_year: new Date().getFullYear(),
-        status: ""
+        status: "",
+        correction_comment: ""
     });
 
     const studentOptions = students.map(
@@ -144,15 +145,13 @@ export default function EnrollmentUpdate({
         const email = comboValue.split(" - ")[0];
         setSelectedStudentEmail(email);
 
-        // Find student ID
-        const student = students.find((s: any) => s.email === email);
-        if (!student) return;
-
-        // Filter enrollments from props
-        const studentEnrollments = allEnrollments.filter((e: any) => e.student.id === student.id);
+        // Filter enrollments by student email (more reliable than id)
+        const studentEnrollments = allEnrollments.filter(
+            (e: any) => e.student?.email === email
+        );
 
         if (studentEnrollments && studentEnrollments.length > 0) {
-            // Sort by ID descending
+            // Sort by ID descending to get the latest enrollment
             const latest = studentEnrollments.sort((a: any, b: any) => b.id - a.id)[0];
             setSelectedEnrollment(latest);
 
@@ -160,7 +159,8 @@ export default function EnrollmentUpdate({
             setForm({
                 grade_id: latest.grade?.id?.toString() || "",
                 academic_year: latest.academic_year,
-                status: latest.status
+                status: latest.status,
+                correction_comment: latest.correction_comment || ""
             });
             setSuccessMsg("");
         } else {
@@ -180,14 +180,22 @@ export default function EnrollmentUpdate({
 
         setLoadingSubmit(true);
         try {
+            // Build request body - include correction_comment only when status is PENDING
+            const requestBody: any = {
+                grade_id: form.grade_id,
+                academic_year: form.academic_year,
+                status: form.status
+            };
+
+            // Only send correction_comment if status is PENDING and there's a message
+            if (form.status === 'PENDING' && form.correction_comment.trim()) {
+                requestBody.correction_comment = form.correction_comment;
+            }
+
             const res = await fetch(`${enrollmentsListEndpoint}${selectedEnrollment.id}/`, {
                 method: 'PATCH',
                 headers: buildHeaders(),
-                body: JSON.stringify({
-                    grade_id: form.grade_id,
-                    academic_year: form.academic_year,
-                    status: form.status
-                }),
+                body: JSON.stringify(requestBody),
                 credentials: "include"
             });
 
@@ -297,6 +305,30 @@ export default function EnrollmentUpdate({
                                 <option value="INACTIVE">INACTIVE (Inactivo/Retirado)</option>
                             </select>
                         </div>
+
+                        {/* Campo de comentario de corrección - solo visible cuando status es PENDING */}
+                        {form.status === 'PENDING' && (
+                            <div className="form-control md:col-span-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <label className="label">
+                                    <span className="label-text font-medium">
+                                        Mensaje de Corrección
+                                        <span className="text-orange-500 ml-1">*</span>
+                                    </span>
+                                </label>
+                                <textarea
+                                    name="correction_comment"
+                                    className="textarea textarea-bordered w-full h-24"
+                                    placeholder="Describe qué debe corregir el estudiante... (Ej: Corregir la foto del estudiante y adjuntar certificado de EPS)"
+                                    value={form.correction_comment}
+                                    onChange={handleChange}
+                                />
+                                <label className="label">
+                                    <span className="label-text-md text-primary">
+                                        ⚠️ Se enviará un correo al acudiente con este mensaje
+                                    </span>
+                                </label>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex justify-end gap-3 pt-4">
