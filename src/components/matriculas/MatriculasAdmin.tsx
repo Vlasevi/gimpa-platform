@@ -155,17 +155,20 @@ export const MatriculasAdmin = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch matrículas (sin filtro de año, traer todas)
-      const enrollmentsRes = await fetch(apiUrl(API_ENDPOINTS.enrollments), {
-        credentials: "include",
-      });
-      const enrollmentsData = await enrollmentsRes.json();
+      // Fetch matrículas y grados en paralelo
+      const [enrollmentsRes, gradesRes] = await Promise.all([
+        fetch(apiUrl(API_ENDPOINTS.enrollments), {
+          credentials: "include",
+        }),
+        fetch(apiUrl(API_ENDPOINTS.grades), {
+          credentials: "include",
+        }),
+      ]);
 
-      // Fetch grados
-      const gradesRes = await fetch(apiUrl(API_ENDPOINTS.grades), {
-        credentials: "include",
-      });
-      const gradesData = await gradesRes.json();
+      const [enrollmentsData, gradesData] = await Promise.all([
+        enrollmentsRes.json(),
+        gradesRes.json(),
+      ]);
 
       setEnrollments(enrollmentsData);
       setGrades(gradesData);
