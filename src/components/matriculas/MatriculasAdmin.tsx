@@ -45,7 +45,7 @@ const AnimatedModal = ({
   isOpen,
   onClose,
   children,
-  className = "max-w-2xl bg-white p-6"
+  className = "max-w-2xl bg-white p-6",
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -75,7 +75,10 @@ const AnimatedModal = ({
 
   return (
     <>
-      <div className={`fixed inset-0 z-40 bg-black/20 backdrop-blur-sm ${backdropAnimation}`} onClick={onClose}></div>
+      <div
+        className={`fixed inset-0 z-40 bg-black/20 backdrop-blur-sm ${backdropAnimation}`}
+        onClick={onClose}
+      ></div>
       <div
         role="dialog"
         aria-modal="true"
@@ -107,8 +110,9 @@ export const MatriculasAdmin = () => {
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [folderLoading, setFolderLoading] = useState<number | null>(null);
   const [showStudentDataModal, setShowStudentDataModal] = useState(false);
-  const [selectedEnrollmentData, setSelectedEnrollmentData] =
-    useState<any | null>(null);
+  const [selectedEnrollmentData, setSelectedEnrollmentData] = useState<
+    any | null
+  >(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
 
@@ -129,7 +133,7 @@ export const MatriculasAdmin = () => {
                 e.student.last_name.toLowerCase() +
                 " " +
                 e.student.email.toLowerCase()
-              ).includes(searchTerm.toLowerCase())
+              ).includes(searchTerm.toLowerCase()),
           );
           return gradeEnrollments.length > 0;
         });
@@ -192,7 +196,7 @@ export const MatriculasAdmin = () => {
           credentials: "include",
           headers: buildHeaders(),
           body: JSON.stringify({ status: "ACTIVE" }),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -228,7 +232,7 @@ export const MatriculasAdmin = () => {
             status: "PENDING",
             correction_comment: correctionMessage,
           }),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -263,7 +267,7 @@ export const MatriculasAdmin = () => {
           credentials: "include",
           headers: buildHeaders(),
           body: JSON.stringify({ status: "CANCELLED" }),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -284,7 +288,7 @@ export const MatriculasAdmin = () => {
   const deleteEnrollment = async (enrollmentId: number) => {
     if (
       !confirm(
-        "¿Estás seguro de que deseas eliminar permanentemente esta matrícula? Esta acción no se puede deshacer."
+        "¿Estás seguro de que deseas eliminar permanentemente esta matrícula? Esta acción no se puede deshacer.",
       )
     ) {
       return;
@@ -298,7 +302,7 @@ export const MatriculasAdmin = () => {
           method: "DELETE",
           credentials: "include",
           headers: buildHeaders(),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -319,7 +323,7 @@ export const MatriculasAdmin = () => {
   const updateEnrollmentGradeYear = async (
     enrollmentId: number,
     gradeId: number,
-    academicYear: number
+    academicYear: number,
   ) => {
     setActionLoading(enrollmentId);
     try {
@@ -333,7 +337,7 @@ export const MatriculasAdmin = () => {
             grade: gradeId,
             academic_year: academicYear,
           }),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -366,7 +370,7 @@ export const MatriculasAdmin = () => {
           method: "POST",
           credentials: "include",
           headers: buildHeaders(),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -376,7 +380,7 @@ export const MatriculasAdmin = () => {
 
       const data = await response.json();
       alert(
-        `✅ ${data.message}\n\nArchivos generados:\n- ${data.files[0]}\n- ${data.files[1]}\n\nRevisa la carpeta del estudiante en OneDrive.`
+        `✅ ${data.message}\n\nArchivos generados:\n- ${data.files[0]}\n- ${data.files[1]}\n\nRevisa la carpeta del estudiante en OneDrive.`,
       );
     } catch (err: any) {
       alert(err.message || "Error al generar PDFs");
@@ -408,36 +412,36 @@ export const MatriculasAdmin = () => {
         throw new Error("No se encontró el email del estudiante");
       }
 
-      // Fetch enrollment details to get documents_folder_url
-      const enrollmentResponse = await fetch(
-        apiUrl(`${API_ENDPOINTS.enrollments}${enrollment.id}/`),
-        {
+      // Fetch both enrollment details and student data in parallel
+      const [enrollmentResponse, studentResponse] = await Promise.all([
+        fetch(apiUrl(`${API_ENDPOINTS.enrollments}${enrollment.id}/`), {
           credentials: "include",
           headers: buildHeaders(),
-        }
-      );
+        }),
+        fetch(
+          apiUrl(`${API_ENDPOINTS.users}${encodeURIComponent(studentEmail)}/`),
+          {
+            credentials: "include",
+            headers: buildHeaders(),
+          },
+        ),
+      ]);
 
       if (!enrollmentResponse.ok) {
         throw new Error("Error al obtener detalles de la matrícula");
       }
 
-      const enrollmentData = await enrollmentResponse.json();
-
-      // Fetch the complete student data using email in URL path (same as userUpdate.tsx)
-      const studentResponse = await fetch(
-        apiUrl(`${API_ENDPOINTS.users}${encodeURIComponent(studentEmail)}/`),
-        {
-          credentials: "include",
-          headers: buildHeaders(),
-        }
-      );
-
       if (!studentResponse.ok) {
         const errorData = await studentResponse.json();
-        throw new Error(errorData.error || "Error al obtener datos del estudiante");
+        throw new Error(
+          errorData.error || "Error al obtener datos del estudiante",
+        );
       }
 
-      const studentData = await studentResponse.json();
+      const [enrollmentData, studentData] = await Promise.all([
+        enrollmentResponse.json(),
+        studentResponse.json(),
+      ]);
 
       // Combine enrollment info with student data for the modal
       const combinedData = {
@@ -467,7 +471,7 @@ export const MatriculasAdmin = () => {
           enrollment.student.last_name.toLowerCase() +
           " " +
           enrollment.student.email.toLowerCase()
-        ).includes(searchTerm.toLowerCase())
+        ).includes(searchTerm.toLowerCase()),
     )
     .reduce((acc, enrollment) => {
       const gradeName = enrollment.grade.description;
@@ -504,7 +508,7 @@ export const MatriculasAdmin = () => {
   };
 
   const enrollmentYears = Array.from(
-    new Set(enrollments.map((e) => e.academic_year))
+    new Set(enrollments.map((e) => e.academic_year)),
   ).sort((a, b) => a - b);
 
   // Si no hay años, agregar el año seleccionado por defecto
@@ -595,7 +599,11 @@ export const MatriculasAdmin = () => {
         <div className="stat">
           <div className="stat-title">Grados</div>
           <div className="stat-value text-secondary">
-            {Object.values(enrollmentsByGrade).filter(students => students.length > 0).length}
+            {
+              Object.values(enrollmentsByGrade).filter(
+                (students) => students.length > 0,
+              ).length
+            }
           </div>
         </div>
         <div className="stat">
@@ -609,30 +617,36 @@ export const MatriculasAdmin = () => {
           <div className="flex justify-center items-center py-16">
             <span className="loading loading-spinner loading-lg text-primary"></span>
           </div>
-        ) : Object.entries(enrollmentsByGrade).map(
-          ([gradeName, gradeEnrollments]) => (
-            <GradeAccordion
-              key={gradeName}
-              gradeName={gradeName}
-              enrollments={gradeEnrollments}
-              isOpen={openAccordion === gradeName}
-              onToggle={() => setOpenAccordion(openAccordion === gradeName ? null : gradeName)}
-              onViewDetails={fetchEnrollmentDetails}
-              onApprove={approveEnrollment}
-              onRequestCorrection={(enrollment) => {
-                setSelectedEnrollment(enrollment);
-                setShowCorrectionModal(true);
-              }}
-              onCancel={cancelEnrollment}
-              onDelete={deleteEnrollment}
-              onEdit={(enrollment) => {
-                setSelectedEnrollment(enrollment);
-                setShowEditModal(true);
-              }}
-              onGeneratePDFs={generatePDFs}
-              actionLoading={actionLoading}
-              formatDate={formatDate}
-            />
+        ) : (
+          Object.entries(enrollmentsByGrade).map(
+            ([gradeName, gradeEnrollments]) => (
+              <GradeAccordion
+                key={gradeName}
+                gradeName={gradeName}
+                enrollments={gradeEnrollments}
+                isOpen={openAccordion === gradeName}
+                onToggle={() =>
+                  setOpenAccordion(
+                    openAccordion === gradeName ? null : gradeName,
+                  )
+                }
+                onViewDetails={fetchEnrollmentDetails}
+                onApprove={approveEnrollment}
+                onRequestCorrection={(enrollment) => {
+                  setSelectedEnrollment(enrollment);
+                  setShowCorrectionModal(true);
+                }}
+                onCancel={cancelEnrollment}
+                onDelete={deleteEnrollment}
+                onEdit={(enrollment) => {
+                  setSelectedEnrollment(enrollment);
+                  setShowEditModal(true);
+                }}
+                onGeneratePDFs={generatePDFs}
+                actionLoading={actionLoading}
+                formatDate={formatDate}
+              />
+            ),
           )
         )}
 
@@ -646,7 +660,10 @@ export const MatriculasAdmin = () => {
         )}
       </div>
 
-      <AnimatedModal isOpen={showRegisterModal} onClose={() => setShowRegisterModal(false)}>
+      <AnimatedModal
+        isOpen={showRegisterModal}
+        onClose={() => setShowRegisterModal(false)}
+      >
         <div className="flex flex-col space-y-1.5 text-center sm:text-left">
           <h2 className="text-lg font-semibold leading-none tracking-tight">
             Registrar estudiante
@@ -672,7 +689,10 @@ export const MatriculasAdmin = () => {
         </button>
       </AnimatedModal>
 
-      <AnimatedModal isOpen={showUpdateModal} onClose={() => setShowUpdateModal(false)}>
+      <AnimatedModal
+        isOpen={showUpdateModal}
+        onClose={() => setShowUpdateModal(false)}
+      >
         <div className="flex flex-col space-y-1.5 text-center sm:text-left">
           <h2 className="text-lg font-semibold leading-none tracking-tight">
             Actualizar Matrícula
@@ -701,7 +721,10 @@ export const MatriculasAdmin = () => {
         </button>
       </AnimatedModal>
 
-      <AnimatedModal isOpen={showEnrollModal} onClose={() => setShowEnrollModal(false)}>
+      <AnimatedModal
+        isOpen={showEnrollModal}
+        onClose={() => setShowEnrollModal(false)}
+      >
         <div className="flex flex-col space-y-1.5 text-center sm:text-left">
           <h2 className="text-lg font-semibold leading-none tracking-tight">
             Matricular estudiante
@@ -728,7 +751,10 @@ export const MatriculasAdmin = () => {
         </button>
       </AnimatedModal>
 
-      <AnimatedModal isOpen={showCorrectionModal} onClose={() => setShowCorrectionModal(false)}>
+      <AnimatedModal
+        isOpen={showCorrectionModal}
+        onClose={() => setShowCorrectionModal(false)}
+      >
         {selectedEnrollment && (
           <>
             <div className="flex flex-col space-y-1.5 text-center sm:text-left">
@@ -797,7 +823,10 @@ export const MatriculasAdmin = () => {
       </AnimatedModal>
 
       {/* Modal de Editar Matrícula (PENDING) */}
-      <AnimatedModal isOpen={showEditModal} onClose={() => setShowEditModal(false)}>
+      <AnimatedModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+      >
         {selectedEnrollment && (
           <>
             <div className="flex flex-col space-y-1.5 text-center sm:text-left">
@@ -839,7 +868,10 @@ export const MatriculasAdmin = () => {
       </AnimatedModal>
 
       {/* Modal de Ver Matrícula (ACTIVE) */}
-      <AnimatedModal isOpen={showViewModal} onClose={() => setShowViewModal(false)}>
+      <AnimatedModal
+        isOpen={showViewModal}
+        onClose={() => setShowViewModal(false)}
+      >
         {selectedEnrollment && (
           <>
             <div className="flex flex-col space-y-1.5 text-center sm:text-left">
@@ -883,7 +915,7 @@ export const MatriculasAdmin = () => {
                   </label>
                   <span
                     className={`badge ${getStatusBadge(
-                      selectedEnrollment.status
+                      selectedEnrollment.status,
                     )} whitespace-nowrap`}
                   >
                     {selectedEnrollment.status}
@@ -952,13 +984,17 @@ export const MatriculasAdmin = () => {
             <div>
               {!detailsLoading && selectedEnrollmentData && (
                 <>
-                  <h2 id="student-title" className="text-2xl font-bold text-primary leading-tight">
+                  <h2
+                    id="student-title"
+                    className="text-2xl font-bold text-primary leading-tight"
+                  >
                     {selectedEnrollmentData.student.first_name}{" "}
                     {selectedEnrollmentData.student.last_name}
                   </h2>
                   <div className="flex items-center gap-3 mt-1.5 align-middle">
                     <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs font-bold rounded-full uppercase tracking-wider">
-                      {selectedEnrollmentData.grade.description || selectedEnrollmentData.grade.name}
+                      {selectedEnrollmentData.grade.description ||
+                        selectedEnrollmentData.grade.name}
                     </span>
                   </div>
                 </>
@@ -1005,4 +1041,3 @@ export const MatriculasAdmin = () => {
     </div>
   );
 };
-
