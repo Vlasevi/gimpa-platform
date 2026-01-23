@@ -1,11 +1,14 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Home, Heart, Users, FileText, Info } from "lucide-react";
+import { User, Home, Heart, Users, FileText, Info, Download, Loader2, Camera, PenTool, FolderOpen, Building } from "lucide-react";
 import { DisplayField } from "./matriculasUI/DisplayField";
+import { apiUrl, API_ENDPOINTS, buildHeaders } from "@/utils/api";
+import { useState } from "react";
 
 interface StudentDataTabsProps {
     studentData: Record<string, any>;
     student: Record<string, any>;
-    documentsFolderUrl?: string | null;
+    documentsMetadata?: Record<string, any> | null;
+    enrollmentId?: number;
 }
 
 const tabs = [
@@ -37,13 +40,106 @@ const hasData = (data: Record<string, any>, fields: string[]): boolean => {
 export const StudentDataTabs = ({
     studentData,
     student,
-    documentsFolderUrl,
+    documentsMetadata,
+    enrollmentId,
 }: StudentDataTabsProps) => {
-    const openDocumentsFolder = () => {
-        if (documentsFolderUrl) {
-            window.open(documentsFolderUrl, "_blank");
-        } else {
-            alert("No se encontró la carpeta del estudiante en OneDrive");
+    const [downloadingDoc, setDownloadingDoc] = useState<string | null>(null);
+
+    // Mapeo de nombres de documentos a etiquetas legibles
+    const documentLabels: Record<string, string> = {
+        // Fotos
+        student_photo: "Foto del Estudiante",
+        father_photo: "Foto del Padre",
+        mother_photo: "Foto de la Madre",
+        // Firmas
+        father_signature: "Firma del Padre",
+        mother_signature: "Firma de la Madre",
+        guardian_signature: "Firma del Acudiente",
+        // Huellas
+        father_fingerprint: "Huella del Padre",
+        mother_fingerprint: "Huella de la Madre",
+        guardian_fingerprint: "Huella del Acudiente",
+        // Documentos requeridos
+        registro_civil: "Registro Civil",
+        registro_civil_ti: "Registro Civil / Tarjeta de Identidad",
+        registro_vacunacion: "Registro de Vacunación",
+        cert_eps: "Certificado EPS",
+        cert_medico: "Certificado Médico",
+        cert_vista: "Certificado de Vista",
+        cert_auditivo: "Certificado Auditivo",
+        cert_diagnostico: "Certificado de Diagnóstico",
+        paz_salvo: "Paz y Salvo",
+        convivencia: "Convivencia Escolar",
+        ficha_psicologica: "Ficha Psicológica",
+        cert_estudios: "Certificado de Estudios",
+        retiro_simat: "Retiro SIMAT",
+        // Cédulas
+        father_id: "Cédula del Padre",
+        mother_id: "Cédula de la Madre",
+        guardian_id: "Cédula del Acudiente",
+        // Otros
+        work_certificate: "Certificado Laboral",
+    };
+
+    // Función para obtener etiqueta legible de un documento
+    const getDocumentLabel = (docKey: string): string => {
+        // Si tiene prefijo documentos/, extraer el nombre base
+        const cleanKey = docKey.startsWith('documentos/') 
+            ? docKey.replace('documentos/', '') 
+            : docKey;
+        
+        // Documentos institucionales dinámicos (contrato, pagaré, hoja de matrícula)
+        if (cleanKey.startsWith('contrato_')) {
+            return `Contrato ${cleanKey.replace('contrato_', '')}`;
+        }
+        if (cleanKey.startsWith('pagare_')) {
+            return `Pagaré ${cleanKey.replace('pagare_', '')}`;
+        }
+        if (cleanKey.startsWith('hoja_matricula_') || cleanKey.startsWith('hoja_de_matricula_') || cleanKey.startsWith('hoja_de_matrícula_')) {
+            const year = cleanKey.match(/\d{4}/)?.[0] || '';
+            return `Hoja de Matrícula ${year}`;
+        }
+        
+        // Buscar en el mapeo estático
+        if (documentLabels[cleanKey]) {
+            return documentLabels[cleanKey];
+        }
+        
+        // Fallback: convertir snake_case a título legible
+        return cleanKey
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, l => l.toUpperCase());
+    };
+
+    const handleDownloadDocument = async (docKey: string) => {
+        if (!enrollmentId) {
+            alert("No se encontró el ID de matrícula");
+            return;
+        }
+
+        setDownloadingDoc(docKey);
+
+        try {
+            const response = await fetch(
+                apiUrl(API_ENDPOINTS.enrollmentDocuments(enrollmentId)),
+                { credentials: "include", headers: buildHeaders() }
+            );
+
+            if (!response.ok) throw new Error("Error al obtener URL del documento");
+
+            const data = await response.json();
+            const docUrl = data.documents[docKey]?.url;
+
+            if (docUrl) {
+                window.open(docUrl, "_blank");
+            } else {
+                alert("Documento no disponible");
+            }
+        } catch (err: any) {
+            alert(err.message || "Error al descargar documento");
+            console.error(err);
+        } finally {
+            setDownloadingDoc(null);
         }
     };
 
@@ -219,20 +315,126 @@ export const StudentDataTabs = ({
 
                 {/* Tab: Documentos */}
                 <TabsContent value="documentos" className="mt-0">
-                    <div className="flex flex-col items-center justify-center p-8 bg-base-100 rounded-lg min-h-[200px]">
-                        <FileText className="h-16 w-16 text-primary/30 mb-4" />
-                        <p className="text-gray-500 mb-4 text-center">
-                            Accede a la carpeta de documentos del estudiante en OneDrive
-                        </p>
-                        <button
-                            type="button"
-                            className="btn btn-primary"
-                            onClick={openDocumentsFolder}
-                        >
-                            <FileText className="h-5 w-5 mr-2" />
-                            Abrir Carpeta de Documentos
-                        </button>
-                    </div>
+                    {documentsMetadata && Object.keys(documentsMetadata).length > 0 ? (
+                        <div className="p-4 bg-base-100 rounded-lg space-y-6">
+                            {/* Categorizar documentos */}
+                            {(() => {
+                                const categories = {
+                                    fotos: { 
+                                        title: "Fotos", 
+                                        icon: Camera,
+                                        keys: ['student_photo', 'father_photo', 'mother_photo', 'foto_estudiante', 'foto_padre', 'foto_madre', 'foto_del_estudiante', 'foto_del_padre', 'foto_de_la_madre']
+                                    },
+                                    firmas: { 
+                                        title: "Firmas y Huellas", 
+                                        icon: PenTool,
+                                        keys: ['father_signature', 'mother_signature', 'guardian_signature', 'father_fingerprint', 'mother_fingerprint', 'guardian_fingerprint', 'firma_padre', 'firma_madre', 'firma_acudiente', 'huella_padre', 'huella_madre', 'huella_acudiente', 'firma_del_padre', 'firma_de_la_madre', 'huella_del_padre', 'huella_de_la_madre']
+                                    },
+                                    documentos: { 
+                                        title: "Documentos", 
+                                        icon: FolderOpen,
+                                        keys: ['registro_civil', 'registro_civil_ti', 'registro_vacunacion', 'cert_eps', 'cert_medico', 'cert_vista', 'cert_auditivo', 'cert_diagnostico', 'paz_salvo', 'convivencia', 'ficha_psicologica', 'cert_estudios', 'retiro_simat', 'father_id', 'mother_id', 'guardian_id', 'work_certificate', 'cedula_padre', 'cedula_madre', 'cedula_acudiente', 'certificado_eps', 'certificado_medico', 'certificado_laboral']
+                                    },
+                                    institucion: { 
+                                        title: "Documentos Institución", 
+                                        icon: Building,
+                                        keys: [] // Se detecta por prefijo documentos/
+                                    },
+                                };
+
+                                // Función para determinar categoría
+                                const getCategory = (docKey: string) => {
+                                    // Documentos institución (prefijo documentos/)
+                                    if (docKey.startsWith('documentos/')) return 'institucion';
+                                    
+                                    const cleanKey = docKey.toLowerCase();
+                                    
+                                    for (const [cat, config] of Object.entries(categories)) {
+                                        if (config.keys.some(k => cleanKey.includes(k) || k.includes(cleanKey))) {
+                                            return cat;
+                                        }
+                                    }
+                                    return 'documentos'; // default
+                                };
+
+                                // Agrupar documentos
+                                const grouped: Record<string, [string, any][]> = {
+                                    fotos: [],
+                                    firmas: [],
+                                    documentos: [],
+                                    institucion: [],
+                                };
+
+                                Object.entries(documentsMetadata).forEach(([docKey, meta]) => {
+                                    const cat = getCategory(docKey);
+                                    grouped[cat].push([docKey, meta]);
+                                });
+
+                                // Renderizar cada sección
+                                return Object.entries(categories).map(([catKey, config]) => {
+                                    const docs = grouped[catKey];
+                                    if (docs.length === 0) return null;
+
+                                    const IconComponent = config.icon;
+
+                                    return (
+                                        <div key={catKey}>
+                                            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                                                <IconComponent className="h-5 w-5 text-primary" />
+                                                {config.title}
+                                            </h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                {docs.map(([docKey, meta]: [string, any]) => {
+                                                    const label = getDocumentLabel(docKey);
+                                                    const uploadedDate = meta.uploaded_at
+                                                        ? new Date(meta.uploaded_at).toLocaleDateString('es-CO', {
+                                                            year: 'numeric',
+                                                            month: 'short',
+                                                            day: 'numeric',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        })
+                                                        : 'Fecha desconocida';
+
+                                                    return (
+                                                        <div
+                                                            key={docKey}
+                                                            className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+                                                        >
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="font-medium text-gray-900 truncate">{label}</p>
+                                                                <p className="text-xs text-gray-500">{uploadedDate}</p>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDownloadDocument(docKey)}
+                                                                disabled={downloadingDoc === docKey}
+                                                                className="ml-3 flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-focus disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                            >
+                                                                {downloadingDoc === docKey ? (
+                                                                    <>
+                                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                                        Cargando...
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <Download className="h-4 w-4" />
+                                                                        Abrir
+                                                                    </>
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                });
+                            })()}
+                        </div>
+                    ) : (
+                        <EmptyState message="No hay documentos subidos aún" />
+                    )}
                 </TabsContent>
             </div>
         </Tabs>

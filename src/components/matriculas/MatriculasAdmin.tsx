@@ -810,7 +810,7 @@ export const MatriculasAdmin = () => {
               </p>
             </div>
 
-            <UserEnroll
+            <EnrollmentUpdate
               onCancel={() => {
                 setShowEditModal(false);
               }}
@@ -818,11 +818,10 @@ export const MatriculasAdmin = () => {
                 setShowEditModal(false);
                 fetchData();
               }}
-              initialEmail={selectedEnrollment.student.email}
-              initialGradeId={selectedEnrollment.grade.id.toString()}
-              initialYear={selectedEnrollment.academic_year.toString()}
-              enrollmentId={selectedEnrollment.id}
-              isEdit={true}
+              students={uniqueStudents}
+              grades={grades}
+              allEnrollments={enrollments}
+              preselectedStudentEmail={selectedEnrollment.student.email}
             />
 
             <button
@@ -996,7 +995,8 @@ export const MatriculasAdmin = () => {
               <StudentDataTabs
                 studentData={selectedEnrollmentData.student?.student_data || {}}
                 student={selectedEnrollmentData.student || {}}
-                documentsFolderUrl={selectedEnrollmentData.documents_folder_url}
+                documentsMetadata={selectedEnrollmentData.documents_metadata}
+                enrollmentId={selectedEnrollmentData.id}
               />
             )
           )}

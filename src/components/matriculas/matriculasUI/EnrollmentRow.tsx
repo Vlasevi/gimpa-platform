@@ -163,7 +163,6 @@ export const EnrollmentRow = ({
                                     <li>
                                         <button
                                             onClick={() => onApprove(enrollment.id)}
-                                            className="text-success"
                                             disabled={isLoading}
                                         >
                                             <Check size={16} /> Aprobar
@@ -172,7 +171,6 @@ export const EnrollmentRow = ({
                                     <li>
                                         <button
                                             onClick={() => onRequestCorrection(enrollment)}
-                                            className="text-warning"
                                             disabled={isLoading}
                                         >
                                             <MessageSquare size={16} /> Solicitar cambios
@@ -189,7 +187,6 @@ export const EnrollmentRow = ({
                                     <li>
                                         <button
                                             onClick={() => onCancel(enrollment.id)}
-                                            className="text-error"
                                             disabled={isLoading}
                                         >
                                             <Ban size={16} /> Cancelar matrícula
@@ -212,7 +209,6 @@ export const EnrollmentRow = ({
                                     <li>
                                         <button
                                             onClick={() => onCancel(enrollment.id)}
-                                            className="text-error"
                                             disabled={isLoading}
                                         >
                                             <Ban size={16} /> Cancelar matrícula
@@ -249,7 +245,6 @@ export const EnrollmentRow = ({
                                 <li>
                                     <button
                                         onClick={() => onDelete(enrollment.id)}
-                                        className="text-error"
                                         disabled={isLoading}
                                     >
                                         <Trash2 size={16} /> Eliminar permanentemente

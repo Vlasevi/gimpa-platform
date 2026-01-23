@@ -116,7 +116,8 @@ export default function EnrollmentUpdate({
     onSuccess,
     students = [],
     grades = [],
-    allEnrollments = []
+    allEnrollments = [],
+    preselectedStudentEmail = ""
 }: any) {
     const [successMsg, setSuccessMsg] = useState("");
     const [selectedStudentEmail, setSelectedStudentEmail] = useState("");
@@ -134,6 +135,18 @@ export default function EnrollmentUpdate({
     const studentOptions = students.map(
         (student: any) => `${student.email} - ${student.first_name} ${student.last_name}`
     );
+
+    // Auto-select student if preselectedStudentEmail is provided
+    useEffect(() => {
+        if (preselectedStudentEmail && students.length > 0 && allEnrollments.length > 0) {
+            const comboValue = studentOptions.find((opt: string) => 
+                opt.startsWith(preselectedStudentEmail)
+            );
+            if (comboValue) {
+                handleStudentSelect(comboValue);
+            }
+        }
+    }, [preselectedStudentEmail, students, allEnrollments]);
 
     const handleStudentSelect = (comboValue: string) => {
         if (!comboValue) {
