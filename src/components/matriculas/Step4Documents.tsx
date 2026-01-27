@@ -1,5 +1,6 @@
 // components/matriculas/steps/Step4Documents.tsx
 import { useState, useEffect } from "react";
+import { Alert } from "@/components/ui/Alert";
 
 // Componente reutilizable para subir firma
 const SignatureUpload = ({
@@ -247,15 +248,61 @@ export const Step4Documents = ({
     window.open(documentPaths[documentType], "_blank");
   };
 
-  // Determinar si el acudiente es diferente de padre o madre
+  // Tipo de acudiente seleccionado en Step3
   const guardianType = data.guardian_type || "";
-  const showGuardianFields =
-    guardianType !== "Padre" && guardianType !== "Madre";
 
-  // Determinar qué firmas/huellas mostrar según con quién vive el estudiante
-  const showFatherFields = data.father_lives_with_student || false;
-  const showMotherFields = data.mother_lives_with_student || false;
-  const showOtherGuardianFields = data.lives_with_other || false;
+  // Determinar las claves de firma/huella según el tipo de acudiente
+  const getGuardianDataKeys = () => {
+    switch (guardianType) {
+      case "Padre":
+        return {
+          signatureKey: "father_signature",
+          fingerprintKey: "father_fingerprint",
+          signaturePreloaded: preloadedDocuments?.father_signature?.preview_base64,
+          fingerprintPreloaded: preloadedDocuments?.father_fingerprint?.preview_base64,
+        };
+      case "Madre":
+        return {
+          signatureKey: "mother_signature",
+          fingerprintKey: "mother_fingerprint",
+          signaturePreloaded: preloadedDocuments?.mother_signature?.preview_base64,
+          fingerprintPreloaded: preloadedDocuments?.mother_fingerprint?.preview_base64,
+        };
+      case "Otro":
+      case "Empresa":
+      default:
+        return {
+          signatureKey: "guardian_signature",
+          fingerprintKey: "guardian_fingerprint",
+          signaturePreloaded: preloadedDocuments?.guardian_signature?.preview_base64,
+          fingerprintPreloaded: preloadedDocuments?.guardian_fingerprint?.preview_base64,
+        };
+    }
+  };
+
+  const guardianDataKeys = getGuardianDataKeys();
+
+  // Determinar si mostrar firmas opcionales de padres (solo si viven con el estudiante Y no son el acudiente)
+  const showOptionalFatherFields =
+    data.father_lives_with_student && guardianType !== "Padre";
+  const showOptionalMotherFields =
+    data.mother_lives_with_student && guardianType !== "Madre";
+
+  // Obtener el nombre del acudiente para mostrar en el título
+  const getGuardianLabel = () => {
+    switch (guardianType) {
+      case "Padre":
+        return "Padre (Acudiente)";
+      case "Madre":
+        return "Madre (Acudiente)";
+      case "Empresa":
+        return data.guardian_full_name || "Empresa (Acudiente)";
+      case "Otro":
+        return data.guardian_full_name || "Acudiente";
+      default:
+        return "Acudiente";
+    }
+  };
 
   const isValid = data.pagareAccepted && data.compromiseAccepted;
 
@@ -277,112 +324,101 @@ export const Step4Documents = ({
     <div className="space-y-6">
       <h2 className="text-xl font-bold text-secondary">Firmas y Documentos</h2>
 
-      {/* Sección de Firmas y Huellas de Padres/Acudiente */}
+      {/* Sección de Firmas y Huellas */}
       <div className="border p-4 rounded-lg bg-blue-50">
         <h3 className="font-bold mb-4">1. Firmas y Huellas</h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Padre - solo si vive con el estudiante */}
-          {showFatherFields && (
+        {/* Firma/Huella del Acudiente (OBLIGATORIO) */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <h4 className="font-semibold text-primary">{getGuardianLabel()}</h4>
+            <span className="badge badge-error badge-sm">Obligatorio</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4 bg-white p-4 rounded-lg">
-              <h4 className="font-semibold text-primary">
-                {showMotherFields
-                  ? "Acudiente 1 (Padre)"
-                  : "Acudiente 1 (Padre)"}
-              </h4>
               <SignatureUpload
-                label={
-                  showMotherFields
-                    ? "Firma Acudiente 1 (Padre)"
-                    : "Firma Acudiente 1 (Padre)"
-                }
-                dataKey="father_signature"
+                label={`Firma del ${getGuardianLabel()}`}
+                dataKey={guardianDataKeys.signatureKey}
                 uploadedFiles={uploadedFiles}
                 updateUploadedFiles={updateUploadedFiles}
-                preloadedUrl={
-                  preloadedDocuments?.father_signature?.preview_base64
-                }
-              />
-              <FingerprintUpload
-                label={
-                  showMotherFields
-                    ? "Huella Acudiente 1 (Padre)"
-                    : "Huella Acudiente 1 (Padre)"
-                }
-                dataKey="father_fingerprint"
-                uploadedFiles={uploadedFiles}
-                updateUploadedFiles={updateUploadedFiles}
-                preloadedUrl={
-                  preloadedDocuments?.father_fingerprint?.preview_base64
-                }
+                preloadedUrl={guardianDataKeys.signaturePreloaded}
               />
             </div>
-          )}
-
-          {/* Madre - solo si vive con el estudiante */}
-          {showMotherFields && (
             <div className="space-y-4 bg-white p-4 rounded-lg">
-              <h4 className="font-semibold text-primary">
-                {showFatherFields
-                  ? "Acudiente 2 (Madre)"
-                  : "Acudiente 1 (Madre)"}
-              </h4>
-              <SignatureUpload
-                label={
-                  showFatherFields
-                    ? "Firma Acudiente 2 (Madre)"
-                    : "Firma Acudiente 1 (Madre)"
-                }
-                dataKey="mother_signature"
-                uploadedFiles={uploadedFiles}
-                updateUploadedFiles={updateUploadedFiles}
-                preloadedUrl={
-                  preloadedDocuments?.mother_signature?.preview_base64
-                }
-              />
               <FingerprintUpload
-                label={
-                  showFatherFields
-                    ? "Huella Acudiente 2 (Madre)"
-                    : "Huella Acudiente 1 (Madre)"
-                }
-                dataKey="mother_fingerprint"
+                label={`Huella del ${getGuardianLabel()}`}
+                dataKey={guardianDataKeys.fingerprintKey}
                 uploadedFiles={uploadedFiles}
                 updateUploadedFiles={updateUploadedFiles}
-                preloadedUrl={
-                  preloadedDocuments?.mother_fingerprint?.preview_base64
-                }
+                preloadedUrl={guardianDataKeys.fingerprintPreloaded}
               />
             </div>
-          )}
-
-          {/* Acudiente - solo si vive con otra persona */}
-          {showOtherGuardianFields && showGuardianFields && (
-            <div className="space-y-4 bg-white p-4 rounded-lg md:col-span-2">
-              <h4 className="font-semibold text-primary">Acudiente</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <SignatureUpload
-                  label="Firma del Acudiente"
-                  dataKey="guardian_signature"
-                  uploadedFiles={uploadedFiles}
-                  updateUploadedFiles={updateUploadedFiles}
-                  preloadedUrl={
-                    preloadedDocuments?.guardian_signature?.preview_base64
-                  }
-                />
-                <FingerprintUpload
-                  label="Huella del Acudiente"
-                  dataKey="guardian_fingerprint"
-                  uploadedFiles={uploadedFiles}
-                  updateUploadedFiles={updateUploadedFiles}
-                  preloadedUrl={
-                    preloadedDocuments?.guardian_fingerprint?.preview_base64
-                  }
-                />
-              </div>
-            </div>
-          )}
+          </div>
         </div>
+
+        {/* Firmas/Huellas Opcionales de Padres */}
+        {(showOptionalFatherFields || showOptionalMotherFields) && (
+          <div className="border-t border-blue-200 pt-6 mt-6">
+            <div className="flex items-center gap-2 mb-4">
+              <h4 className="font-semibold text-gray-600">
+                Firmas Adicionales (Padres que viven con el estudiante)
+              </h4>
+              <span className="badge badge-info badge-sm">Opcional</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Padre (opcional) */}
+              {showOptionalFatherFields && (
+                <div className="space-y-4 bg-white p-4 rounded-lg border border-dashed border-gray-300">
+                  <h5 className="font-medium text-gray-700">Padre</h5>
+                  <SignatureUpload
+                    label="Firma del Padre"
+                    dataKey="father_signature"
+                    uploadedFiles={uploadedFiles}
+                    updateUploadedFiles={updateUploadedFiles}
+                    preloadedUrl={
+                      preloadedDocuments?.father_signature?.preview_base64
+                    }
+                  />
+                  <FingerprintUpload
+                    label="Huella del Padre"
+                    dataKey="father_fingerprint"
+                    uploadedFiles={uploadedFiles}
+                    updateUploadedFiles={updateUploadedFiles}
+                    preloadedUrl={
+                      preloadedDocuments?.father_fingerprint?.preview_base64
+                    }
+                  />
+                </div>
+              )}
+
+              {/* Madre (opcional) */}
+              {showOptionalMotherFields && (
+                <div className="space-y-4 bg-white p-4 rounded-lg border border-dashed border-gray-300">
+                  <h5 className="font-medium text-gray-700">Madre</h5>
+                  <SignatureUpload
+                    label="Firma de la Madre"
+                    dataKey="mother_signature"
+                    uploadedFiles={uploadedFiles}
+                    updateUploadedFiles={updateUploadedFiles}
+                    preloadedUrl={
+                      preloadedDocuments?.mother_signature?.preview_base64
+                    }
+                  />
+                  <FingerprintUpload
+                    label="Huella de la Madre"
+                    dataKey="mother_fingerprint"
+                    uploadedFiles={uploadedFiles}
+                    updateUploadedFiles={updateUploadedFiles}
+                    preloadedUrl={
+                      preloadedDocuments?.mother_fingerprint?.preview_base64
+                    }
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Documentos Legales */}
@@ -463,77 +499,36 @@ export const Step4Documents = ({
       </div>
 
       {/* Modal de Advertencia Legal */}
-      {showLegalModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Fondo difuminado */}
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-md"
-            onClick={handleDeclineLegal}
-          ></div>
-
-          {/* Modal */}
-          <div className="relative bg-white rounded-lg shadow-2xl max-w-2xl w-full mx-4 p-8 z-10">
-            <div className="flex items-start mb-6">
-              <div className="shrink-0">
-                <svg
-                  className="w-12 h-12 text-warning"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                </svg>
-              </div>
-              <div className="ml-4 flex-1">
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                  Aviso Legal Importante
-                </h3>
-                <div className="text-gray-700 leading-relaxed space-y-4">
-                  <p className="text-justify">
-                    La persona que sea registrada como{" "}
-                    <strong>tutor y/o acudiente responsable</strong> del
-                    estudiante será, para todos los efectos legales, la{" "}
-                    <strong>
-                      única persona que responde legal, académica y
-                      económicamente
-                    </strong>{" "}
-                    por él ante la institución educativa.
-                  </p>
-                  <p className="text-justify">
-                    En consecuencia, es esta persona quien{" "}
-                    <strong>
-                      obligatoriamente deberá firmar todos los documentos
-                    </strong>{" "}
-                    relacionados con la matrícula, el contrato de prestación de
-                    servicios educativos, los pagarés, autorizaciones y demás
-                    documentos institucionales, entendiéndose que su firma
-                    implica la{" "}
-                    <strong>
-                      aceptación de las obligaciones, condiciones y compromisos
-                    </strong>{" "}
-                    derivados del servicio educativo.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Botones */}
-            <div className="flex justify-end gap-3 mt-8">
-              <button className="btn btn-ghost" onClick={handleDeclineLegal}>
-                Cancelar
-              </button>
-              <button className="btn btn-primary" onClick={handleAcceptLegal}>
-                Acepto y Continuar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Alert
+        isOpen={showLegalModal}
+        onClose={handleDeclineLegal}
+        onAccept={handleAcceptLegal}
+        title="Aviso Legal Importante"
+        variant="warning"
+        acceptText="Acepto y Continuar"
+        cancelText="Cancelar"
+      >
+        <p className="text-justify">
+          La persona que sea registrada como{" "}
+          <strong>tutor y/o acudiente responsable</strong> del estudiante será,
+          para todos los efectos legales, la{" "}
+          <strong>
+            única persona que responde legal, académica y económicamente
+          </strong>{" "}
+          por él ante la institución educativa.
+        </p>
+        <p className="text-justify">
+          En consecuencia, es esta persona quien{" "}
+          <strong>obligatoriamente deberá firmar todos los documentos</strong>{" "}
+          relacionados con la matrícula, el contrato de prestación de servicios
+          educativos, los pagarés, autorizaciones y demás documentos
+          institucionales, entendiéndose que su firma implica la{" "}
+          <strong>
+            aceptación de las obligaciones, condiciones y compromisos
+          </strong>{" "}
+          derivados del servicio educativo.
+        </p>
+      </Alert>
     </div>
   );
 };
