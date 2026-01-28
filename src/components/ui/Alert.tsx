@@ -1,5 +1,5 @@
 // components/ui/Alert.tsx
-import { ReactNode } from "react";
+import { ReactNode, useRef, useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,25 @@ interface AlertProps {
   acceptText?: string;
   cancelText?: string;
   variant?: "warning" | "info" | "error" | "success";
+  // Personalización de botones
+  acceptButtonClassName?: string;
+  cancelButtonClassName?: string;
+  acceptButtonVariant?:
+    | "default"
+    | "destructive"
+    | "outline"
+    | "secondary"
+    | "ghost"
+    | "link";
+  cancelButtonVariant?:
+    | "default"
+    | "destructive"
+    | "outline"
+    | "secondary"
+    | "ghost"
+    | "link";
+  // Requiere scroll hasta el final para habilitar el botón de aceptar
+  requireScrollToBottom?: boolean;
 }
 
 const variantStyles = {
@@ -102,31 +121,85 @@ export const Alert = ({
   acceptText = "Aceptar",
   cancelText = "Cancelar",
   variant = "warning",
+  acceptButtonClassName,
+  cancelButtonClassName,
+  acceptButtonVariant = "default",
+  cancelButtonVariant = "outline",
+  requireScrollToBottom = false,
 }: AlertProps) => {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
+
+  // Resetear el estado cuando el modal se abre
+  useEffect(() => {
+    if (isOpen) {
+      setHasScrolledToBottom(false);
+    }
+  }, [isOpen]);
+
+  // Verificar si el contenido necesita scroll
+  useEffect(() => {
+    if (isOpen && contentRef.current && requireScrollToBottom) {
+      const element = contentRef.current;
+      // Si el contenido no necesita scroll, habilitar el botón directamente
+      if (element.scrollHeight <= element.clientHeight) {
+        setHasScrolledToBottom(true);
+      }
+    }
+  }, [isOpen, requireScrollToBottom, children]);
+
+  const handleScroll = useCallback(() => {
+    if (contentRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = contentRef.current;
+      // Considerar que llegó al final con un margen de 10px
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
+      if (isAtBottom) {
+        setHasScrolledToBottom(true);
+      }
+    }
+  }, []);
+
+  const isAcceptDisabled = requireScrollToBottom && !hasScrolledToBottom;
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col bg-white">
+        {/* Header fijo */}
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-3 text-xl">
             <span className={variantStyles[variant]}>
               {variantIcons[variant]}
             </span>
             {title}
           </DialogTitle>
-          {description && (
-            <DialogDescription>{description}</DialogDescription>
-          )}
+          {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
 
-        <div className="text-gray-700 leading-relaxed space-y-4 py-4">
+        {/* Contenido scrollable */}
+        <div
+          ref={contentRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto text-gray-700 leading-relaxed space-y-4 py-4 pl-4 pr-6"
+        >
           {children}
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={onClose}>
+        {/* Footer fijo */}
+        <DialogFooter className="flex-shrink-0 gap-2 sm:gap-0 pt-4 border-t">
+          <Button
+            variant={cancelButtonVariant}
+            className={cancelButtonClassName}
+            onClick={onClose}
+          >
             {cancelText}
           </Button>
-          <Button onClick={onAccept}>{acceptText}</Button>
+          <Button
+            variant={acceptButtonVariant}
+            className={`${acceptButtonClassName || ""} ${isAcceptDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
+            onClick={onAccept}
+            disabled={isAcceptDisabled}
+          >
+            {acceptText}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

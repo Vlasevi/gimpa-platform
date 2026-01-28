@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { Alert } from "@/components/ui/Alert";
 
 // --- CONSTANTES (Listas para desplegables) ---
 const BARRIOS_BARRANQUILLA = [
@@ -181,11 +182,12 @@ const RELIGIONS = [
   "Otra",
 ];
 const DOCUMENT_TYPES = [
-  "Registro Civil",
-  "Tarjeta de Identidad",
-  "Cédula de Ciudadanía",
-  "Cédula de Extranjería",
-  "Pasaporte",
+  "Registro Civil (RC)",
+  "Tarjeta de Identidad (TI)",
+  "Cédula de Ciudadanía (CC)",
+  "Cédula de Extranjería (CE)",
+  "Pasaporte (PP)",
+  "Permiso de Protección Temporal (PPT)",
 ];
 const EPS_LIST = [
   "Nueva EPS",
@@ -280,8 +282,9 @@ const FormInput = ({
       name={name}
       type={type}
       placeholder={placeholder || label}
-      className={`input input-bordered w-full focus:input-primary transition-all ${disabled ? "bg-gray-100 text-gray-500" : ""
-        }`}
+      className={`input input-bordered w-full focus:input-primary transition-all ${
+        disabled ? "bg-gray-100 text-gray-500" : ""
+      }`}
       value={value || ""}
       onChange={onChange}
       disabled={disabled}
@@ -311,8 +314,9 @@ const FormSelect = ({
     </label>
     <select
       name={name}
-      className={`select select-bordered w-full focus:select-primary ${disabled ? "bg-gray-100" : ""
-        }`}
+      className={`select select-bordered w-full focus:select-primary ${
+        disabled ? "bg-gray-100" : ""
+      }`}
       value={value || ""}
       onChange={onChange}
       disabled={disabled}
@@ -479,16 +483,18 @@ const SectionCard = ({ title, isOpen, onToggle, children }: any) => (
         {title}
       </h3>
       <span
-        className={`transform transition-transform duration-300 ${isOpen ? "rotate-180" : "rotate-0"
-          }`}
+        className={`transform transition-transform duration-300 ${
+          isOpen ? "rotate-180" : "rotate-0"
+        }`}
       >
         {/* SVG omitido */}
       </span>
     </button>
 
     <div
-      className={`border-t border-gray-100 transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? "max-h-[5000px] opacity-100" : "max-h-0 opacity-0"
-        }`}
+      className={`border-t border-gray-100 transition-all duration-300 ease-in-out overflow-hidden ${
+        isOpen ? "max-h-[5000px] opacity-100" : "max-h-0 opacity-0"
+      }`}
     >
       <div className="p-6">{children}</div>
     </div>
@@ -554,18 +560,18 @@ const ComboBox = ({
     inputValue === ""
       ? options
       : options.filter((o) => {
-        const normalizedOption = normalizeText(o);
-        const normalizedInput = normalizeText(inputValue);
+          const normalizedOption = normalizeText(o);
+          const normalizedInput = normalizeText(inputValue);
 
-        // Buscar si el nombre completo empieza con el input O si alguna palabra empieza con el input
-        if (normalizedOption.startsWith(normalizedInput)) {
-          return true;
-        }
+          // Buscar si el nombre completo empieza con el input O si alguna palabra empieza con el input
+          if (normalizedOption.startsWith(normalizedInput)) {
+            return true;
+          }
 
-        // Buscar si alguna palabra del barrio empieza con el input
-        const words = normalizedOption.split(" ");
-        return words.some((word) => word.startsWith(normalizedInput));
-      });
+          // Buscar si alguna palabra del barrio empieza con el input
+          const words = normalizedOption.split(" ");
+          return words.some((word) => word.startsWith(normalizedInput));
+        });
 
   return (
     <div className="form-control w-full relative">
@@ -578,8 +584,9 @@ const ComboBox = ({
       <input
         ref={inputRef}
         type="text"
-        className={`input input-bordered w-full focus:input-primary transition-all truncate ${disabled ? "!bg-base-200 text-gray-500 cursor-not-allowed" : ""
-          }`}
+        className={`input input-bordered w-full focus:input-primary transition-all truncate ${
+          disabled ? "!bg-base-200 text-gray-500 cursor-not-allowed" : ""
+        }`}
         placeholder={label}
         value={inputValue}
         onChange={(e) => {
@@ -615,8 +622,9 @@ const ComboBox = ({
           {filteredOptions.map((o) => (
             <li
               key={o}
-              className={`px-4 py-2 cursor-pointer hover:bg-primary hover:text-white truncate ${o === value ? "bg-primary text-white" : ""
-                }`}
+              className={`px-4 py-2 cursor-pointer hover:bg-primary hover:text-white truncate ${
+                o === value ? "bg-primary text-white" : ""
+              }`}
               onMouseDown={() => {
                 setValue(o);
                 setQuery(o);
@@ -650,6 +658,9 @@ export const Step3StudentData = ({
   console.log("Step3StudentData - enrollmentId:", enrollmentId);
   console.log("Step3StudentData - preloadedDocuments:", preloadedDocuments);
 
+  // Estado para el modal legal
+  const [showLegalModal, setShowLegalModal] = useState(false);
+
   // Estado para colapsar secciones
   const [openSections, setOpenSections] = useState({
     estudiante: true,
@@ -667,8 +678,7 @@ export const Step3StudentData = ({
   // Datos clave del backend
   const canEnroll = enrollmentInfo?.eligibility?.can_enroll;
   const existingData = enrollmentInfo?.eligibility?.existing_data || {};
-  const suggestedGradeObj =
-    enrollmentInfo?.suggested_enrollment?.grade || null;
+  const suggestedGradeObj = enrollmentInfo?.suggested_enrollment?.grade || null;
   const suggestedGrade =
     enrollmentInfo?.suggested_enrollment?.grade?.description || "";
   const targetYear = enrollmentInfo?.suggested_enrollment?.academic_year || "";
@@ -702,15 +712,12 @@ export const Step3StudentData = ({
     const needsCorrection =
       enrollmentInfo?.actual_enrollment?.needs_correction || false;
 
-
     // Precargar existing_data si:
     // 1. Puede matricularse Y
     // 2. (NO es primera matrícula O necesita corrección) Y
     // 3. Hay datos existentes
     const shouldPreloadExisting =
-      canEnroll &&
-      existingData &&
-      Object.keys(existingData).length > 0;
+      canEnroll && existingData && Object.keys(existingData).length > 0;
 
     if (shouldPreloadExisting) {
       Object.assign(updates, existingData);
@@ -757,7 +764,7 @@ export const Step3StudentData = ({
 
   // Handler para input/select
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value, type } = e.target;
     if (type === "checkbox" && e.target instanceof HTMLInputElement) {
@@ -810,7 +817,7 @@ export const Step3StudentData = ({
         guardian_work_phone: data.father_work_phone,
       };
       const needsUpdate = Object.keys(newGuardian).some(
-        (key) => data[key] !== newGuardian[key]
+        (key) => data[key] !== newGuardian[key],
       );
       if (needsUpdate) {
         update(newGuardian);
@@ -852,7 +859,7 @@ export const Step3StudentData = ({
         guardian_work_phone: data.mother_work_phone,
       };
       const needsUpdate = Object.keys(newGuardian).some(
-        (key) => data[key] !== newGuardian[key]
+        (key) => data[key] !== newGuardian[key],
       );
       if (needsUpdate) {
         update(newGuardian);
@@ -887,7 +894,7 @@ export const Step3StudentData = ({
         guardian_work_phone: "",
       };
       const needsCleaning = Object.keys(fieldsToClean).some(
-        (key) => data[key] !== ""
+        (key) => data[key] !== "",
       );
       if (needsCleaning) {
         update(fieldsToClean);
@@ -916,7 +923,7 @@ export const Step3StudentData = ({
         guardian_work_phone: "",
       };
       const needsCleaning = Object.keys(fieldsToClean).some(
-        (key) => data[key] !== ""
+        (key) => data[key] !== "",
       );
       if (needsCleaning) {
         update(fieldsToClean);
@@ -977,7 +984,7 @@ export const Step3StudentData = ({
         data.father_residence_barrio !== data.residence_barrio ||
         data.father_residence_address !== data.residence_address ||
         data.father_residence_address_complement !==
-        data.residence_address_complement ||
+          data.residence_address_complement ||
         data.father_residence_stratum !== data.residence_stratum;
       if (needsUpdate) {
         update({
@@ -1021,7 +1028,7 @@ export const Step3StudentData = ({
         data.mother_residence_barrio !== data.residence_barrio ||
         data.mother_residence_address !== data.residence_address ||
         data.mother_residence_address_complement !==
-        data.residence_address_complement ||
+          data.residence_address_complement ||
         data.mother_residence_stratum !== data.residence_stratum;
       if (needsUpdate) {
         update({
@@ -1090,11 +1097,11 @@ export const Step3StudentData = ({
         console.log("🔍 ID del campo:", invalidField.id);
         console.log(
           "🔍 Placeholder:",
-          (invalidField as HTMLInputElement).placeholder
+          (invalidField as HTMLInputElement).placeholder,
         );
         console.log(
           "🔍 Label asociado:",
-          invalidField.labels?.[0]?.textContent
+          invalidField.labels?.[0]?.textContent,
         );
 
         // Si no tiene name, intentar usar el placeholder para identificar la sección
@@ -1194,11 +1201,21 @@ export const Step3StudentData = ({
       if (storageKey) {
         localStorage.setItem(storageKey, JSON.stringify(data));
       }
-      next();
+      // Mostrar modal legal antes de avanzar
+      setShowLegalModal(true);
     } catch (error) {
       console.error("Error al avanzar:", error);
-      next();
+      setShowLegalModal(true);
     }
+  };
+
+  const handleAcceptLegal = () => {
+    setShowLegalModal(false);
+    next();
+  };
+
+  const handleDeclineLegal = () => {
+    setShowLegalModal(false);
   };
 
   // --- ESTADOS PARA SELECTS DEPENDIENTES ---
@@ -1399,7 +1416,7 @@ export const Step3StudentData = ({
               />
             )}
             {data.student_birth_country === "Colombia" &&
-              data.student_birth_department === "Atlántico" ? (
+            data.student_birth_department === "Atlántico" ? (
               <ComboBox
                 value={data.student_birth_city}
                 setValue={(value) => update({ student_birth_city: value })}
@@ -1467,7 +1484,7 @@ export const Step3StudentData = ({
               />
             )}
             {data.student_id_country === "Colombia" &&
-              data.student_id_department === "Atlántico" ? (
+            data.student_id_department === "Atlántico" ? (
               <ComboBox
                 value={data.student_id_city}
                 setValue={(value) => update({ student_id_city: value })}
@@ -1613,7 +1630,7 @@ export const Step3StudentData = ({
               />
             )}
             {data.residence_country === "Colombia" &&
-              data.residence_department === "Atlántico" ? (
+            data.residence_department === "Atlántico" ? (
               <ComboBox
                 value={data.residence_city}
                 setValue={(value) => update({ residence_city: value })}
@@ -1883,11 +1900,12 @@ export const Step3StudentData = ({
                 }
               />
               <span
-                className={`label-text font-normal text-xs leading-tight ${data.father_lives_with_student ||
+                className={`label-text font-normal text-xs leading-tight ${
+                  data.father_lives_with_student ||
                   data.mother_lives_with_student
-                  ? "text-gray-400"
-                  : ""
-                  }`}
+                    ? "text-gray-400"
+                    : ""
+                }`}
               >
                 Vive con otra persona
               </span>
@@ -2014,7 +2032,7 @@ export const Step3StudentData = ({
               />
             )}
             {data.father_country === "Colombia" &&
-              data.father_department === "Atlántico" ? (
+            data.father_department === "Atlántico" ? (
               <ComboBox
                 value={fatherCity}
                 setValue={(value) => {
@@ -2079,7 +2097,7 @@ export const Step3StudentData = ({
               />
             )}
             {data.father_residence_country === "Colombia" &&
-              data.father_residence_department === "Atlántico" ? (
+            data.father_residence_department === "Atlántico" ? (
               <ComboBox
                 value={data.father_residence_city}
                 setValue={(value) => update({ father_residence_city: value })}
@@ -2314,7 +2332,7 @@ export const Step3StudentData = ({
               />
             )}
             {data.mother_country === "Colombia" &&
-              data.mother_department === "Atlántico" ? (
+            data.mother_department === "Atlántico" ? (
               <ComboBox
                 value={motherCity}
                 setValue={(value) => {
@@ -2379,7 +2397,7 @@ export const Step3StudentData = ({
               />
             )}
             {data.mother_residence_country === "Colombia" &&
-              data.mother_residence_department === "Atlántico" ? (
+            data.mother_residence_department === "Atlántico" ? (
               <ComboBox
                 value={data.mother_residence_city}
                 setValue={(value) => update({ mother_residence_city: value })}
@@ -2544,7 +2562,8 @@ export const Step3StudentData = ({
                   pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+"
                   required={data.guardian_type === "Otro"}
                   disabled={
-                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                    data.guardian_type === "Padre" ||
+                    data.guardian_type === "Madre"
                   }
                 />
                 <FormInput
@@ -2555,7 +2574,8 @@ export const Step3StudentData = ({
                   pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+"
                   required={data.guardian_type === "Otro"}
                   disabled={
-                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                    data.guardian_type === "Padre" ||
+                    data.guardian_type === "Madre"
                   }
                 />
                 <FormInput
@@ -2566,7 +2586,8 @@ export const Step3StudentData = ({
                   pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+"
                   required={data.guardian_type === "Otro"}
                   disabled={
-                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                    data.guardian_type === "Padre" ||
+                    data.guardian_type === "Madre"
                   }
                 />
                 <FormInput
@@ -2577,7 +2598,8 @@ export const Step3StudentData = ({
                   pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+"
                   required={data.guardian_type === "Otro"}
                   disabled={
-                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                    data.guardian_type === "Padre" ||
+                    data.guardian_type === "Madre"
                   }
                 />
 
@@ -2589,7 +2611,8 @@ export const Step3StudentData = ({
                   options={DOCUMENT_TYPES}
                   required={data.guardian_type === "Otro"}
                   disabled={
-                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                    data.guardian_type === "Padre" ||
+                    data.guardian_type === "Madre"
                   }
                 />
                 <FormInput
@@ -2601,33 +2624,48 @@ export const Step3StudentData = ({
                   inputMode="numeric"
                   required={data.guardian_type === "Otro"}
                   disabled={
-                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                    data.guardian_type === "Padre" ||
+                    data.guardian_type === "Madre"
                   }
                 />
               </>
             )}
 
             <FormInput
-              label={data.guardian_type === "Empresa" ? "Teléfono de contacto" : "Celular"}
+              label={
+                data.guardian_type === "Empresa"
+                  ? "Teléfono de contacto"
+                  : "Celular"
+              }
               name="guardian_phone"
               value={data.guardian_phone}
               onChange={handleChange}
               type="tel"
-              pattern={data.guardian_type === "Empresa" ? "[0-9]*" : "[0-9]{10}"}
+              pattern={
+                data.guardian_type === "Empresa" ? "[0-9]*" : "[0-9]{10}"
+              }
               inputMode="numeric"
               maxLength={data.guardian_type === "Empresa" ? 15 : 10}
-              required={data.guardian_type === "Otro" || data.guardian_type === "Empresa"}
+              required={
+                data.guardian_type === "Otro" ||
+                data.guardian_type === "Empresa"
+              }
               disabled={
                 data.guardian_type === "Padre" || data.guardian_type === "Madre"
               }
             />
             <FormInput
-              label={data.guardian_type === "Empresa" ? "Email corporativo" : "Email"}
+              label={
+                data.guardian_type === "Empresa" ? "Email corporativo" : "Email"
+              }
               name="guardian_email"
               type="email"
               value={data.guardian_email}
               onChange={handleChange}
-              required={data.guardian_type === "Otro" || data.guardian_type === "Empresa"}
+              required={
+                data.guardian_type === "Otro" ||
+                data.guardian_type === "Empresa"
+              }
               disabled={
                 data.guardian_type === "Padre" || data.guardian_type === "Madre"
               }
@@ -2642,7 +2680,8 @@ export const Step3StudentData = ({
                   options={COUNTRIES}
                   label="País de nacimiento"
                   disabled={
-                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                    data.guardian_type === "Padre" ||
+                    data.guardian_type === "Madre"
                   }
                   required={data.guardian_type === "Otro"}
                 />
@@ -2672,7 +2711,7 @@ export const Step3StudentData = ({
                   />
                 )}
                 {data.guardian_country === "Colombia" &&
-                  data.guardian_department === "Atlántico" ? (
+                data.guardian_department === "Atlántico" ? (
                   <ComboBox
                     value={data.guardian_city}
                     setValue={(value) => update({ guardian_city: value })}
@@ -2705,7 +2744,8 @@ export const Step3StudentData = ({
                   onChange={handleChange}
                   options={RELIGIONS}
                   disabled={
-                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                    data.guardian_type === "Padre" ||
+                    data.guardian_type === "Madre"
                   }
                   required={data.guardian_type === "Otro"}
                 />
@@ -2718,11 +2758,18 @@ export const Step3StudentData = ({
                 update({ guardian_residence_country: value })
               }
               options={COUNTRIES}
-              label={data.guardian_type === "Empresa" ? "País de la sede" : "País de Residencia"}
+              label={
+                data.guardian_type === "Empresa"
+                  ? "País de la sede"
+                  : "País de Residencia"
+              }
               disabled={
                 data.guardian_type === "Padre" || data.guardian_type === "Madre"
               }
-              required={data.guardian_type === "Otro" || data.guardian_type === "Empresa"}
+              required={
+                data.guardian_type === "Otro" ||
+                data.guardian_type === "Empresa"
+              }
             />
             {data.guardian_residence_country === "Colombia" ? (
               <ComboBox
@@ -2736,7 +2783,10 @@ export const Step3StudentData = ({
                   data.guardian_type === "Padre" ||
                   data.guardian_type === "Madre"
                 }
-                required={data.guardian_type === "Otro" || data.guardian_type === "Empresa"}
+                required={
+                  data.guardian_type === "Otro" ||
+                  data.guardian_type === "Empresa"
+                }
               />
             ) : (
               <FormInput
@@ -2752,7 +2802,7 @@ export const Step3StudentData = ({
               />
             )}
             {data.guardian_residence_country === "Colombia" &&
-              data.guardian_residence_department === "Atlántico" ? (
+            data.guardian_residence_department === "Atlántico" ? (
               <ComboBox
                 value={data.guardian_residence_city}
                 setValue={(value) => update({ guardian_residence_city: value })}
@@ -2826,14 +2876,21 @@ export const Step3StudentData = ({
               />
             )}
             <FormInput
-              label={data.guardian_type === "Empresa" ? "Dirección de la sede" : "Dirección de Residencia"}
+              label={
+                data.guardian_type === "Empresa"
+                  ? "Dirección de la sede"
+                  : "Dirección de Residencia"
+              }
               name="guardian_residence_address"
               value={data.guardian_residence_address}
               onChange={handleChange}
               disabled={
                 data.guardian_type === "Padre" || data.guardian_type === "Madre"
               }
-              required={data.guardian_type === "Otro" || data.guardian_type === "Empresa"}
+              required={
+                data.guardian_type === "Otro" ||
+                data.guardian_type === "Empresa"
+              }
             />
             <FormInput
               label="Complemento (Apto, Torre)"
@@ -2853,7 +2910,8 @@ export const Step3StudentData = ({
                 onChange={handleChange}
                 options={ESTRATOS}
                 disabled={
-                  data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                  data.guardian_type === "Padre" ||
+                  data.guardian_type === "Madre"
                 }
                 required={data.guardian_type === "Otro"}
               />
@@ -2878,7 +2936,8 @@ export const Step3StudentData = ({
                   value={data.guardian_profession}
                   onChange={handleChange}
                   disabled={
-                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                    data.guardian_type === "Padre" ||
+                    data.guardian_type === "Madre"
                   }
                   required={data.guardian_type === "Otro"}
                 />
@@ -2888,7 +2947,8 @@ export const Step3StudentData = ({
                   value={data.guardian_company_name}
                   onChange={handleChange}
                   disabled={
-                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                    data.guardian_type === "Padre" ||
+                    data.guardian_type === "Madre"
                   }
                   required={data.guardian_type === "Otro"}
                 />
@@ -2898,7 +2958,8 @@ export const Step3StudentData = ({
                   value={data.guardian_company_address}
                   onChange={handleChange}
                   disabled={
-                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                    data.guardian_type === "Padre" ||
+                    data.guardian_type === "Madre"
                   }
                   required={data.guardian_type === "Otro"}
                 />
@@ -2911,7 +2972,8 @@ export const Step3StudentData = ({
                   pattern="[0-9]*"
                   inputMode="numeric"
                   disabled={
-                    data.guardian_type === "Padre" || data.guardian_type === "Madre"
+                    data.guardian_type === "Padre" ||
+                    data.guardian_type === "Madre"
                   }
                   required={data.guardian_type === "Otro"}
                 />
@@ -2933,6 +2995,95 @@ export const Step3StudentData = ({
             Siguiente
           </button>
         </div>
+
+        {/* Modal de Advertencia Legal */}
+        <Alert
+          isOpen={showLegalModal}
+          onClose={handleDeclineLegal}
+          onAccept={handleAcceptLegal}
+          title="Autorización y Consentimiento – Oficialización de Matrícula"
+          variant="warning"
+          acceptText="ACEPTO"
+          cancelText="Cancelar"
+          acceptButtonClassName="bg-primary hover:bg-primary/80 text-white"
+          requireScrollToBottom={true}
+        >
+          <p className="text-justify">
+            Al hacer clic en el botón <strong>"ACEPTO"</strong>, yo{" "}
+            <strong>
+              {data.guardian_full_name ||
+                [
+                  data.guardian_firstname1,
+                  data.guardian_firstname2,
+                  data.guardian_lastname1,
+                  data.guardian_lastname2,
+                ]
+                  .filter(Boolean)
+                  .join(" ") ||
+                "[NOMBRE COMPLETO]"}
+            </strong>
+            , identificado(a) con{" "}
+            <strong>{data.guardian_document_type || "[TIPO]"}</strong> No.{" "}
+            <strong>{data.guardian_id_number || "[NÚMERO]"}</strong>, quien
+            realiza el proceso de matrícula del(la) estudiante{" "}
+            <strong>
+              {[
+                data.student_firstname1,
+                data.student_firstname2,
+                data.student_lastname1,
+                data.student_lastname2,
+              ]
+                .filter(Boolean)
+                .join(" ") || "[NOMBRE DEL ESTUDIANTE]"}
+            </strong>{" "}
+            (<strong>{data.student_id_type || "[TI/RC/CC]"}</strong> No.{" "}
+            <strong>{data.student_id_number || "[NÚMERO]"}</strong>), declaro
+            que actúo como padre/madre/acudiente y/o responsable y que cuento
+            con autorización suficiente para adelantar este trámite y
+            cargar/anexar en la plataforma los documentos requeridos, incluidos
+            los de otros responsables vinculados al proceso (padre, madre,
+            acudiente, responsable financiero u otros), asumiendo la
+            responsabilidad por la veracidad de la información y por contar con
+            las autorizaciones que correspondan cuando aplique.
+          </p>
+          <p className="text-justify">
+            Asimismo,{" "}
+            <strong>
+              AUTORIZO Y OTORGO CONSENTIMIENTO PREVIO, EXPRESO E INFORMADO
+            </strong>{" "}
+            a Gimnasio El Paraíso para utilizar firma electrónica por aceptación
+            (clic "ACEPTO") y, cuando aplique, validación biométrica (huella),
+            exclusivamente para la identificación, aceptación y oficialización
+            de los documentos del proceso de matrícula (formulario/acta de
+            matrícula, contrato de prestación del servicio educativo, anexos,
+            autorizaciones institucionales y soportes administrativos
+            asociados).
+          </p>
+          <p className="text-justify">
+            Entiendo que este consentimiento se otorga conforme a la normativa
+            colombiana aplicable, incluyendo la Ley 527 de 1999, el Decreto 2364
+            de 2012 y la Ley 1581 de 2012. He sido informado(a) de mis derechos
+            como titular de datos personales (conocer, actualizar, rectificar,
+            solicitar prueba de la autorización y revocar el consentimiento
+            cuando proceda).
+          </p>
+          <p className="text-justify">
+            Huella/biometría: reconozco que corresponde a un dato sensible. Su
+            autorización es opcional y la institución dispondrá de un mecanismo
+            alterno no biométrico, por lo que la matrícula no se condiciona
+            exclusivamente al suministro de huella. Si la autorizo, será solo
+            para la finalidad indicada y bajo medidas de seguridad.
+          </p>
+          <p className="text-justify">
+            Autorizo que la institución conserve y custodie evidencias de
+            trazabilidad del proceso de aceptación (por ejemplo: fecha y hora,
+            usuario/correo, registros de plataforma y demás soportes técnicos)
+            para respaldo administrativo y legal. Cuando el(la) estudiante sea
+            menor de edad, el tratamiento de datos se realizará respetando el
+            interés superior y los derechos prevalentes de los niños, niñas y
+            adolescentes.
+          </p>
+        </Alert>
       </div>
     </form>
   );

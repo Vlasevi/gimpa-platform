@@ -258,15 +258,19 @@ export const Step4Documents = ({
         return {
           signatureKey: "father_signature",
           fingerprintKey: "father_fingerprint",
-          signaturePreloaded: preloadedDocuments?.father_signature?.preview_base64,
-          fingerprintPreloaded: preloadedDocuments?.father_fingerprint?.preview_base64,
+          signaturePreloaded:
+            preloadedDocuments?.father_signature?.preview_base64,
+          fingerprintPreloaded:
+            preloadedDocuments?.father_fingerprint?.preview_base64,
         };
       case "Madre":
         return {
           signatureKey: "mother_signature",
           fingerprintKey: "mother_fingerprint",
-          signaturePreloaded: preloadedDocuments?.mother_signature?.preview_base64,
-          fingerprintPreloaded: preloadedDocuments?.mother_fingerprint?.preview_base64,
+          signaturePreloaded:
+            preloadedDocuments?.mother_signature?.preview_base64,
+          fingerprintPreloaded:
+            preloadedDocuments?.mother_fingerprint?.preview_base64,
         };
       case "Otro":
       case "Empresa":
@@ -274,13 +278,23 @@ export const Step4Documents = ({
         return {
           signatureKey: "guardian_signature",
           fingerprintKey: "guardian_fingerprint",
-          signaturePreloaded: preloadedDocuments?.guardian_signature?.preview_base64,
-          fingerprintPreloaded: preloadedDocuments?.guardian_fingerprint?.preview_base64,
+          signaturePreloaded:
+            preloadedDocuments?.guardian_signature?.preview_base64,
+          fingerprintPreloaded:
+            preloadedDocuments?.guardian_fingerprint?.preview_base64,
         };
     }
   };
 
   const guardianDataKeys = getGuardianDataKeys();
+
+  // Verificar si la firma y huella del acudiente están subidas (nuevo archivo O precargado)
+  const hasGuardianSignature =
+    uploadedFiles?.[guardianDataKeys.signatureKey] instanceof File ||
+    !!guardianDataKeys.signaturePreloaded;
+  const hasGuardianFingerprint =
+    uploadedFiles?.[guardianDataKeys.fingerprintKey] instanceof File ||
+    !!guardianDataKeys.fingerprintPreloaded;
 
   // Determinar si mostrar firmas opcionales de padres (solo si viven con el estudiante Y no son el acudiente)
   const showOptionalFatherFields =
@@ -304,7 +318,11 @@ export const Step4Documents = ({
     }
   };
 
-  const isValid = data.pagareAccepted && data.compromiseAccepted;
+  const isValid =
+    data.pagareAccepted &&
+    data.compromiseAccepted &&
+    hasGuardianSignature &&
+    hasGuardianFingerprint;
 
   const handleNext = () => {
     if (!isValid) return;
@@ -506,7 +524,10 @@ export const Step4Documents = ({
         title="Aviso Legal Importante"
         variant="warning"
         acceptText="Acepto y Continuar"
-        cancelText="Cancelar"
+        // Personalización de botones:
+        acceptButtonClassName="bg-primary hover:bg-primary/80 text-white"
+        // O usar variantes de shadcn:
+        acceptButtonVariant="default"
       >
         <p className="text-justify">
           La persona que sea registrada como{" "}

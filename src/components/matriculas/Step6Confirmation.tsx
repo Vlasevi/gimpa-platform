@@ -298,65 +298,42 @@ export const Step6Confirmation = ({
   // Modal de éxito
   if (success) {
     return (
-      <div className="space-y-6">
-        <div className="text-center space-y-4">
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="text-center space-y-8 max-w-lg mx-auto px-4">
+          {/* Ícono de éxito */}
           <div className="flex justify-center">
-            <div className="rounded-full bg-success p-6">
+            <div className="rounded-full bg-primary/10 p-5">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-16 w-16 text-white"
+                className="h-12 w-12 text-primary"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
+                strokeWidth={2}
               >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={2}
                   d="M5 13l4 4L19 7"
                 />
               </svg>
             </div>
           </div>
 
-          <h2 className="text-3xl font-bold text-success">
-            ¡Matrícula Enviada Exitosamente!
-          </h2>
-
-          <div className="alert alert-info shadow-lg max-w-2xl mx-auto">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              className="stroke-current shrink-0 w-6 h-6"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <div className="text-left">
-              <h3 className="font-bold">Tu matrícula está en revisión</h3>
-              <p className="text-sm">
-                La institución revisará tu información y documentos. Recibirás
-                una notificación cuando tu matrícula sea aprobada.
-              </p>
-            </div>
+          {/* Mensaje principal */}
+          <div className="space-y-2">
+            <h2 className="text-2xl font-semibold text-gray-800">
+              Matrícula enviada exitosamente
+            </h2>
+            <p className="text-gray-500">
+              Tu solicitud ha sido recibida y está en proceso de revisión.
+              Te notificaremos cuando sea aprobada.
+            </p>
           </div>
 
-          <div className="bg-base-200 p-6 rounded-lg max-w-md mx-auto">
-            <h4 className="font-bold mb-2">Próximos pasos:</h4>
-            <ul className="text-sm text-left space-y-2">
-              <li>✓ Matrícula enviada a revisión</li>
-              <li>⏳ Espera la aprobación del rector</li>
-              <li>📧 Recibirás un correo de confirmación</li>
-            </ul>
-          </div>
-
+          {/* Botón */}
           <button
-            className="btn btn-primary mt-6"
+            className="btn btn-primary btn-wide"
             onClick={() => (window.location.href = "/matriculas")}
           >
             Volver al inicio

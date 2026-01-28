@@ -77,7 +77,7 @@ export const Step5Documents = ({
   const [hasDiagnosis, setHasDiagnosis] = useState(false);
   const [showFatherID, setShowFatherID] = useState(false);
   const [showMotherID, setShowMotherID] = useState(false);
-  const [showGuardianID, setShowGuardianID] = useState(false);
+  const [guardianType, setGuardianType] = useState("");
   const [guardianRelationship, setGuardianRelationship] = useState("");
 
   // Determinar grado y tipo de matrícula
@@ -100,10 +100,19 @@ export const Step5Documents = ({
           // Si tiene cualquier diagnóstico diferente a "Ninguno", habilitar el documento
           setHasDiagnosis(diagnosis && diagnosis !== "Ninguno");
 
-          // Determinar qué cédulas se necesitan según con quién vive
-          setShowFatherID(step3Data.father_lives_with_student || false);
-          setShowMotherID(step3Data.mother_lives_with_student || false);
-          setShowGuardianID(step3Data.lives_with_other || false);
+          // Obtener el tipo de acudiente (Padre, Madre, Otro, Empresa)
+          const guardianTypeValue = step3Data.guardian_type || "";
+          setGuardianType(guardianTypeValue);
+
+          // Determinar qué cédulas adicionales se necesitan según con quién vive
+          // Solo mostrar cédula del padre si vive con el estudiante Y no es el acudiente
+          setShowFatherID(
+            step3Data.father_lives_with_student && guardianTypeValue !== "Padre"
+          );
+          // Solo mostrar cédula de la madre si vive con el estudiante Y no es la acudiente
+          setShowMotherID(
+            step3Data.mother_lives_with_student && guardianTypeValue !== "Madre"
+          );
 
           // Obtener quién es el responsable para el certificado laboral
           setGuardianRelationship(step3Data.guardian_relationship || "");
@@ -200,7 +209,28 @@ export const Step5Documents = ({
       });
     }
 
-    // Agregar cédulas de padres/acudiente según con quién vive el estudiante
+    // Siempre se requiere la cédula del Acudiente
+    // El label cambia según quién sea el acudiente
+    let guardianIdLabel = "Cédula del Acudiente";
+    let guardianIdKey = "guardian_id";
+    if (guardianType === "Padre") {
+      guardianIdLabel = "Cédula del Padre (Acudiente)";
+      guardianIdKey = "father_id";
+    } else if (guardianType === "Madre") {
+      guardianIdLabel = "Cédula de la Madre (Acudiente)";
+      guardianIdKey = "mother_id";
+    } else if (guardianType === "Empresa") {
+      guardianIdLabel = "NIT / Documento de la Empresa (Acudiente)";
+      guardianIdKey = "guardian_id";
+    }
+
+    docs.push({
+      key: guardianIdKey,
+      label: guardianIdLabel,
+    });
+
+    // Agregar cédulas adicionales de padres que viven con el estudiante
+    // (solo si no son el acudiente, para evitar duplicados)
     if (showFatherID) {
       docs.push({
         key: "father_id",
@@ -212,13 +242,6 @@ export const Step5Documents = ({
       docs.push({
         key: "mother_id",
         label: "Cédula de la Madre",
-      });
-    }
-
-    if (showGuardianID) {
-      docs.push({
-        key: "guardian_id",
-        label: "Cédula del Acudiente",
       });
     }
 
