@@ -62,7 +62,7 @@ export const Step6Confirmation = ({
         "Transición",
       ];
       const isPreescolar = preescolarGrades.some((grade) =>
-        gradeName.includes(grade)
+        gradeName.includes(grade),
       );
 
       const getRequiredDocuments = () => {
@@ -208,18 +208,18 @@ export const Step6Confirmation = ({
       if (uploadedFiles?.guardian_fingerprint instanceof File) {
         formData.append(
           "guardian_fingerprint",
-          uploadedFiles.guardian_fingerprint
+          uploadedFiles.guardian_fingerprint,
         );
       }
 
       // Documentos requeridos (Step5) - desde uploadedFiles
       console.log(
         "Documentos requeridos a enviar:",
-        requiredDocuments.map((d) => d.key)
+        requiredDocuments.map((d) => d.key),
       );
       console.log(
         "Archivos disponibles en uploadedFiles:",
-        Object.keys(uploadedFiles)
+        Object.keys(uploadedFiles),
       );
 
       requiredDocuments.forEach((doc) => {
@@ -245,13 +245,13 @@ export const Step6Confirmation = ({
             headers: buildHeaders({}, false), // false = no incluir Content-Type para FormData
             body: formData,
             credentials: "include",
-          }
+          },
         );
 
         if (!docsResponse.ok) {
           const error = await docsResponse.json();
           alert(
-            `Error al subir documentos: ${error.error || "Error desconocido"}`
+            `Error al subir documentos: ${error.error || "Error desconocido"}`,
           );
           setSending(false);
           return;
@@ -271,7 +271,7 @@ export const Step6Confirmation = ({
           headers: buildHeaders(),
           body: JSON.stringify({ student_data: studentData }),
           credentials: "include",
-        }
+        },
       );
 
       if (response.ok) {
@@ -326,8 +326,8 @@ export const Step6Confirmation = ({
               Matrícula enviada exitosamente
             </h2>
             <p className="text-gray-500">
-              Tu solicitud ha sido recibida y está en proceso de revisión.
-              Te notificaremos cuando sea aprobada.
+              Tu solicitud ha sido recibida y está en proceso de revisión. Te
+              notificaremos cuando sea aprobada.
             </p>
           </div>
 
@@ -348,7 +348,8 @@ export const Step6Confirmation = ({
     enrollmentInfo?.suggested_enrollment?.grade?.description ||
     enrollmentInfo?.actual_enrollment?.grade?.name ||
     "N/A";
-  const targetYear = enrollmentInfo?.suggested_enrollment?.academic_year || "N/A";
+  const targetYear =
+    enrollmentInfo?.suggested_enrollment?.academic_year || "N/A";
 
   return (
     <div className="space-y-6">

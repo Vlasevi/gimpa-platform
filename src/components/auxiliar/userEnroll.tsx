@@ -82,13 +82,13 @@ export default function UserEnroll({
     setLoading(true);
     try {
       if (isEdit && enrollmentId) {
-        // Modo edición: llamar al endpoint UPDATE
+        // Modo edición: usar el endpoint existente con PATCH
         const payload = {
           grade_id: form.grade_id,
           academic_year: parseInt(form.academic_year),
         };
         const res = await fetch(
-          apiUrl(API_ENDPOINTS.enrollmentUpdateGradeYear(enrollmentId)),
+          apiUrl(API_ENDPOINTS.enrollmentById(enrollmentId)),
           {
             method: "PATCH",
             headers: buildHeaders(),
