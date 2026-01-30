@@ -55,7 +55,24 @@ export const buildHeaders = (
   return headers;
 };
 
+// Flag to prevent infinite loops during session verification
+let isVerifyingSession = false;
+
+// Verify if the session is still valid by calling /accounts/me/
+const verifySession = async (): Promise<boolean> => {
+  try {
+    const response = await fetch(apiUrl("/api/accounts/me/"), {
+      ...fetchConfig,
+      headers: buildHeaders(),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+};
+
 // Helper para hacer fetch con la configuración por defecto
+// Includes automatic session verification and retry on 401
 export const apiFetch = async (path: string, options: RequestInit = {}) => {
   const url = apiUrl(path);
 
@@ -65,7 +82,50 @@ export const apiFetch = async (path: string, options: RequestInit = {}) => {
     headers: buildHeaders(options.headers),
   };
 
-  return fetch(url, config);
+  const response = await fetch(url, config);
+
+  // If we get a 401 and we're not already verifying session
+  if (response.status === 401 && !isVerifyingSession) {
+    isVerifyingSession = true;
+
+    try {
+      // Verify if session is still valid
+      const sessionValid = await verifySession();
+
+      if (sessionValid) {
+        // Session is valid, retry the original request (might be CSRF issue)
+        // Re-initialize CSRF token first
+        await initializeCsrfToken();
+
+        // Retry with fresh headers
+        const retryConfig = {
+          ...fetchConfig,
+          ...options,
+          headers: buildHeaders(options.headers),
+        };
+
+        const retryResponse = await fetch(url, retryConfig);
+
+        // If still 401 after retry, redirect to login
+        if (retryResponse.status === 401) {
+          localStorage.removeItem("auth_session");
+          window.location.href = "/login";
+          throw new Error("Session expired");
+        }
+
+        return retryResponse;
+      } else {
+        // Session is not valid, redirect to login
+        localStorage.removeItem("auth_session");
+        window.location.href = "/login";
+        throw new Error("Session expired");
+      }
+    } finally {
+      isVerifyingSession = false;
+    }
+  }
+
+  return response;
 };
 
 // Helper para inicializar CSRF token
