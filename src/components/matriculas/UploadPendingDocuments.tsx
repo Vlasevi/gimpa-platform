@@ -46,7 +46,23 @@ export const UploadPendingDocuments = () => {
 
             if (docsRes.ok) {
               const docsData = await docsRes.json();
-              setDocuments(docsData.documents || {});
+              const docs = docsData.documents || {};
+
+              // Transform documents for Step5Documents compatibility
+              // Backend returns { url, uploaded_at } but Steps expect { preview_base64, name }
+              const transformedDocs: Record<string, any> = {};
+              for (const [key, value] of Object.entries(docs)) {
+                if (value && typeof value === 'object') {
+                  const docValue = value as { url?: string; uploaded_at?: string };
+                  transformedDocs[key] = {
+                    ...docValue,
+                    preview_base64: docValue.url,
+                    name: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+                  };
+                }
+              }
+
+              setDocuments(transformedDocs);
             }
           }
         }
@@ -101,8 +117,7 @@ export const UploadPendingDocuments = () => {
       } else {
         const errorData = await response.json();
         alert(
-          `❌ Error: ${
-            errorData.error || "No se pudieron subir los documentos"
+          `❌ Error: ${errorData.error || "No se pudieron subir los documentos"
           }`
         );
       }
@@ -157,7 +172,7 @@ export const UploadPendingDocuments = () => {
             next={handleSubmit}
             back={() => window.history.back()}
             data={{}}
-            update={() => {}}
+            update={() => { }}
             uploadedFiles={uploadedFiles}
             updateUploadedFiles={updateUploadedFiles}
             enrollmentInfo={enrollmentInfo}

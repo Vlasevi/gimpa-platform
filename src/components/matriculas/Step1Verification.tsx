@@ -105,11 +105,25 @@ export const Step1Verification = ({
             const docsData = await docsResponse.json();
             const docs = docsData.documents || {};
 
+            // Transform documents for Step3/Step4 compatibility
+            // Backend returns { url, uploaded_at } but Steps expect { preview_base64 }
+            const transformedDocs: Record<string, any> = {};
+            for (const [key, value] of Object.entries(docs)) {
+              if (value && typeof value === 'object') {
+                const docValue = value as { url?: string; uploaded_at?: string };
+                transformedDocs[key] = {
+                  ...docValue,
+                  preview_base64: docValue.url,  // Use presigned URL as preview
+                  name: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+                };
+              }
+            }
+
             // Save ALL documents (photos, signatures, PDFs, etc.)
-            onDocumentsLoaded(docs);
+            onDocumentsLoaded(transformedDocs);
             console.log(
               "📄 Documentos cargados:",
-              Object.keys(docs).filter((k) => docs[k])
+              Object.keys(transformedDocs).filter((k) => transformedDocs[k])
             );
           }
         } catch (docError) {
