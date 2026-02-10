@@ -1,6 +1,6 @@
 // components/Matriculas/MatriculasAdmin.tsx
 import { useState, useEffect, useMemo } from "react";
-import { FilePlus, UserCog, X, User } from "lucide-react";
+import { FilePlus, UserCog, X, User, Sheet, Loader2 } from "lucide-react";
 import UserRegister from "@/components/auxiliar/userRegister";
 import EnrollmentUpdate from "@/components/auxiliar/enrollmentUpdate";
 import UserEnroll from "@/components/auxiliar/userEnroll";
@@ -115,6 +115,7 @@ export const MatriculasAdmin = () => {
   >(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
+  const [excelLoading, setExcelLoading] = useState(false);
 
   // Auto-expandir el primer grado con coincidencias cuando cambia el término de búsqueda
   useEffect(() => {
@@ -519,6 +520,42 @@ export const MatriculasAdmin = () => {
     enrollmentYears.push(selectedYear);
   }
 
+  const downloadExcel = async () => {
+    setExcelLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (selectedYear) params.set('academic_year', String(selectedYear));
+
+      const response = await fetch(
+        apiUrl(`${API_ENDPOINTS.enrollmentListExcel}?${params.toString()}`),
+        {
+          credentials: 'include',
+          headers: buildHeaders({}, false),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al generar el listado');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `listado_estudiantes_${selectedYear}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err: any) {
+      alert(err.message || 'Error al descargar el listado');
+      console.error(err);
+    } finally {
+      setExcelLoading(false);
+    }
+  };
+
   // Calcular lista única de estudiantes para el modal de actualización
   const uniqueStudents = useMemo(() => {
     const studentMap = new Map();
@@ -534,84 +571,109 @@ export const MatriculasAdmin = () => {
 
   return (
     <div className="container mx-auto px-6 pt-2 pb-6">
-      {/* Header - Título */}
-      <h1 className="text-3xl font-bold text-base-content mb-6">
-        Gestión de Matrículas
-      </h1>
-
-      {/* Barra de controles */}
-      <div className="flex items-center justify-between gap-3 mb-6">
-        <div className="flex items-center gap-3">
-          {/* Selector de año */}
-          <select
-            className="select select-bordered w-32"
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-          >
-            {enrollmentYears.map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </select>
-
-          {/* Buscador */}
-          <input
-            type="text"
-            placeholder="Buscar estudiante..."
-            className="input input-bordered w-96"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      {/* Header & Actions */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+            Gestión de Matrículas
+          </h1>
+          <p className="text-gray-500 mt-1">
+            Administra los estudiantes y sus matrículas por año académico
+          </p>
         </div>
-
-        {/* Botones de acción */}
         <div className="flex items-center gap-3">
           <button
-            className="btn btn-primary"
-            onClick={() => setShowEnrollModal(true)}
-          >
-            <FilePlus size={18} className="mr-1" />
-            Nueva Matrícula
-          </button>
-          <button
-            className="btn btn-success"
+            className="btn btn-outline btn-success gap-2"
             onClick={() => setShowUpdateModal(true)}
           >
-            <UserCog size={18} className="mr-1" />
-            Actualizar Matrícula
+            <UserCog size={18} />
+            Actualizar
+          </button>
+          <button
+            className="btn btn-primary gap-2 shadow-sm"
+            onClick={() => setShowEnrollModal(true)}
+          >
+            <FilePlus size={18} />
+            Nueva Matrícula
           </button>
         </div>
       </div>
 
-      {/* Mensaje de error */}
-      {error && (
-        <div className="alert alert-error mb-4">
-          <span>{error}</span>
-        </div>
-      )}
+      {/* Unified Stats & Controls Bar */}
+      <div className="card bg-base-100 shadow-sm border border-base-200 mb-8">
+        <div className="card-body p-3 sm:p-4 flex-col lg:flex-row gap-4 items-center">
 
-      {/* Estadísticas rápidas */}
-      <div className="stats shadow mb-6 w-full">
-        <div className="stat">
-          <div className="stat-title">Total Matrículas</div>
-          <div className="stat-value text-primary">
-            {enrollments.filter((e) => e.academic_year === selectedYear).length}
+          {/* Search & Filter Group */}
+          <div className="flex-1 flex gap-3 w-full">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="Buscar estudiante..."
+                className="input input-bordered w-full pl-10 h-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+            </div>
+
+            <select
+              className="select select-bordered w-24 sm:w-32 h-10 min-h-0 font-medium"
+              value={selectedYear || ""}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+            >
+              {enrollmentYears.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
           </div>
-        </div>
-        <div className="stat">
-          <div className="stat-title">Grados</div>
-          <div className="stat-value text-secondary">
-            {
-              Object.values(enrollmentsByGrade).filter(
-                (students) => students.length > 0,
-              ).length
-            }
+
+          {/* Vertical Divider (Desktop) */}
+          <div className="hidden lg:block w-px h-8 bg-gray-200 mx-2"></div>
+
+          {/* Stats & Actions Group */}
+          <div className="flex items-center gap-6 w-full lg:w-auto justify-between lg:justify-end">
+
+            {/* Stat: Total Estudiantes (Año seleccionado) */}
+            <div className="flex items-center gap-6">
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider leading-tight">
+                  Total
+                </span>
+                <span className="text-xl font-bold text-gray-900 leading-none">
+                  {enrollments.filter((e) => e.academic_year === selectedYear).length}
+                </span>
+              </div>
+
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] text-green-600 font-bold uppercase tracking-wider leading-tight">
+                  Activos
+                </span>
+                <span className="text-xl font-bold text-green-700 leading-none">
+                  {enrollments.filter((e) => e.academic_year === selectedYear && e.status === 'ACTIVE').length}
+                </span>
+              </div>
+            </div>
+
+            {/* Vertical Divider */}
+            <div className="hidden lg:block w-px h-8 bg-gray-200"></div>
+
+            {/* Action: Excel Download */}
+            <button
+              onClick={downloadExcel}
+              disabled={excelLoading}
+              className="p-1.5 transition-colors duration-200 text-green-600 hover:text-primary disabled:opacity-50"
+              title={`Descargar lista ${selectedYear}`}
+            >
+              {excelLoading ? (
+                <Loader2 size={24} className="animate-spin" />
+              ) : (
+                <Sheet size={24} />
+              )}
+            </button>
           </div>
-        </div>
-        <div className="stat">
-          <div className="stat-title">Año Académico</div>
-          <div className="stat-value text-accent">{selectedYear}</div>
+
         </div>
       </div>
 

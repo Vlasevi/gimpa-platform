@@ -155,6 +155,7 @@ export const API_ENDPOINTS = {
     `/api/enrollments/${id}/generate-pdfs/`,
   requestOtp: "/api/enrollments/request-otp/",
   validateOtp: "/api/enrollments/validate-otp/",
+  enrollmentListExcel: "/api/enrollments/list/",
 
   // Grades
   grades: "/api/grades/",
