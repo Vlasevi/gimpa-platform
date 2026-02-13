@@ -1,6 +1,6 @@
 // components/Matriculas/MatriculasAdmin.tsx
 import { useState, useEffect, useMemo } from "react";
-import { FilePlus, UserCog, X, User, Sheet, Loader2 } from "lucide-react";
+import { FilePlus, UserCog, X, User, Sheet, FileSpreadsheet, Loader2 } from "lucide-react";
 import UserRegister from "@/components/auxiliar/userRegister";
 import EnrollmentUpdate from "@/components/auxiliar/enrollmentUpdate";
 import UserEnroll from "@/components/auxiliar/userEnroll";
@@ -116,6 +116,7 @@ export const MatriculasAdmin = () => {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
   const [excelLoading, setExcelLoading] = useState(false);
+  const [studentsDataLoading, setStudentsDataLoading] = useState(false);
 
   // Auto-expandir el primer grado con coincidencias cuando cambia el término de búsqueda
   useEffect(() => {
@@ -556,6 +557,43 @@ export const MatriculasAdmin = () => {
     }
   };
 
+  const downloadStudentsData = async () => {
+    setStudentsDataLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (selectedYear) params.set('academic_year', String(selectedYear));
+      params.set('status', 'ACTIVE');
+
+      const response = await fetch(
+        apiUrl(`${API_ENDPOINTS.studentsDataExcel}?${params.toString()}`),
+        {
+          credentials: 'include',
+          headers: buildHeaders({}, false),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al generar datos de estudiantes');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `datos_estudiantes_${selectedYear}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err: any) {
+      alert(err.message || 'Error al descargar datos de estudiantes');
+      console.error(err);
+    } finally {
+      setStudentsDataLoading(false);
+    }
+  };
+
   // Calcular lista única de estudiantes para el modal de actualización
   const uniqueStudents = useMemo(() => {
     const studentMap = new Map();
@@ -659,17 +697,29 @@ export const MatriculasAdmin = () => {
             {/* Vertical Divider */}
             <div className="hidden lg:block w-px h-8 bg-gray-200"></div>
 
-            {/* Action: Excel Download */}
+            {/* Action: Excel Downloads */}
             <button
               onClick={downloadExcel}
               disabled={excelLoading}
               className="p-1.5 transition-colors duration-200 text-green-600 hover:text-primary disabled:opacity-50"
-              title={`Descargar lista ${selectedYear}`}
+              title={`Descargar Listas Grados ${selectedYear}`}
             >
               {excelLoading ? (
                 <Loader2 size={24} className="animate-spin" />
               ) : (
                 <Sheet size={24} />
+              )}
+            </button>
+            <button
+              onClick={downloadStudentsData}
+              disabled={studentsDataLoading}
+              className="p-1.5 transition-colors duration-200 text-blue-600 hover:text-primary disabled:opacity-50"
+              title={`Descargar Datos Estudiantes ${selectedYear}`}
+            >
+              {studentsDataLoading ? (
+                <Loader2 size={24} className="animate-spin" />
+              ) : (
+                <FileSpreadsheet size={24} />
               )}
             </button>
           </div>

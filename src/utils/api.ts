@@ -156,6 +156,7 @@ export const API_ENDPOINTS = {
   requestOtp: "/api/enrollments/request-otp/",
   validateOtp: "/api/enrollments/validate-otp/",
   enrollmentListExcel: "/api/enrollments/list/",
+  studentsDataExcel: "/api/accounts/students_data/",
 
   // Grades
   grades: "/api/grades/",
