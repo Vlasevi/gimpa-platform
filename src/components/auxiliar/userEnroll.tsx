@@ -22,7 +22,7 @@ export default function UserEnroll({
   const [loading, setLoading] = useState(false);
   const [showGradeList, setShowGradeList] = useState(false);
   const [studentSearch, setStudentSearch] = useState(
-    initialEmail ? `Estudiante seleccionado (${initialEmail})` : ""
+    initialEmail ? `Estudiante seleccionado (${initialEmail})` : "",
   );
   const currentYear = new Date().getFullYear();
   const years = [currentYear, currentYear + 1];
@@ -34,7 +34,7 @@ export default function UserEnroll({
           .filter((s) =>
             `${s.first_name} ${s.last_name} ${s.email}`
               .toLowerCase()
-              .includes(studentSearch.toLowerCase())
+              .includes(studentSearch.toLowerCase()),
           )
           .slice(0, 5)
       : [];
@@ -94,7 +94,7 @@ export default function UserEnroll({
             headers: buildHeaders(),
             body: JSON.stringify(payload),
             credentials: "include",
-          }
+          },
         );
         if (res.ok) {
           setSuccessMsg("¡Matrícula actualizada exitosamente!");
@@ -106,7 +106,7 @@ export default function UserEnroll({
           setSuccessMsg(
             typeof errorData.error === "string"
               ? `Error: ${errorData.error}`
-              : `Error: ${JSON.stringify(errorData)}`
+              : `Error: ${JSON.stringify(errorData)}`,
           );
         }
       } else {
@@ -132,7 +132,7 @@ export default function UserEnroll({
           setSuccessMsg(
             typeof errorData.detail === "string"
               ? `Error: ${errorData.detail}`
-              : `Error: ${JSON.stringify(errorData)}`
+              : `Error: ${JSON.stringify(errorData)}`,
           );
         }
       }
@@ -206,7 +206,7 @@ export default function UserEnroll({
                   }}
                   onMouseDown={() => {
                     setStudentSearch(
-                      `${s.first_name} ${s.last_name} (${s.email})`
+                      `${s.first_name} ${s.last_name} (${s.email})`,
                     );
                     setForm({
                       ...form,

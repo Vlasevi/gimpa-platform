@@ -20,6 +20,7 @@ interface Student {
   first_name: string;
   last_name: string;
   email: string;
+  photo_url?: string;
 }
 
 interface Enrollment {
@@ -451,7 +452,10 @@ export const MatriculasAdmin = () => {
       // Combine enrollment info with student data for the modal
       const combinedData = {
         ...enrollmentData,
-        student: studentData,
+        student: {
+          ...studentData,
+          photo_url: enrollment.student.photo_url,
+        },
       };
 
       setSelectedEnrollmentData(combinedData);

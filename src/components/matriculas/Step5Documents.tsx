@@ -107,11 +107,13 @@ export const Step5Documents = ({
           // Determinar qué cédulas adicionales se necesitan según con quién vive
           // Solo mostrar cédula del padre si vive con el estudiante Y no es el acudiente
           setShowFatherID(
-            step3Data.father_lives_with_student && guardianTypeValue !== "Padre"
+            step3Data.father_lives_with_student &&
+              guardianTypeValue !== "Padre",
           );
           // Solo mostrar cédula de la madre si vive con el estudiante Y no es la acudiente
           setShowMotherID(
-            step3Data.mother_lives_with_student && guardianTypeValue !== "Madre"
+            step3Data.mother_lives_with_student &&
+              guardianTypeValue !== "Madre",
           );
 
           // Obtener quién es el responsable para el certificado laboral
@@ -132,7 +134,7 @@ export const Step5Documents = ({
     "Transición",
   ];
   const isPreescolar = preescolarGrades.some((grade) =>
-    gradeName.includes(grade)
+    gradeName.includes(grade),
   );
 
   // Definir documentos requeridos según grado y tipo de matrícula
