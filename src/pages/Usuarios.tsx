@@ -354,8 +354,16 @@ export default function Usuarios() {
                                 ¿Eliminar usuario?
                             </h3>
                             <p className="text-gray-600 mb-6">
-                                Estás a punto de eliminar al usuario <strong>{getUserDisplayName(userToDelete)}</strong> ({userToDelete.email}). Esta acción no se puede deshacer.
+                                Estás a punto de eliminar al usuario <strong>{getUserDisplayName(userToDelete)}</strong> ({userToDelete.email}).
                             </p>
+                            <div className="rounded-md border border-error/40 bg-error/10 p-3 mb-6 text-left">
+                                <p className="text-sm font-semibold text-error">
+                                    Advertencia: esta acción no se puede deshacer.
+                                </p>
+                                <p className="text-sm text-gray-700 mt-1">
+                                    Se eliminarán los datos del usuario y sus archivos asociados.
+                                </p>
+                            </div>
                             <div className="flex justify-center gap-3">
                                 <button
                                     className="btn btn-ghost"
