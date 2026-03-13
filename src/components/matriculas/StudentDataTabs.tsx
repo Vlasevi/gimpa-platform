@@ -94,6 +94,10 @@ export const StudentDataTabs = ({
     father_id: "Cédula del Padre",
     mother_id: "Cédula de la Madre",
     guardian_id: "Cédula del Acudiente",
+    // PDFs firmados (institución)
+    contrato_signed: "Contrato de Matrícula",
+    pagare_signed: "Pagaré",
+    hoja_matricula_signed: "Hoja de Matrícula",
     // Otros
     work_certificate: "Certificado Laboral",
   };
@@ -104,6 +108,11 @@ export const StudentDataTabs = ({
     const cleanKey = docKey.startsWith("documentos/")
       ? docKey.replace("documentos/", "")
       : docKey;
+
+    // Buscar primero en el mapeo estático
+    if (documentLabels[cleanKey]) {
+      return documentLabels[cleanKey];
+    }
 
     // Documentos institucionales dinámicos (contrato, pagaré, hoja de matrícula)
     if (cleanKey.startsWith("contrato_")) {
@@ -642,8 +651,14 @@ export const StudentDataTabs = ({
 
                 // Función para determinar categoría
                 const getCategory = (docKey: string) => {
-                  // Documentos institución (prefijo documentos/)
+                  // Documentos institución (prefijo documentos/ o PDFs firmados)
                   if (docKey.startsWith("documentos/")) return "institucion";
+                  if (
+                    docKey === "contrato_signed" ||
+                    docKey === "pagare_signed" ||
+                    docKey === "hoja_matricula_signed"
+                  )
+                    return "institucion";
 
                   const cleanKey = docKey.toLowerCase();
 
@@ -661,10 +676,10 @@ export const StudentDataTabs = ({
 
                 // Agrupar documentos
                 const grouped: Record<string, [string, any][]> = {
+                  institucion: [],
                   fotos: [],
                   firmas: [],
                   documentos: [],
-                  institucion: [],
                 };
 
                 Object.entries(documentsMetadata).forEach(([docKey, meta]) => {

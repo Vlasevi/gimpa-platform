@@ -36,7 +36,7 @@ export const getCsrfToken = (): string | null => {
 // Helper para construir headers con CSRF token
 export const buildHeaders = (
   additionalHeaders: HeadersInit = {},
-  includeContentType: boolean = true
+  includeContentType: boolean = true,
 ): HeadersInit => {
   const headers: Record<string, string> = {
     ...(additionalHeaders as Record<string, string>),
@@ -151,8 +151,12 @@ export const API_ENDPOINTS = {
   enrollments: "/api/enrollments/",
   enrollmentById: (id: number) => `/api/enrollments/${id}/`,
   enrollmentDocuments: (id: number) => `/api/enrollments/${id}/documents/`,
+  enrollmentSaveStudentData: (id: number) =>
+    `/api/enrollments/${id}/save-student-data/`,
   enrollmentGeneratePdfs: (id: number) =>
     `/api/enrollments/${id}/generate-pdfs/`,
+  enrollmentGenerateUnsigned: (id: number) =>
+    `/api/enrollments/${id}/generate-unsigned/`,
   requestOtp: "/api/enrollments/request-otp/",
   validateOtp: "/api/enrollments/validate-otp/",
   enrollmentListExcel: "/api/enrollments/list/",

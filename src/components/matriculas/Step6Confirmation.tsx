@@ -187,28 +187,17 @@ export const Step6Confirmation = ({
         formData.append("mother_photo", uploadedFiles.mother_photo);
       }
 
-      // Firmas de padres/acudiente (Step4) - desde uploadedFiles
-      if (uploadedFiles?.father_signature instanceof File) {
-        formData.append("father_signature", uploadedFiles.father_signature);
+      // PDFs firmados (Step4) - desde uploadedFiles
+      if (uploadedFiles?.contrato_signed instanceof File) {
+        formData.append("contrato_signed", uploadedFiles.contrato_signed);
       }
-      if (uploadedFiles?.mother_signature instanceof File) {
-        formData.append("mother_signature", uploadedFiles.mother_signature);
+      if (uploadedFiles?.pagare_signed instanceof File) {
+        formData.append("pagare_signed", uploadedFiles.pagare_signed);
       }
-      if (uploadedFiles?.guardian_signature instanceof File) {
-        formData.append("guardian_signature", uploadedFiles.guardian_signature);
-      }
-
-      // Huellas de padres/acudiente (Step4) - desde uploadedFiles
-      if (uploadedFiles?.father_fingerprint instanceof File) {
-        formData.append("father_fingerprint", uploadedFiles.father_fingerprint);
-      }
-      if (uploadedFiles?.mother_fingerprint instanceof File) {
-        formData.append("mother_fingerprint", uploadedFiles.mother_fingerprint);
-      }
-      if (uploadedFiles?.guardian_fingerprint instanceof File) {
+      if (uploadedFiles?.hoja_matricula_signed instanceof File) {
         formData.append(
-          "guardian_fingerprint",
-          uploadedFiles.guardian_fingerprint,
+          "hoja_matricula_signed",
+          uploadedFiles.hoja_matricula_signed,
         );
       }
 

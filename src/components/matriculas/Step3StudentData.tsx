@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Alert } from "@/components/ui/Alert";
+import { API_ENDPOINTS, apiFetch } from "@/utils/api";
 
 // --- CONSTANTES (Listas para desplegables) ---
 const BARRIOS_BARRANQUILLA = [
@@ -654,10 +655,6 @@ export const Step3StudentData = ({
   enrollmentId,
   preloadedDocuments,
 }: any) => {
-  console.log("Step3StudentData - enrollmentInfo:", enrollmentInfo);
-  console.log("Step3StudentData - enrollmentId:", enrollmentId);
-  console.log("Step3StudentData - preloadedDocuments:", preloadedDocuments);
-
   // Estado para el modal legal
   const [showLegalModal, setShowLegalModal] = useState(false);
 
@@ -687,6 +684,9 @@ export const Step3StudentData = ({
 
   // Inicialización (existing_data + grado + año) solo una vez
   const initializedRef = useRef(false);
+  const autosaveTimeoutRef = useRef<number | null>(null);
+  const autosaveLastHashRef = useRef<string>("");
+  const autosaveInitializedRef = useRef(false);
 
   useEffect(() => {
     if (data.student_birth_date) {
@@ -761,6 +761,50 @@ export const Step3StudentData = ({
     data.school_year,
     update,
   ]);
+
+  // --- EFFECT: Auto-save Step 3 student_data (sin cambiar estado de matrícula) ---
+  useEffect(() => {
+    if (!enrollmentId) return;
+    if (!initializedRef.current) return;
+
+    const payloadHash = JSON.stringify(data);
+
+    // Evita guardar de inmediato en el primer render post-inicialización.
+    if (!autosaveInitializedRef.current) {
+      autosaveInitializedRef.current = true;
+      autosaveLastHashRef.current = payloadHash;
+      return;
+    }
+
+    if (payloadHash === autosaveLastHashRef.current) return;
+
+    if (autosaveTimeoutRef.current) {
+      window.clearTimeout(autosaveTimeoutRef.current);
+    }
+
+    autosaveTimeoutRef.current = window.setTimeout(async () => {
+      try {
+        const res = await apiFetch(
+          API_ENDPOINTS.enrollmentSaveStudentData(enrollmentId),
+          {
+            method: "POST",
+            body: JSON.stringify({ student_data: data }),
+          },
+        );
+        if (res.ok) {
+          autosaveLastHashRef.current = payloadHash;
+        }
+      } catch (error) {
+        console.error("Error guardando borrador Step 3:", error);
+      }
+    }, 700);
+
+    return () => {
+      if (autosaveTimeoutRef.current) {
+        window.clearTimeout(autosaveTimeoutRef.current);
+      }
+    };
+  }, [data, enrollmentId]);
 
   // Handler para input/select
   const handleChange = (
@@ -863,41 +907,6 @@ export const Step3StudentData = ({
       );
       if (needsUpdate) {
         update(newGuardian);
-      }
-    } else if (data.guardian_type === "Otro") {
-      // Limpiar los campos de acudiente cuando se selecciona "Otro"
-      const fieldsToClean = {
-        guardian_lastname1: "",
-        guardian_lastname2: "",
-        guardian_firstname1: "",
-        guardian_firstname2: "",
-        guardian_full_name: "",
-        guardian_id_number: "",
-        guardian_email: "",
-        guardian_phone: "",
-        guardian_country: "",
-        guardian_department: "",
-        guardian_city: "",
-        guardian_residence_country: "",
-        guardian_residence_department: "",
-        guardian_residence_city: "",
-        guardian_residence_barrio: "",
-        guardian_residence_address: "",
-        guardian_residence_address_complement: "",
-        guardian_residence_stratum: "",
-        guardian_document_type: "",
-        guardian_religion: "",
-        guardian_relationship: "",
-        guardian_profession: "",
-        guardian_company_name: "",
-        guardian_company_address: "",
-        guardian_work_phone: "",
-      };
-      const needsCleaning = Object.keys(fieldsToClean).some(
-        (key) => data[key] !== "",
-      );
-      if (needsCleaning) {
-        update(fieldsToClean);
       }
     } else if (data.guardian_type === "Empresa") {
       // Limpiar campos de persona natural cuando se selecciona "Empresa"
@@ -2976,6 +2985,27 @@ export const Step3StudentData = ({
                     data.guardian_type === "Madre"
                   }
                   required={data.guardian_type === "Otro"}
+                />
+              </>
+            )}
+
+            {(data.guardian_type === "Otro" ||
+              data.guardian_type === "Empresa") && (
+              <>
+                <div className="col-span-1 md:col-span-2 lg:col-span-3 mt-2 mb-1">
+                  <div className="alert alert-info py-2">
+                    <span className="text-sm">
+                      Segundo firmante para documentos (Contrato, Pagaré y Hoja de matrícula)
+                    </span>
+                  </div>
+                </div>
+                <FormSelect
+                  label="¿Quién firma como segunda persona?"
+                  name="guardian_second_signer"
+                  value={data.guardian_second_signer}
+                  onChange={handleChange}
+                  options={["Madre", "Padre", "No aplica"]}
+                  required={true}
                 />
               </>
             )}
