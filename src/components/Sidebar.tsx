@@ -64,7 +64,7 @@ const ALL_MENU_ITEMS: MenuItem[] = [
     path: "/usuarios",
     icon: Users,
     section: "users",
-    anyOf: ["canCreate", "canEdit", "canDelete"],
+    anyOf: ["canView"],
   },
 ];
 

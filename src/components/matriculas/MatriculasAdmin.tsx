@@ -113,14 +113,17 @@ export const MatriculasAdmin = () => {
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [folderLoading, setFolderLoading] = useState<number | null>(null);
   const [showStudentDataModal, setShowStudentDataModal] = useState(false);
-  const [selectedEnrollmentData, setSelectedEnrollmentData] = useState<
-    any | null
-  >(null);
+  const [selectedEnrollmentData, setSelectedEnrollmentData] = useState<any | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
   const [excelLoading, setExcelLoading] = useState(false);
   const [studentsDataLoading, setStudentsDataLoading] = useState(false);
-  const canManageDocuments = Boolean(user?.permissions?.enrollments?.canApprove);
+  const enrollmentPermissions = user?.permissions?.enrollments;
+  const canCreateEnrollments = Boolean(enrollmentPermissions?.canCreate);
+  const canEditEnrollments = Boolean(enrollmentPermissions?.canEdit);
+  const canDeleteEnrollments = Boolean(enrollmentPermissions?.canDelete);
+  const canApproveEnrollments = Boolean(enrollmentPermissions?.canApprove);
+  const canManageDocuments = canApproveEnrollments;
 
   // Auto-expandir el primer grado con coincidencias cuando cambia el término de búsqueda
   useEffect(() => {
@@ -627,20 +630,24 @@ export const MatriculasAdmin = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            className="btn btn-outline btn-success gap-2"
-            onClick={() => setShowUpdateModal(true)}
-          >
-            <UserCog size={18} />
-            Actualizar
-          </button>
-          <button
-            className="btn btn-primary gap-2 shadow-sm"
-            onClick={() => setShowEnrollModal(true)}
-          >
-            <FilePlus size={18} />
-            Nueva Matrícula
-          </button>
+          {canEditEnrollments && (
+            <button
+              className="btn btn-outline btn-success gap-2"
+              onClick={() => setShowUpdateModal(true)}
+            >
+              <UserCog size={18} />
+              Actualizar
+            </button>
+          )}
+          {canCreateEnrollments && (
+            <button
+              className="btn btn-primary gap-2 shadow-sm"
+              onClick={() => setShowEnrollModal(true)}
+            >
+              <FilePlus size={18} />
+              Nueva Matrícula
+            </button>
+          )}
         </div>
       </div>
 
@@ -765,6 +772,9 @@ export const MatriculasAdmin = () => {
                   setShowEditModal(true);
                 }}
                 onGeneratePDFs={generatePDFs}
+                canEdit={canEditEnrollments}
+                canDelete={canDeleteEnrollments}
+                canApprove={canApproveEnrollments}
                 actionLoading={actionLoading}
                 formatDate={formatDate}
               />

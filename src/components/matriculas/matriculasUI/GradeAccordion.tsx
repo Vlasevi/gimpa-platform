@@ -42,6 +42,9 @@ interface GradeAccordionProps {
     onDelete: (id: number) => void;
     onEdit: (enrollment: Enrollment) => void;
     onGeneratePDFs: (id: number) => void;
+    canEdit: boolean;
+    canDelete: boolean;
+    canApprove: boolean;
     actionLoading: number | null;
     formatDate: (dateString: string) => string;
 }
@@ -58,6 +61,9 @@ export const GradeAccordion = ({
     onDelete,
     onEdit,
     onGeneratePDFs,
+    canEdit,
+    canDelete,
+    canApprove,
     actionLoading,
     formatDate,
 }: GradeAccordionProps) => {
@@ -138,6 +144,9 @@ export const GradeAccordion = ({
                                                 onDelete={onDelete}
                                                 onEdit={onEdit}
                                                 onGeneratePDFs={onGeneratePDFs}
+                                                canEdit={canEdit}
+                                                canDelete={canDelete}
+                                                canApprove={canApprove}
                                                 actionLoading={actionLoading}
                                                 formatDate={formatDate}
                                             />

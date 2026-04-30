@@ -50,6 +50,9 @@ interface EnrollmentRowProps {
     onDelete: (id: number) => void;
     onEdit: (enrollment: Enrollment) => void;
     onGeneratePDFs: (id: number) => void;
+    canEdit: boolean;
+    canDelete: boolean;
+    canApprove: boolean;
     actionLoading: number | null;
     formatDate: (dateString: string) => string;
 }
@@ -80,10 +83,18 @@ export const EnrollmentRow = ({
     onDelete,
     onEdit,
     onGeneratePDFs,
+    canEdit,
+    canDelete,
+    canApprove,
     actionLoading,
     formatDate,
 }: EnrollmentRowProps) => {
     const isLoading = actionLoading === enrollment.id;
+    const canShowActionsMenu =
+        (enrollment.status === "IN_REVIEW" && (canApprove || canEdit)) ||
+        (enrollment.status === "PENDING" && canEdit) ||
+        (enrollment.status === "ACTIVE" && (canApprove || canEdit)) ||
+        (enrollment.status === "CANCELLED" && canDelete);
 
     return (
         <tr className="hover:bg-base-200/50 transition-colors">
@@ -143,10 +154,11 @@ export const EnrollmentRow = ({
                     </button>
 
                     {/* Dropdown de Acciones */}
-                    <div
-                        className={`dropdown dropdown-end ${isLastRows ? "dropdown-top" : "dropdown-bottom"
-                            }`}
-                    >
+                    {canShowActionsMenu && (
+                        <div
+                            className={`dropdown dropdown-end ${isLastRows ? "dropdown-top" : "dropdown-bottom"
+                                }`}
+                        >
                         <label
                             tabIndex={0}
                             className="p-2 text-base-content/40 hover:text-base-content hover:bg-base-200 rounded-full transition-all cursor-pointer inline-flex"
@@ -160,43 +172,49 @@ export const EnrollmentRow = ({
                             {/* ESTADO: IN_REVIEW */}
                             {enrollment.status === "IN_REVIEW" && (
                                 <>
-                                    <li>
-                                        <button
-                                            onClick={() => onApprove(enrollment.id)}
-                                            disabled={isLoading}
-                                        >
-                                            <Check size={16} /> Aprobar
-                                        </button>
-                                    </li>
-                                    <li>
-                                        <button
-                                            onClick={() => onRequestCorrection(enrollment)}
-                                            disabled={isLoading}
-                                        >
-                                            <MessageSquare size={16} /> Solicitar cambios
-                                        </button>
-                                    </li>
-                                    <li>
-                                        <button
-                                            onClick={() => onGeneratePDFs(enrollment.id)}
-                                            disabled={isLoading}
-                                        >
-                                            <FileText size={16} /> Generar PDFs
-                                        </button>
-                                    </li>
-                                    <li>
-                                        <button
-                                            onClick={() => onCancel(enrollment.id)}
-                                            disabled={isLoading}
-                                        >
-                                            <Ban size={16} /> Cancelar matrícula
-                                        </button>
-                                    </li>
+                                    {canApprove && (
+                                        <>
+                                            <li>
+                                                <button
+                                                    onClick={() => onApprove(enrollment.id)}
+                                                    disabled={isLoading}
+                                                >
+                                                    <Check size={16} /> Aprobar
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button
+                                                    onClick={() => onRequestCorrection(enrollment)}
+                                                    disabled={isLoading}
+                                                >
+                                                    <MessageSquare size={16} /> Solicitar cambios
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button
+                                                    onClick={() => onGeneratePDFs(enrollment.id)}
+                                                    disabled={isLoading}
+                                                >
+                                                    <FileText size={16} /> Generar PDFs
+                                                </button>
+                                            </li>
+                                        </>
+                                    )}
+                                    {canEdit && (
+                                        <li>
+                                            <button
+                                                onClick={() => onCancel(enrollment.id)}
+                                                disabled={isLoading}
+                                            >
+                                                <Ban size={16} /> Cancelar matrícula
+                                            </button>
+                                        </li>
+                                    )}
                                 </>
                             )}
 
                             {/* ESTADO: PENDING */}
-                            {enrollment.status === "PENDING" && (
+                            {enrollment.status === "PENDING" && canEdit && (
                                 <>
                                     <li>
                                         <button
@@ -220,28 +238,32 @@ export const EnrollmentRow = ({
                             {/* ESTADO: ACTIVE */}
                             {enrollment.status === "ACTIVE" && (
                                 <>
-                                    <li>
-                                        <button
-                                            onClick={() => onGeneratePDFs(enrollment.id)}
-                                            disabled={isLoading}
-                                        >
-                                            <FileText size={16} /> Generar PDFs
-                                        </button>
-                                    </li>
-                                    <li>
-                                        <button
-                                            onClick={() => onCancel(enrollment.id)}
-                                            className="text-error"
-                                            disabled={isLoading}
-                                        >
-                                            <Ban size={16} /> Cancelar matrícula
-                                        </button>
-                                    </li>
+                                    {canApprove && (
+                                        <li>
+                                            <button
+                                                onClick={() => onGeneratePDFs(enrollment.id)}
+                                                disabled={isLoading}
+                                            >
+                                                <FileText size={16} /> Generar PDFs
+                                            </button>
+                                        </li>
+                                    )}
+                                    {canEdit && (
+                                        <li>
+                                            <button
+                                                onClick={() => onCancel(enrollment.id)}
+                                                className="text-error"
+                                                disabled={isLoading}
+                                            >
+                                                <Ban size={16} /> Cancelar matrícula
+                                            </button>
+                                        </li>
+                                    )}
                                 </>
                             )}
 
                             {/* ESTADO: CANCELLED */}
-                            {enrollment.status === "CANCELLED" && (
+                            {enrollment.status === "CANCELLED" && canDelete && (
                                 <li>
                                     <button
                                         onClick={() => onDelete(enrollment.id)}
@@ -252,7 +274,8 @@ export const EnrollmentRow = ({
                                 </li>
                             )}
                         </ul>
-                    </div>
+                        </div>
+                    )}
                 </div>
             </td>
         </tr>

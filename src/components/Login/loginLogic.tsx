@@ -8,7 +8,7 @@ const logoutEndpoint = apiUrl("/api/accounts/me/logout/");
 export const loginUrl = apiUrl("/auth/login/azuread-tenant-oauth2");
 
 // Tipos de roles del backend
-export type UserRole = 'admin' | 'rector' | 'teacher' | 'student';
+export type UserRole = 'admin' | 'rector' | 'teacher' | 'student' | 'psychologist';
 
 // Permisos por sección que vienen del backend
 export interface SectionPermissions {

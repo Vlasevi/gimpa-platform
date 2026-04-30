@@ -178,12 +178,14 @@ export default function Usuarios() {
             admin: "badge-error",
             rector: "badge-warning",
             teacher: "badge-info",
+            psychologist: "badge-secondary",
             student: "badge-success",
         };
         const labels: Record<string, string> = {
             admin: "Administrador",
             rector: "Rector",
             teacher: "Profesor",
+            psychologist: "Psicóloga",
             student: "Estudiante",
         };
         return (

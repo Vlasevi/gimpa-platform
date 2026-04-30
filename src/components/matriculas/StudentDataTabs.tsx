@@ -780,6 +780,7 @@ export const StudentDataTabs = ({
 
                 Object.entries(currentDocuments).forEach(([docKey, meta]) => {
                   const cat = getCategory(docKey);
+                  if (!canManageDocuments && cat !== "fotos") return;
                   grouped[cat].push([docKey, meta]);
                 });
 

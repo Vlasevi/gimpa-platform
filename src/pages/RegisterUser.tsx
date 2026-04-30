@@ -187,6 +187,7 @@ export default function RegisterUser() {
                                     >
                                         <option value="student">Estudiante</option>
                                         <option value="teacher">Profesor</option>
+                                        <option value="psychologist">Psicóloga</option>
                                         <option value="rector">Rector</option>
                                         {canAssignAdminRole && (
                                             <option value="admin">Administrador</option>
