@@ -19,15 +19,13 @@ interface User {
 
 export default function Usuarios() {
     const { user } = useAuth();
+    const userPermissions = user?.permissions?.users;
+    const canViewUsers = Boolean(userPermissions?.canView);
+    const canCreateUsers = Boolean(userPermissions?.canCreate);
+    const canEditUsers = Boolean(userPermissions?.canEdit);
+    const canDeleteUsers = Boolean(userPermissions?.canDelete);
 
-    // Verificar permisos de gestión de usuarios
-    const requiredPermissions = ["create_user", "edit_user", "delete_user"];
-    const hasPermission = user?.permissions?.some((perm: string) =>
-        requiredPermissions.includes(perm)
-    );
-
-    // Redirigir si no tiene permisos
-    if (!hasPermission) {
+    if (!canViewUsers) {
         return <Navigate to="/unauthorized" replace />;
     }
 
@@ -215,10 +213,12 @@ export default function Usuarios() {
                 />
 
                 <div className="flex items-center gap-2">
-                    <button className="btn btn-primary" onClick={handleCreate}>
-                        <UserPlus className="w-5 h-5 mr-2" />
-                        Nuevo Usuario
-                    </button>
+                    {canCreateUsers && (
+                        <button className="btn btn-primary" onClick={handleCreate}>
+                            <UserPlus className="w-5 h-5 mr-2" />
+                            Nuevo Usuario
+                        </button>
+                    )}
                     <button className="btn" onClick={fetchUsers}>
                         <RefreshCw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
                         Actualizar
@@ -271,20 +271,24 @@ export default function Usuarios() {
                                     <td>{getRoleBadge(u.role)}</td>
                                     <td className="text-right">
                                         <div className="flex justify-center gap-1">
-                                            <button
-                                                className="p-1 text-gray-500 hover:text-primary transition-colors cursor-pointer"
-                                                title="Editar"
-                                                onClick={() => handleEdit(u)}
-                                            >
-                                                <Pencil className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                className="p-1 text-gray-500 hover:text-error transition-colors cursor-pointer"
-                                                title="Eliminar"
-                                                onClick={() => handleDeleteClick(u)}
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+                                            {canEditUsers && (
+                                                <button
+                                                    className="p-1 text-gray-500 hover:text-primary transition-colors cursor-pointer"
+                                                    title="Editar"
+                                                    onClick={() => handleEdit(u)}
+                                                >
+                                                    <Pencil className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                            {canDeleteUsers && (
+                                                <button
+                                                    className="p-1 text-gray-500 hover:text-error transition-colors cursor-pointer"
+                                                    title="Eliminar"
+                                                    onClick={() => handleDeleteClick(u)}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>

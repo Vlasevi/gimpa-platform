@@ -8,6 +8,7 @@ import { getStatusLabel, getStatusBadgeClass } from "@/utils/statusHelpers";
 import { apiUrl, API_ENDPOINTS, buildHeaders } from "@/utils/api";
 import { GradeAccordion } from "./matriculasUI/GradeAccordion";
 import { StudentDataTabs } from "./StudentDataTabs";
+import { useAuth } from "@/components/Login/loginLogic";
 
 interface Grade {
   id: number;
@@ -93,6 +94,7 @@ const AnimatedModal = ({
 };
 
 export const MatriculasAdmin = () => {
+  const { user } = useAuth();
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
@@ -118,6 +120,7 @@ export const MatriculasAdmin = () => {
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
   const [excelLoading, setExcelLoading] = useState(false);
   const [studentsDataLoading, setStudentsDataLoading] = useState(false);
+  const canManageDocuments = Boolean(user?.permissions?.enrollments?.canApprove);
 
   // Auto-expandir el primer grado con coincidencias cuando cambia el término de búsqueda
   useEffect(() => {
@@ -1152,6 +1155,12 @@ export const MatriculasAdmin = () => {
                 student={selectedEnrollmentData.student || {}}
                 documentsMetadata={selectedEnrollmentData.documents_metadata}
                 enrollmentId={selectedEnrollmentData.id}
+                canManageDocuments={canManageDocuments}
+                onDocumentsChange={(documentsMetadata) => {
+                  setSelectedEnrollmentData((current: any | null) =>
+                    current ? { ...current, documents_metadata: documentsMetadata } : current,
+                  );
+                }}
               />
             )
           )}

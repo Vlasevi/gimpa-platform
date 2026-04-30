@@ -15,6 +15,7 @@ export const UploadPendingDocuments = () => {
   const [submitting, setSubmitting] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const canReviewEnrollments = Boolean(user?.permissions?.enrollments?.canApprove);
 
   const updateUploadedFiles = (files: any) => {
     setUploadedFiles((prev: any) => ({ ...prev, ...files }));
@@ -134,6 +135,30 @@ export const UploadPendingDocuments = () => {
       <div className="container mx-auto p-6">
         <div className="flex justify-center items-center min-h-[60vh]">
           <span className="loading loading-spinner loading-lg text-primary"></span>
+        </div>
+      </div>
+    );
+  }
+
+  if (canReviewEnrollments) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">
+              Gestión de Documentos Pendientes
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Para perfiles institucionales, la gestión de documentos se realiza
+              desde la vista de matrículas, seleccionando al estudiante.
+            </p>
+            <button
+              className="btn btn-primary"
+              onClick={() => navigate("/matriculas")}
+            >
+              Ir a Matrículas
+            </button>
+          </div>
         </div>
       </div>
     );

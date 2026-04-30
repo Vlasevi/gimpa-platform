@@ -14,10 +14,8 @@ export default function RegisterUser() {
     const [errorMsg, setErrorMsg] = useState("");
     const [loading, setLoading] = useState(false);
 
-    // Determine if user can assign roles (Admin only)
-    // Assuming 'role' property exists on user object (e.g. "admin", "rector")
-    // You might need to check how exactly role is stored (Enum string mostly)
-    const canAssignRole = user?.role === "admin";
+    const canSelectRole = Boolean(user?.permissions?.users?.canCreate);
+    const canAssignAdminRole = user?.role === "admin";
 
     const [form, setForm] = useState({
         displayname: "",
@@ -174,7 +172,7 @@ export default function RegisterUser() {
                                 />
                             </div>
 
-                            {canAssignRole && (
+                            {canSelectRole && (
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium" htmlFor="role">
                                         Rol <span className="text-red-500">*</span>
@@ -190,12 +188,18 @@ export default function RegisterUser() {
                                         <option value="student">Estudiante</option>
                                         <option value="teacher">Profesor</option>
                                         <option value="rector">Rector</option>
-                                        <option value="admin">Administrador</option>
+                                        {canAssignAdminRole && (
+                                            <option value="admin">Administrador</option>
+                                        )}
                                     </select>
-                                    <p className="text-xs text-gray-500">Solo administradores pueden asignar roles diferentes a Estudiante.</p>
+                                    <p className="text-xs text-gray-500">
+                                        {canAssignAdminRole
+                                            ? "Puedes asignar Administrador porque tu usuario es admin."
+                                            : "El rol Administrador no es asignable desde esta interfaz."}
+                                    </p>
                                 </div>
                             )}
-                            {!canAssignRole && (
+                            {!canSelectRole && (
                                 // Hidden input implies Rector can only create students (handled by backend too)
                                 <input type="hidden" name="role" value="student" />
                             )}

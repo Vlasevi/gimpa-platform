@@ -17,8 +17,8 @@ export function UserFormModal({ isOpen, onClose, onSuccess, userToEdit, isLoadin
     const [errorMsg, setErrorMsg] = useState("");
     const [loading, setLoading] = useState(false);
 
-    // Determine if user can assign roles (Admin only)
-    const canAssignRole = user?.role === "admin";
+    const canSelectRole = Boolean(user?.permissions?.users?.canCreate);
+    const canAssignAdminRole = user?.role === "admin";
     const isEditing = !!userToEdit;
 
     const [form, setForm] = useState({
@@ -285,7 +285,6 @@ export function UserFormModal({ isOpen, onClose, onSuccess, userToEdit, isLoadin
                                         <input
                                             type="email"
                                             name="email"
-                                            required
                                             placeholder="ejemplo@correo.com"
                                             value={form.email}
                                             onChange={handleChange}
@@ -297,7 +296,7 @@ export function UserFormModal({ isOpen, onClose, onSuccess, userToEdit, isLoadin
                                 </div>
 
                                 {/* Role */}
-                                {canAssignRole ? (
+                                {canSelectRole ? (
                                     <div>
                                         <label className={labelClass}>
                                             Rol <span className="text-[#dc3545]">*</span>
@@ -314,7 +313,9 @@ export function UserFormModal({ isOpen, onClose, onSuccess, userToEdit, isLoadin
                                                 <option value="student">Estudiante</option>
                                                 <option value="teacher">Profesor</option>
                                                 <option value="rector">Rector</option>
-                                                <option value="admin">Administrador</option>
+                                                {canAssignAdminRole && (
+                                                    <option value="admin">Administrador</option>
+                                                )}
                                             </select>
                                             <ChevronIcon />
                                         </div>

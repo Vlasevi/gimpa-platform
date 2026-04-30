@@ -8,6 +8,8 @@ import {
   Info,
   Download,
   Loader2,
+  Upload,
+  Trash2,
   Camera,
   PenTool,
   FolderOpen,
@@ -15,13 +17,15 @@ import {
 } from "lucide-react";
 import { DisplayField } from "./matriculasUI/DisplayField";
 import { apiUrl, API_ENDPOINTS, buildHeaders } from "@/utils/api";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface StudentDataTabsProps {
   studentData: Record<string, any>;
   student: Record<string, any>;
   documentsMetadata?: Record<string, any> | null;
   enrollmentId?: number;
+  canManageDocuments?: boolean;
+  onDocumentsChange?: (documentsMetadata: Record<string, any>) => void;
 }
 
 const tabs = [
@@ -59,8 +63,19 @@ export const StudentDataTabs = ({
   student,
   documentsMetadata,
   enrollmentId,
+  canManageDocuments = false,
+  onDocumentsChange,
 }: StudentDataTabsProps) => {
   const [downloadingDoc, setDownloadingDoc] = useState<string | null>(null);
+  const [changingDoc, setChangingDoc] = useState<string | null>(null);
+  const [deletingDoc, setDeletingDoc] = useState<string | null>(null);
+  const [currentDocuments, setCurrentDocuments] = useState<Record<string, any>>(
+    documentsMetadata || {},
+  );
+
+  useEffect(() => {
+    setCurrentDocuments(documentsMetadata || {});
+  }, [documentsMetadata]);
 
   // Mapeo de nombres de documentos a etiquetas legibles
   const documentLabels: Record<string, string> = {
@@ -168,6 +183,87 @@ export const StudentDataTabs = ({
       console.error(err);
     } finally {
       setDownloadingDoc(null);
+    }
+  };
+
+  const refreshDocuments = async () => {
+    if (!enrollmentId) return;
+
+    const response = await fetch(
+      apiUrl(API_ENDPOINTS.enrollmentDocuments(enrollmentId)),
+      { credentials: "include", headers: buildHeaders() },
+    );
+
+    if (!response.ok) throw new Error("Error al actualizar documentos");
+
+    const data = await response.json();
+    const nextDocuments = data.documents || {};
+    setCurrentDocuments(nextDocuments);
+    onDocumentsChange?.(nextDocuments);
+  };
+
+  const handleReplaceDocument = async (docKey: string, file?: File | null) => {
+    if (!enrollmentId || !file) return;
+
+    setChangingDoc(docKey);
+
+    try {
+      const formData = new FormData();
+      formData.append(docKey, file);
+
+      const response = await fetch(
+        apiUrl(API_ENDPOINTS.enrollmentDocuments(enrollmentId)),
+        {
+          method: "POST",
+          credentials: "include",
+          headers: buildHeaders({}, false),
+          body: formData,
+        },
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Error al cambiar documento");
+      }
+
+      await refreshDocuments();
+    } catch (err: any) {
+      alert(err.message || "Error al cambiar documento");
+      console.error(err);
+    } finally {
+      setChangingDoc(null);
+    }
+  };
+
+  const handleDeleteDocument = async (docKey: string) => {
+    if (!enrollmentId) return;
+    if (!confirm("¿Eliminar este documento? Esta accion no se puede deshacer.")) {
+      return;
+    }
+
+    setDeletingDoc(docKey);
+
+    try {
+      const response = await fetch(
+        `${apiUrl(API_ENDPOINTS.enrollmentDocuments(enrollmentId))}?doc_key=${encodeURIComponent(docKey)}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+          headers: buildHeaders(),
+        },
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Error al borrar documento");
+      }
+
+      await refreshDocuments();
+    } catch (err: any) {
+      alert(err.message || "Error al borrar documento");
+      console.error(err);
+    } finally {
+      setDeletingDoc(null);
     }
   };
 
@@ -571,7 +667,7 @@ export const StudentDataTabs = ({
 
         {/* Tab: Documentos */}
         <TabsContent value="documentos" className="mt-0">
-          {documentsMetadata && Object.keys(documentsMetadata).length > 0 ? (
+          {Object.keys(currentDocuments).length > 0 ? (
             <div className="p-4 bg-base-100 rounded-lg space-y-6">
               {/* Categorizar documentos */}
               {(() => {
@@ -682,7 +778,7 @@ export const StudentDataTabs = ({
                   documentos: [],
                 };
 
-                Object.entries(documentsMetadata).forEach(([docKey, meta]) => {
+                Object.entries(currentDocuments).forEach(([docKey, meta]) => {
                   const cat = getCategory(docKey);
                   grouped[cat].push([docKey, meta]);
                 });
@@ -719,7 +815,7 @@ export const StudentDataTabs = ({
                           return (
                             <div
                               key={docKey}
-                              className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+                              className="flex items-center justify-between gap-3 p-3 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
                             >
                               <div className="flex-1 min-w-0">
                                 <p className="font-medium text-gray-900 truncate">
@@ -729,24 +825,66 @@ export const StudentDataTabs = ({
                                   {uploadedDate}
                                 </p>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => handleDownloadDocument(docKey)}
-                                disabled={downloadingDoc === docKey}
-                                className="ml-3 flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-focus disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                              >
-                                {downloadingDoc === docKey ? (
-                                  <>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDownloadDocument(docKey)}
+                                  disabled={downloadingDoc === docKey}
+                                  className="p-2 text-primary hover:bg-primary/10 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                  title="Abrir documento"
+                                >
+                                  {downloadingDoc === docKey ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
-                                    Cargando...
-                                  </>
-                                ) : (
-                                  <>
+                                  ) : (
                                     <Download className="h-4 w-4" />
-                                    Abrir
+                                  )}
+                                </button>
+
+                                {canManageDocuments && (
+                                  <>
+                                    <input
+                                      id={`replace-${docKey}`}
+                                      type="file"
+                                      className="hidden"
+                                      onChange={(event) => {
+                                        handleReplaceDocument(
+                                          docKey,
+                                          event.target.files?.[0],
+                                        );
+                                        event.target.value = "";
+                                      }}
+                                    />
+                                    <label
+                                      htmlFor={`replace-${docKey}`}
+                                      className={`p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer ${
+                                        changingDoc === docKey
+                                          ? "opacity-50 pointer-events-none"
+                                          : ""
+                                      }`}
+                                      title="Cambiar documento"
+                                    >
+                                      {changingDoc === docKey ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <Upload className="h-4 w-4" />
+                                      )}
+                                    </label>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteDocument(docKey)}
+                                      disabled={deletingDoc === docKey}
+                                      className="p-2 text-error hover:bg-error/10 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                      title="Borrar documento"
+                                    >
+                                      {deletingDoc === docKey ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <Trash2 className="h-4 w-4" />
+                                      )}
+                                    </button>
                                   </>
                                 )}
-                              </button>
+                              </div>
                             </div>
                           );
                         })}

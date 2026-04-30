@@ -7,9 +7,46 @@ const apiAccountsCheck = apiUrl("/api/accounts/me");
 const logoutEndpoint = apiUrl("/api/accounts/me/logout/");
 export const loginUrl = apiUrl("/auth/login/azuread-tenant-oauth2");
 
+// Tipos de roles del backend
+export type UserRole = 'admin' | 'rector' | 'teacher' | 'student';
+
+// Permisos por sección que vienen del backend
+export interface SectionPermissions {
+  canView: boolean;
+  canCreate: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  canApprove?: boolean;
+  canManage?: boolean;
+  canExport?: boolean;
+}
+
+export interface UserPermissions {
+  global: SectionPermissions;
+  users: SectionPermissions;
+  enrollments: SectionPermissions;
+  grades: SectionPermissions;
+  payments: SectionPermissions;
+  certifications: SectionPermissions;
+}
+
+export interface User {
+  displayname: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: UserRole;
+  permissions: UserPermissions;
+  guardian_full_name?: string;
+  guardian_email?: string;
+  guardian_phone?: string;
+  guardian_relationship?: string;
+  student_data?: Record<string, any>;
+}
+
 interface AuthContextType {
   isAuthenticated: boolean;
-  user: any | null;
+  user: User | null;
   isLoading: boolean;
   checkAuth: () => Promise<void>;
   logout: () => Promise<void>;
@@ -48,7 +85,7 @@ export function useAuth() {
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setAuthenticated] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -140,3 +177,30 @@ export const ProtectedRoute = () => {
   console.log("✅ Autenticado - Mostrando contenido");
   return <Outlet />;
 };
+
+// Hook helper para acceder a permisos de una sección específica
+export function usePermissions(section: keyof UserPermissions): SectionPermissions {
+  const { user } = useAuth();
+  
+  const defaultPermissions: SectionPermissions = {
+    canView: false,
+    canCreate: false,
+    canEdit: false,
+    canDelete: false,
+    canApprove: false,
+    canManage: false,
+  };
+  
+  if (!user?.permissions) {
+    return defaultPermissions;
+  }
+  
+  return user.permissions[section] || defaultPermissions;
+}
+
+// Hook helper para verificar si el usuario tiene un rol específico
+export function useHasRole(...roles: UserRole[]): boolean {
+  const { user } = useAuth();
+  if (!user?.role) return false;
+  return roles.includes(user.role);
+}

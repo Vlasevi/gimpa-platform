@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, ProtectedRoute } from "@/components/Login/loginLogic";
+import { PermissionRoute } from "@/components/PermissionRoute";
 import Login from "./pages/Login";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
@@ -12,7 +13,6 @@ import Certificados from "./pages/Certificados";
 import Usuarios from "./pages/Usuarios";
 import NotAuthorized from "./pages/NotAuthorized";
 import NotFound from "./pages/NotFound";
-import DocumentosPendientes from "./pages/DocumentosPendientes";
 
 const queryClient = new QueryClient();
 
@@ -29,15 +29,46 @@ const App = () => (
             <Route element={<Layout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/estudiantes" element={<Estudiantes />} />
-              <Route path="/matriculas" element={<Matriculas />} />
               <Route
-                path="/documentos-pendientes"
-                element={<DocumentosPendientes />}
+                path="/matriculas"
+                element={
+                  <PermissionRoute section="enrollments" anyOf={["canView"]}>
+                    <Matriculas />
+                  </PermissionRoute>
+                }
               />
-              <Route path="/notas" element={<Notas />} />
-              <Route path="/pagos" element={<Pagos />} />
-              <Route path="/certificados" element={<Certificados />} />
-              <Route path="/usuarios" element={<Usuarios />} />
+              <Route
+                path="/notas"
+                element={
+                  <PermissionRoute section="grades" anyOf={["canView", "canManage"]}>
+                    <Notas />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="/pagos"
+                element={
+                  <PermissionRoute section="payments" anyOf={["canView", "canManage"]}>
+                    <Pagos />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="/certificados"
+                element={
+                  <PermissionRoute section="certifications" anyOf={["canView", "canManage"]}>
+                    <Certificados />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="/usuarios"
+                element={
+                  <PermissionRoute section="users" anyOf={["canView"]}>
+                    <Usuarios />
+                  </PermissionRoute>
+                }
+              />
             </Route>
           </Route>
 
