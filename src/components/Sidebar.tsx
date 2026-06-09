@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import {
   useAuth,
   type UserPermissions,
+  type PermissionSection,
   type SectionPermissions,
 } from "./Login/loginLogic";
 import logo from "@/assets/platform-logo.png";
@@ -18,7 +19,7 @@ interface MenuItem {
   label: string;
   path: string;
   icon: LucideIcon;
-  section: keyof UserPermissions;
+  section: PermissionSection;
   anyOf: Array<keyof SectionPermissions>;
 }
 
@@ -70,7 +71,7 @@ const ALL_MENU_ITEMS: MenuItem[] = [
 
 const hasSectionPermission = (
   permissions: UserPermissions | undefined,
-  section: keyof UserPermissions,
+  section: PermissionSection,
   anyOf: Array<keyof SectionPermissions>,
 ) => {
   if (!permissions) return false;

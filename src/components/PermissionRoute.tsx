@@ -1,12 +1,12 @@
 import { Navigate } from "react-router-dom";
 import {
   useAuth,
-  type UserPermissions,
+  type PermissionSection,
   type SectionPermissions,
 } from "@/components/Login/loginLogic";
 
 interface PermissionRouteProps {
-  section: keyof UserPermissions;
+  section: PermissionSection;
   anyOf?: Array<keyof SectionPermissions>;
   children: React.ReactNode;
 }

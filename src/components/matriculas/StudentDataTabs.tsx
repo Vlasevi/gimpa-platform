@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { DisplayField } from "./matriculasUI/DisplayField";
 import { apiUrl, API_ENDPOINTS, buildHeaders } from "@/utils/api";
+import { classifyDocument } from "@/utils/documentSensitivity";
+import type { DocumentPermissions } from "@/components/Login/loginLogic";
 import { useEffect, useState } from "react";
 
 interface StudentDataTabsProps {
@@ -25,6 +27,7 @@ interface StudentDataTabsProps {
   documentsMetadata?: Record<string, any> | null;
   enrollmentId?: number;
   canManageDocuments?: boolean;
+  documentPermissions?: DocumentPermissions;
   onDocumentsChange?: (documentsMetadata: Record<string, any>) => void;
 }
 
@@ -64,8 +67,19 @@ export const StudentDataTabs = ({
   documentsMetadata,
   enrollmentId,
   canManageDocuments = false,
+  documentPermissions,
   onDocumentsChange,
 }: StudentDataTabsProps) => {
+  // ¿Puede el usuario reemplazar un documento de esta clase de sensibilidad?
+  // Aprobadores (admin/rector) pueden con todas; psicología solo médicos.
+  const canEditDocClass = (
+    docClass: "normal" | "medical" | "sensitive",
+  ): boolean => {
+    if (canManageDocuments) return true;
+    if (docClass === "medical" && documentPermissions?.canEditMedical) return true;
+    return false;
+  };
+
   const [downloadingDoc, setDownloadingDoc] = useState<string | null>(null);
   const [changingDoc, setChangingDoc] = useState<string | null>(null);
   const [deletingDoc, setDeletingDoc] = useState<string | null>(null);
@@ -778,9 +792,10 @@ export const StudentDataTabs = ({
                   documentos: [],
                 };
 
+                // El backend ya filtra los documentos por clase de sensibilidad
+                // según el rol, así que mostramos todos los que llegan.
                 Object.entries(currentDocuments).forEach(([docKey, meta]) => {
                   const cat = getCategory(docKey);
-                  if (!canManageDocuments && cat !== "fotos") return;
                   grouped[cat].push([docKey, meta]);
                 });
 
@@ -841,7 +856,7 @@ export const StudentDataTabs = ({
                                   )}
                                 </button>
 
-                                {canManageDocuments && (
+                                {canEditDocClass(classifyDocument(docKey)) && (
                                   <>
                                     <input
                                       id={`replace-${docKey}`}
@@ -870,20 +885,23 @@ export const StudentDataTabs = ({
                                         <Upload className="h-4 w-4" />
                                       )}
                                     </label>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteDocument(docKey)}
-                                      disabled={deletingDoc === docKey}
-                                      className="p-2 text-error hover:bg-error/10 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                      title="Borrar documento"
-                                    >
-                                      {deletingDoc === docKey ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                      ) : (
-                                        <Trash2 className="h-4 w-4" />
-                                      )}
-                                    </button>
                                   </>
+                                )}
+
+                                {canManageDocuments && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteDocument(docKey)}
+                                    disabled={deletingDoc === docKey}
+                                    className="p-2 text-error hover:bg-error/10 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    title="Borrar documento"
+                                  >
+                                    {deletingDoc === docKey ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="h-4 w-4" />
+                                    )}
+                                  </button>
                                 )}
                               </div>
                             </div>

@@ -20,6 +20,8 @@ export function UserFormModal({ isOpen, onClose, onSuccess, userToEdit, isLoadin
     const canSelectRole = Boolean(user?.permissions?.users?.canCreate);
     const canAssignAdminRole = user?.role === "admin";
     const isEditing = !!userToEdit;
+    // No se puede cambiar el propio rol (el backend también lo bloquea)
+    const isEditingSelf = isEditing && userToEdit?.email === user?.email;
 
     const [form, setForm] = useState({
         displayname: "",
@@ -307,13 +309,16 @@ export function UserFormModal({ isOpen, onClose, onSuccess, userToEdit, isLoadin
                                                 required
                                                 value={form.role}
                                                 onChange={handleChange}
-                                                disabled={isEditing}
-                                                className={`${selectClass} ${isEditing ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                                                disabled={isEditingSelf}
+                                                className={`${selectClass} ${isEditingSelf ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                                                title={isEditingSelf ? "No puedes cambiar tu propio rol" : ""}
                                             >
                                                 <option value="student">Estudiante</option>
                                                 <option value="teacher">Profesor</option>
                                                 <option value="psychologist">Psicóloga</option>
+                                                <option value="administrativo">Administrativo</option>
                                                 <option value="rector">Rector</option>
+                                                <option value="otros">Otros</option>
                                                 {canAssignAdminRole && (
                                                     <option value="admin">Administrador</option>
                                                 )}

@@ -1166,6 +1166,7 @@ export const MatriculasAdmin = () => {
                 documentsMetadata={selectedEnrollmentData.documents_metadata}
                 enrollmentId={selectedEnrollmentData.id}
                 canManageDocuments={canManageDocuments}
+                documentPermissions={user?.permissions?.documents}
                 onDocumentsChange={(documentsMetadata) => {
                   setSelectedEnrollmentData((current: any | null) =>
                     current ? { ...current, documents_metadata: documentsMetadata } : current,

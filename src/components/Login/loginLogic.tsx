@@ -8,7 +8,14 @@ const logoutEndpoint = apiUrl("/api/accounts/me/logout/");
 export const loginUrl = apiUrl("/auth/login/azuread-tenant-oauth2");
 
 // Tipos de roles del backend
-export type UserRole = 'admin' | 'rector' | 'teacher' | 'student' | 'psychologist';
+export type UserRole =
+  | 'admin'
+  | 'rector'
+  | 'administrativo'
+  | 'teacher'
+  | 'student'
+  | 'psychologist'
+  | 'otros';
 
 // Permisos por sección que vienen del backend
 export interface SectionPermissions {
@@ -21,6 +28,14 @@ export interface SectionPermissions {
   canExport?: boolean;
 }
 
+// Permisos de visibilidad/edición de documentos por clase de sensibilidad
+export interface DocumentPermissions {
+  canViewNormal: boolean;
+  canViewMedical: boolean;
+  canViewSensitive: boolean;
+  canEditMedical: boolean;
+}
+
 export interface UserPermissions {
   global: SectionPermissions;
   users: SectionPermissions;
@@ -28,7 +43,12 @@ export interface UserPermissions {
   grades: SectionPermissions;
   payments: SectionPermissions;
   certifications: SectionPermissions;
+  documents: DocumentPermissions;
 }
+
+// Secciones cuyo valor es SectionPermissions (excluye 'documents', que usa
+// DocumentPermissions). Útil para los guards y hooks basados en secciones.
+export type PermissionSection = Exclude<keyof UserPermissions, "documents">;
 
 export interface User {
   displayname: string;
@@ -179,7 +199,7 @@ export const ProtectedRoute = () => {
 };
 
 // Hook helper para acceder a permisos de una sección específica
-export function usePermissions(section: keyof UserPermissions): SectionPermissions {
+export function usePermissions(section: PermissionSection): SectionPermissions {
   const { user } = useAuth();
   
   const defaultPermissions: SectionPermissions = {
