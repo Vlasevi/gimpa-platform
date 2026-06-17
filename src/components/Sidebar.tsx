@@ -12,6 +12,8 @@ import {
   BookUser,
   NotebookText,
   Users,
+  FileSignature,
+  FileText,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -29,6 +31,7 @@ const featureEnvMap: Record<string, boolean> = {
   Pagos: import.meta.env.VITE_FEATURE_PAGOS === "true",
   Certificados: import.meta.env.VITE_FEATURE_CERTIFICADOS === "true",
   Usuarios: import.meta.env.VITE_FEATURE_USUARIOS === "true",
+  Contratacion: import.meta.env.VITE_FEATURE_CONTRATACION === "true",
 };
 
 const ALL_MENU_ITEMS: MenuItem[] = [
@@ -89,7 +92,17 @@ export const Sidebar = () => {
       featureEnvMap[item.label],
   );
 
+  const c = user?.permissions?.contracting;
+  const featContrat = featureEnvMap["Contratacion"];
+  const showContratacionesAll = featContrat && Boolean(c && (c.canManage || c.canViewAll));
+  const showMiContrato = featContrat && Boolean(c && c.canFillOwn);
+
   if (!user) return null;
+
+  const isAdminRector = user.role === "admin" || user.role === "rector";
+  // Cambio visual: los roles que no son admin/rector ven "Matriculas" como "Estudiantes".
+  const displayLabel = (label: string) =>
+    label === "Matriculas" && !isAdminRector ? "Estudiantes" : label;
 
   return (
     <aside className="w-64 min-h-screen bg-[hsl(var(--accentlight))] border-r border-gray-200">
@@ -120,9 +133,45 @@ export const Sidebar = () => {
             <span className="text-lg mr-3">
               <item.icon />
             </span>
-            {item.label}
+            {displayLabel(item.label)}
           </NavLink>
         ))}
+
+        {showContratacionesAll && (
+          <NavLink
+            to="/contratacion"
+            className={({ isActive }) =>
+              `flex items-center px-4 py-3 text-sm font-inter rounded-lg transition-colors ${
+                isActive
+                  ? "bg-[hsl(var(--accent))] text-white shadow-sm"
+                  : "text-gray-700 hover:bg-gray-100 hover:text-primary"
+              }`
+            }
+          >
+            <span className="text-lg mr-3">
+              <FileSignature />
+            </span>
+            Contrataciones
+          </NavLink>
+        )}
+
+        {showMiContrato && (
+          <NavLink
+            to="/mi-contrato"
+            className={({ isActive }) =>
+              `flex items-center px-4 py-3 text-sm font-inter rounded-lg transition-colors ${
+                isActive
+                  ? "bg-[hsl(var(--accent))] text-white shadow-sm"
+                  : "text-gray-700 hover:bg-gray-100 hover:text-primary"
+              }`
+            }
+          >
+            <span className="text-lg mr-3">
+              <FileText />
+            </span>
+            Mi Contrato
+          </NavLink>
+        )}
       </nav>
     </aside>
   );

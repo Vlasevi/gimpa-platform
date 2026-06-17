@@ -11,6 +11,8 @@ import Notas from "./pages/Notas";
 import Pagos from "./pages/Pagos";
 import Certificados from "./pages/Certificados";
 import Usuarios from "./pages/Usuarios";
+import Contratacion from "./pages/Contratacion";
+import MiContrato from "./pages/MiContrato";
 import NotAuthorized from "./pages/NotAuthorized";
 import NotFound from "./pages/NotFound";
 
@@ -69,6 +71,8 @@ const App = () => (
                   </PermissionRoute>
                 }
               />
+              <Route path="/contratacion" element={<Contratacion />} />
+              <Route path="/mi-contrato" element={<MiContrato />} />
             </Route>
           </Route>
 

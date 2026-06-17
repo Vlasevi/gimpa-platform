@@ -36,6 +36,13 @@ export interface DocumentPermissions {
   canEditMedical: boolean;
 }
 
+// Permisos del módulo de contratación
+export interface ContractingPermissions {
+  canManage: boolean;
+  canViewAll: boolean;
+  canFillOwn: boolean;
+}
+
 export interface UserPermissions {
   global: SectionPermissions;
   users: SectionPermissions;
@@ -44,11 +51,15 @@ export interface UserPermissions {
   payments: SectionPermissions;
   certifications: SectionPermissions;
   documents: DocumentPermissions;
+  contracting: ContractingPermissions;
 }
 
-// Secciones cuyo valor es SectionPermissions (excluye 'documents', que usa
-// DocumentPermissions). Útil para los guards y hooks basados en secciones.
-export type PermissionSection = Exclude<keyof UserPermissions, "documents">;
+// Secciones cuyo valor es SectionPermissions (excluye 'documents' y
+// 'contracting', que usan su propia forma). Útil para guards/hooks por sección.
+export type PermissionSection = Exclude<
+  keyof UserPermissions,
+  "documents" | "contracting"
+>;
 
 export interface User {
   displayname: string;

@@ -124,6 +124,8 @@ export const MatriculasAdmin = () => {
   const canDeleteEnrollments = Boolean(enrollmentPermissions?.canDelete);
   const canApproveEnrollments = Boolean(enrollmentPermissions?.canApprove);
   const canManageDocuments = canApproveEnrollments;
+  const canExport = Boolean(user?.permissions?.global?.canExport);
+  const isAdminRector = user?.role === "admin" || user?.role === "rector";
 
   // Auto-expandir el primer grado con coincidencias cuando cambia el término de búsqueda
   useEffect(() => {
@@ -623,10 +625,12 @@ export const MatriculasAdmin = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-            Gestión de Matrículas
+            {isAdminRector ? "Gestión de Matrículas" : "Estudiantes"}
           </h1>
           <p className="text-gray-500 mt-1">
-            Administra los estudiantes y sus matrículas por año académico
+            {isAdminRector
+              ? "Administra los estudiantes y sus matrículas por año académico"
+              : "Consulta de estudiantes por año académico"}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -708,34 +712,37 @@ export const MatriculasAdmin = () => {
               </div>
             </div>
 
-            {/* Vertical Divider */}
-            <div className="hidden lg:block w-px h-8 bg-gray-200"></div>
-
-            {/* Action: Excel Downloads */}
-            <button
-              onClick={downloadExcel}
-              disabled={excelLoading}
-              className="p-1.5 transition-colors duration-200 text-green-600 hover:text-primary disabled:opacity-50"
-              title={`Descargar Listas Grados ${selectedYear}`}
-            >
-              {excelLoading ? (
-                <Loader2 size={24} className="animate-spin" />
-              ) : (
-                <Sheet size={24} />
-              )}
-            </button>
-            <button
-              onClick={downloadStudentsData}
-              disabled={studentsDataLoading}
-              className="p-1.5 transition-colors duration-200 text-blue-600 hover:text-primary disabled:opacity-50"
-              title={`Descargar Datos Estudiantes ${selectedYear}`}
-            >
-              {studentsDataLoading ? (
-                <Loader2 size={24} className="animate-spin" />
-              ) : (
-                <FileSpreadsheet size={24} />
-              )}
-            </button>
+            {/* Action: Excel Downloads (solo quien puede exportar) */}
+            {canExport && (
+              <>
+                {/* Vertical Divider */}
+                <div className="hidden lg:block w-px h-8 bg-gray-200"></div>
+                <button
+                  onClick={downloadExcel}
+                  disabled={excelLoading}
+                  className="p-1.5 transition-colors duration-200 text-green-600 hover:text-primary disabled:opacity-50"
+                  title={`Descargar Listas Grados ${selectedYear}`}
+                >
+                  {excelLoading ? (
+                    <Loader2 size={24} className="animate-spin" />
+                  ) : (
+                    <Sheet size={24} />
+                  )}
+                </button>
+                <button
+                  onClick={downloadStudentsData}
+                  disabled={studentsDataLoading}
+                  className="p-1.5 transition-colors duration-200 text-blue-600 hover:text-primary disabled:opacity-50"
+                  title={`Descargar Datos Estudiantes ${selectedYear}`}
+                >
+                  {studentsDataLoading ? (
+                    <Loader2 size={24} className="animate-spin" />
+                  ) : (
+                    <FileSpreadsheet size={24} />
+                  )}
+                </button>
+              </>
+            )}
           </div>
 
         </div>

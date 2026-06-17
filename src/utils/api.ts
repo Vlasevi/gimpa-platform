@@ -168,4 +168,19 @@ export const API_ENDPOINTS = {
   // Users
   users: "/api/accounts/users/",
   usersByRole: (role: string) => `/api/accounts/users/?role=${role}`,
+
+  // Contracting
+  contracts: "/api/contracting/contracts/",
+  contractById: (id: number) => `/api/contracting/contracts/${id}/`,
+  contractSubmit: (id: number) => `/api/contracting/contracts/${id}/submit/`,
+  contractRestore: (id: number) => `/api/contracting/contracts/${id}/restore/`,
+  contractGenerateUnsigned: (id: number) =>
+    `/api/contracting/contracts/${id}/generate-unsigned/`,
+  contractDocuments: (id: number) =>
+    `/api/contracting/contracts/${id}/documents/`,
+  contractTemplates: "/api/contracting/contract-templates/",
+  contractTemplateById: (id: number) => `/api/contracting/contract-templates/${id}/`,
+  positions: "/api/contracting/positions/",
+  contractRequestOtp: "/api/contracting/contracts/request-otp/",
+  contractValidateOtp: "/api/contracting/contracts/validate-otp/",
 } as const;
