@@ -179,6 +179,8 @@ export default function Usuarios() {
             rector: "badge-warning",
             teacher: "badge-info",
             psychologist: "badge-secondary",
+            administrativo: "badge-primary",
+            otros: "badge-neutral",
             student: "badge-success",
         };
         const labels: Record<string, string> = {
@@ -186,6 +188,8 @@ export default function Usuarios() {
             rector: "Rector",
             teacher: "Profesor",
             psychologist: "Psicóloga",
+            administrativo: "Administrativo",
+            otros: "Otros",
             student: "Estudiante",
         };
         return (
