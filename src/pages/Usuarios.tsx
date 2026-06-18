@@ -17,6 +17,16 @@ interface User {
     guardian_relationship?: string;
 }
 
+const ROLE_OPTIONS: { value: string; label: string }[] = [
+    { value: "admin", label: "Administrador" },
+    { value: "rector", label: "Rector" },
+    { value: "administrativo", label: "Administrativo" },
+    { value: "teacher", label: "Profesor" },
+    { value: "psychologist", label: "Psicóloga" },
+    { value: "student", label: "Estudiante" },
+    { value: "otros", label: "Otros" },
+];
+
 export default function Usuarios() {
     const { user } = useAuth();
     const userPermissions = user?.permissions?.users;
@@ -33,6 +43,7 @@ export default function Usuarios() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
+    const [roleFilter, setRoleFilter] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 10;
 
@@ -148,10 +159,14 @@ export default function Usuarios() {
         }
     };
 
-    // Filter users by search term (frontend search)
-    const filteredUsers = users.filter((u) =>
-        `${u.first_name} ${u.last_name} ${u.email}`.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Filter users by search term and role (frontend search)
+    const filteredUsers = users.filter((u) => {
+        const matchesSearch = `${u.first_name} ${u.last_name} ${u.email}`
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase());
+        const matchesRole = roleFilter === "" || u.role === roleFilter;
+        return matchesSearch && matchesRole;
+    });
 
     // Pagination
     const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
@@ -159,10 +174,10 @@ export default function Usuarios() {
     const endIndex = startIndex + ITEMS_PER_PAGE;
     const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
 
-    // Reset to page 1 when search changes
+    // Reset to page 1 when search or role filter changes
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm]);
+    }, [searchTerm, roleFilter]);
 
     // Helper function to get display name
     const getUserDisplayName = (user: User) => {
@@ -210,13 +225,28 @@ export default function Usuarios() {
 
             {/* Controls */}
             <div className="flex items-center justify-between gap-4 mb-6">
-                <input
-                    type="text"
-                    placeholder="Buscar por nombre o email..."
-                    className="input input-bordered w-96"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
+                <div className="flex items-center gap-3">
+                    <input
+                        type="text"
+                        placeholder="Buscar por nombre o email..."
+                        className="input input-bordered w-96"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+
+                    <select
+                        className="select select-bordered w-56"
+                        value={roleFilter}
+                        onChange={(e) => setRoleFilter(e.target.value)}
+                    >
+                        <option value="">Todos los roles</option>
+                        {ROLE_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
 
                 <div className="flex items-center gap-2">
                     {canCreateUsers && (
@@ -260,8 +290,8 @@ export default function Usuarios() {
                         ) : paginatedUsers.length === 0 ? (
                             <tr>
                                 <td colSpan={4} className="text-center py-8 text-gray-500">
-                                    {filteredUsers.length === 0 && searchTerm
-                                        ? "No se encontraron usuarios que coincidan con tu búsqueda"
+                                    {filteredUsers.length === 0 && (searchTerm || roleFilter)
+                                        ? "No se encontraron usuarios que coincidan con los filtros"
                                         : "No se encontraron usuarios"}
                                 </td>
                             </tr>
