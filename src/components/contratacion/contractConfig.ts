@@ -140,7 +140,7 @@ export const CONTRACT_DOCUMENTS: DocConfig[] = [
   { key: "profile_photo", label: "Foto de Perfil", cls: "normal", required: true, employeeUpload: false },
   { key: "hoja_vida", label: "Hoja de Vida", cls: "normal", required: true, employeeUpload: true },
   { key: "titulos", label: "Títulos (diplomas/actas)", cls: "normal", required: true, employeeUpload: true },
-  { key: "escalafon_docente", label: "Escalafón Docente (si aplica)", cls: "normal", required: false, employeeUpload: true },
+  { key: "escalafon_docente", label: "Escalafón Docente/Tarjeta profesional (según aplique)", cls: "normal", required: false, employeeUpload: true },
   { key: "cert_estudios_complementarios", label: "Certificados Complementarios (opcional)", cls: "normal", required: false, employeeUpload: true },
   { key: "cedula", label: "Cédula de Ciudadanía", cls: "sensitive", required: true, employeeUpload: true },
   { key: "cert_pension", label: "Certificado de Pensión", cls: "sensitive", required: true, employeeUpload: true },
