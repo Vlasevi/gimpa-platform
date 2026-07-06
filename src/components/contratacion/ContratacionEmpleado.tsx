@@ -21,6 +21,7 @@ interface Contract {
   year: number;
   status: string;
   is_editable: boolean;
+  end_date?: string | null;
   data: Record<string, any> | null;
   documents_metadata: Record<string, any> | null;
   correction_comment?: string | null;
@@ -158,6 +159,7 @@ export const ContratacionEmpleado = () => {
               next={next}
               back={back}
               contractId={contract.id}
+              hasEndDate={Boolean(contract.end_date)}
               documents={documents}
               setDocuments={setDocuments}
             />
@@ -442,18 +444,23 @@ const StepDocuments = ({
   next,
   back,
   contractId,
+  hasEndDate,
   documents,
   setDocuments,
 }: {
   next: () => void;
   back: () => void;
   contractId: number;
+  hasEndDate: boolean;
   documents: Record<string, any>;
   setDocuments: (d: Record<string, any>) => void;
 }) => {
   const [uploading, setUploading] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const docs = CONTRACT_DOCUMENTS.filter((d) => d.employeeUpload);
+  // El egreso (requiresEndDate) solo aplica a contratos a término fijo; en indefinidos se oculta.
+  const docs = CONTRACT_DOCUMENTS.filter(
+    (d) => d.employeeUpload && (!d.requiresEndDate || hasEndDate),
+  );
 
   useEffect(() => {
     const load = async () => {

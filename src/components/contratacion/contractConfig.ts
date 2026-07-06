@@ -134,6 +134,9 @@ export interface DocConfig {
   required: boolean;
   // Documento que sube el empleado en el wizard (vs generado/firmado o admin)
   employeeUpload: boolean;
+  // Solo aplica cuando el contrato tiene fecha de finalización (no indefinido).
+  // Ej.: el examen de egreso solo se pide en contratos a término fijo.
+  requiresEndDate?: boolean;
 }
 
 export const CONTRACT_DOCUMENTS: DocConfig[] = [
@@ -142,6 +145,9 @@ export const CONTRACT_DOCUMENTS: DocConfig[] = [
   { key: "titulos", label: "Títulos (diplomas/actas)", cls: "normal", required: true, employeeUpload: true },
   { key: "escalafon_docente", label: "Escalafón Docente/Tarjeta profesional (según aplique)", cls: "normal", required: false, employeeUpload: true },
   { key: "cert_estudios_complementarios", label: "Certificados Complementarios (opcional)", cls: "normal", required: false, employeeUpload: true },
+  // Exámenes médicos ocupacionales. El de egreso solo aplica a contratos con fecha de finalización.
+  { key: "examen_ingreso", label: "Exámenes de Ingreso", cls: "medical", required: false, employeeUpload: true },
+  { key: "examen_egreso", label: "Exámenes de Egreso", cls: "medical", required: false, employeeUpload: true, requiresEndDate: true },
   { key: "cedula", label: "Cédula de Ciudadanía", cls: "sensitive", required: true, employeeUpload: true },
   { key: "cert_pension", label: "Certificado de Pensión", cls: "sensitive", required: true, employeeUpload: true },
   { key: "antecedentes_fiscales", label: "Antecedentes Fiscales (Contraloría)", cls: "sensitive", required: true, employeeUpload: true },
