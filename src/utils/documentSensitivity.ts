@@ -54,6 +54,10 @@ export function classifyDocument(docKey: string): DocClass {
   if (key.includes("hoja_matricula")) {
     return "normal";
   }
+  // Exámenes médicos (incluye los anuales por año: examen_anual_2027, etc.)
+  if (key.includes("examen")) {
+    return "medical";
+  }
 
   return "sensitive";
 }

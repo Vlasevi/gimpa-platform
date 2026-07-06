@@ -56,9 +56,15 @@ const userDisplay = (u: UserRow) => {
   return `${name} — ${ROLE_LABELS[u.role] || u.role}`;
 };
 
-const docLabel = (key: string) =>
-  CONTRACT_DOCUMENTS.find((d) => d.key === key)?.label ||
-  key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+const docLabel = (key: string) => {
+  // Exámenes médicos anuales de indefinidos: examen_anual_2027 -> "Examen Anual 2027"
+  const annual = key.match(/^examen_anual_(\d{4})$/);
+  if (annual) return `Examen Anual ${annual[1]}`;
+  return (
+    CONTRACT_DOCUMENTS.find((d) => d.key === key)?.label ||
+    key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
+  );
+};
 
 export const ContratacionAdmin = ({ readOnly = false }: { readOnly?: boolean }) => {
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -562,6 +568,8 @@ const DetailModal = ({
     end_date: contract.end_date || "",
   });
   const [indefinite, setIndefinite] = useState(!contract.end_date);
+  // Año del examen médico anual a subir (indefinidos): 1 documento por año.
+  const [examYear, setExamYear] = useState(new Date().getFullYear());
   const canManage = !readOnly;
 
   const loadDocs = async () => {
@@ -989,6 +997,50 @@ const DetailModal = ({
                       </div>
                     );
                   })}
+                  {canManage && (
+                    <div className="pt-3 border-t space-y-3">
+                      <h3 className="text-sm font-semibold flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-primary" /> Exámenes médicos
+                      </h3>
+                      {/* Ingreso (siempre) y egreso (solo término fijo). Si ya están subidos,
+                          se gestionan desde su tarjeta arriba (cambiar/borrar). */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        {!docs["examen_ingreso"] && (
+                          <label className="btn btn-outline btn-sm cursor-pointer">
+                            <Upload size={16} /> Subir Examen de Ingreso
+                            <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                              onChange={(e) => { uploadDoc("examen_ingreso", e.target.files?.[0]); e.currentTarget.value = ""; }} />
+                          </label>
+                        )}
+                        {contract.end_date && !docs["examen_egreso"] && (
+                          <label className="btn btn-outline btn-sm cursor-pointer">
+                            <Upload size={16} /> Subir Examen de Egreso
+                            <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                              onChange={(e) => { uploadDoc("examen_egreso", e.target.files?.[0]); e.currentTarget.value = ""; }} />
+                          </label>
+                        )}
+                      </div>
+                      {/* Examen anual por año: solo indefinidos, acumula uno por año. */}
+                      {!contract.end_date && (
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <input type="number" min={2000} max={2100}
+                              className="input input-bordered input-sm w-24"
+                              value={examYear}
+                              onChange={(e) => setExamYear(Number(e.target.value) || new Date().getFullYear())} />
+                            <label className="btn btn-outline btn-sm cursor-pointer">
+                              <Upload size={16} /> Subir examen anual
+                              <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                                onChange={(e) => { uploadDoc(`examen_anual_${examYear}`, e.target.files?.[0]); e.currentTarget.value = ""; }} />
+                            </label>
+                          </div>
+                          <p className="text-xs text-gray-400">
+                            Se guarda uno por año (Examen Anual {examYear}); no reemplaza los años anteriores.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {canManage && (
                     <div className="pt-3 border-t">
                       <label className="btn btn-outline btn-sm cursor-pointer">
