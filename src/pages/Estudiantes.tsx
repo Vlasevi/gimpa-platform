@@ -1,10 +1,10 @@
-export default function Notas() {
+export default function Estudiantes() {
   return (
-    <div className="bg-white rounded-lg shadow-sm p-8 border border-gray-200">
-      <h1 className="text-2xl font-bold text-primary font-poppins mb-4">
+    <div className="rounded-2xl border border-base-300 bg-base-100 p-8 shadow-sm">
+      <h1 className="mb-4 font-display text-2xl font-bold text-secondary">
         Gestión de estudiantes
       </h1>
-      <p className="text-gray-700">
+      <p className="text-base-content/70">
         Aquí podrás gestionar los estudiantes de la plataforma.
       </p>
     </div>

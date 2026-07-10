@@ -55,6 +55,7 @@ interface EnrollmentRowProps {
     canApprove: boolean;
     actionLoading: number | null;
     formatDate: (dateString: string) => string;
+    showGrade?: boolean;
 }
 
 // Helper function for status badge styles using theme colors with opacity and border
@@ -88,6 +89,7 @@ export const EnrollmentRow = ({
     canApprove,
     actionLoading,
     formatDate,
+    showGrade = false,
 }: EnrollmentRowProps) => {
     const isLoading = actionLoading === enrollment.id;
     const canShowActionsMenu =
@@ -123,6 +125,13 @@ export const EnrollmentRow = ({
                     </div>
                 </div>
             </td>
+
+            {/* Grado (solo en la tabla maestra) */}
+            {showGrade && (
+                <td className="py-4 px-6 text-sm text-base-content/80 align-middle whitespace-nowrap">
+                    {enrollment.grade.description || enrollment.grade.name}
+                </td>
+            )}
 
             {/* Fecha de Matrícula */}
             <td className="py-4 px-6 text-base-content text-sm align-middle">

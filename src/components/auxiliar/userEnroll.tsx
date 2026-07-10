@@ -20,13 +20,11 @@ export default function UserEnroll({
   const [students, setStudents] = useState([]);
   const [grades, setGrades] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [showGradeList, setShowGradeList] = useState(false);
   const [studentSearch, setStudentSearch] = useState(
     initialEmail ? `Estudiante seleccionado (${initialEmail})` : "",
   );
   const currentYear = new Date().getFullYear();
   const years = [currentYear, currentYear + 1];
-  const [showYearList, setShowYearList] = useState(false);
   const isFormValid = form.email && form.grade_id && form.academic_year;
   const filteredStudents =
     studentSearch && !isEdit
@@ -141,233 +139,131 @@ export default function UserEnroll({
     }
   };
   return (
-    <form
-      className="space-y-6 bg-white"
-      onSubmit={handleSubmit}
-      style={{ position: "relative" }}
-    >
+    <form className="space-y-5" onSubmit={handleSubmit}>
       {successMsg && (
         <div
-          className={`font-semibold mb-2 ${
-            successMsg.includes("Error") ? "text-red-600" : "text-green-600"
+          className={`font-medium p-3 rounded-lg text-sm ${
+            successMsg.includes("Error")
+              ? "bg-error/10 text-error"
+              : "bg-success/10 text-success"
           }`}
         >
           {successMsg}
         </div>
       )}
-      {/* Estudiante: input + lista filtrada */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="student-search">
-          Estudiante
+
+      {/* Estudiante: input con búsqueda + lista filtrada */}
+      <div className="form-control w-full">
+        <label className="label" htmlFor="student-search">
+          <span className="label-text font-medium text-base-content/70">
+            Estudiante
+          </span>
         </label>
-        <div style={{ position: "relative" }}>
+        <div className="relative">
           <input
             id="student-search"
             type="text"
             placeholder={
               isEdit
                 ? "Email del estudiante (no editable)"
-                : "Buscar estudiante..."
+                : "Buscar estudiante por nombre o email..."
             }
             value={studentSearch}
             onChange={(e) => setStudentSearch(e.target.value)}
             autoComplete="off"
             disabled={isEdit}
-            className={`border border-gray-300 rounded-md px-3 py-2 w-full ${
-              isEdit ? "bg-gray-100 cursor-not-allowed" : ""
+            className={`input input-bordered w-full transition-all focus:input-primary ${
+              isEdit ? "bg-base-200 text-base-content/50 cursor-not-allowed" : ""
             }`}
           />
           {studentSearch && filteredStudents.length > 0 && (
-            <ul
-              style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                right: 0,
-                background: "white",
-                border: "1px solid #ccc",
-                borderRadius: "0 0 8px 8px",
-                zIndex: 10,
-                maxHeight: "200px",
-                overflowY: "auto",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                margin: 0,
-                padding: 0,
-                listStyle: "none",
-              }}
-            >
+            <ul className="absolute left-0 right-0 top-full z-50 mt-1 max-h-52 overflow-y-auto rounded-lg border border-base-300 bg-base-100 py-1 shadow-lg">
               {filteredStudents.map((s) => (
-                <li
-                  key={s.id}
-                  style={{
-                    padding: "8px",
-                    cursor: "pointer",
-                    transition: "background 0.2s",
-                  }}
-                  onMouseDown={() => {
-                    setStudentSearch(
-                      `${s.first_name} ${s.last_name} (${s.email})`,
-                    );
-                    setForm({
-                      ...form,
-                      first_name: s.first_name,
-                      last_name: s.last_name,
-                      email: s.email,
-                    });
-                  }}
-                  onMouseOver={(e) =>
-                    (e.currentTarget.style.background = "#f3f4f6")
-                  }
-                  onMouseOut={(e) =>
-                    (e.currentTarget.style.background = "white")
-                  }
-                >
-                  {s.first_name} {s.last_name} ({s.email})
+                <li key={s.id}>
+                  <button
+                    type="button"
+                    className="w-full cursor-pointer px-4 py-2 text-left text-sm transition-colors hover:bg-primary hover:text-primary-content"
+                    onMouseDown={() => {
+                      setStudentSearch(
+                        `${s.first_name} ${s.last_name} (${s.email})`,
+                      );
+                      setForm({
+                        ...form,
+                        first_name: s.first_name,
+                        last_name: s.last_name,
+                        email: s.email,
+                      });
+                    }}
+                  >
+                    {s.first_name} {s.last_name}{" "}
+                    <span className="opacity-60">({s.email})</span>
+                  </button>
                 </li>
               ))}
             </ul>
           )}
         </div>
       </div>
-      <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="grade-list">
-          Grado
+
+      {/* Grado */}
+      <div className="form-control w-full">
+        <label className="label" htmlFor="grade-select">
+          <span className="label-text font-medium text-base-content/70">
+            Grado
+          </span>
         </label>
-        <div style={{ position: "relative" }}>
-          <div
-            className="border border-gray-300 rounded-md px-3 py-2 w-full cursor-pointer bg-white"
-            tabIndex={0}
-            onClick={() => setShowGradeList(true)}
-            onBlur={() => setTimeout(() => setShowGradeList(false), 100)}
-          >
-            {grades.find((g) => g.id === form.grade_id)?.description ||
-              "Selecciona un grado"}
-          </div>
-          {showGradeList && (
-            <ul
-              style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                right: 0,
-                background: "white",
-                border: "1px solid #ccc",
-                borderRadius: "0 0 8px 8px",
-                zIndex: 10,
-                maxHeight: "200px",
-                overflowY: "auto",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                margin: 0,
-                padding: 0,
-                listStyle: "none",
-              }}
-            >
-              {grades.map((g) => (
-                <li
-                  key={g.id}
-                  style={{
-                    padding: "8px",
-                    cursor: "pointer",
-                    transition: "background 0.2s",
-                  }}
-                  onMouseDown={() => {
-                    setForm({ ...form, grade_id: g.id });
-                    setShowGradeList(false);
-                  }}
-                  onMouseOver={(e) =>
-                    (e.currentTarget.style.background = "#f3f4f6")
-                  }
-                  onMouseOut={(e) =>
-                    (e.currentTarget.style.background = "white")
-                  }
-                >
-                  {g.description}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <select
+          id="grade-select"
+          className="select select-bordered w-full transition-all focus:select-primary"
+          value={form.grade_id || ""}
+          onChange={(e) => setForm({ ...form, grade_id: e.target.value })}
+        >
+          <option value="">Selecciona un grado</option>
+          {grades.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.description}
+            </option>
+          ))}
+        </select>
       </div>
-      <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="year-list">
-          Año escolar
+
+      {/* Año escolar */}
+      <div className="form-control w-full">
+        <label className="label" htmlFor="year-select">
+          <span className="label-text font-medium text-base-content/70">
+            Año escolar
+          </span>
         </label>
-        <div style={{ position: "relative" }}>
-          <div
-            className="border border-gray-300 rounded-md px-3 py-2 w-full cursor-pointer bg-white"
-            tabIndex={0}
-            onClick={() => setShowYearList(true)}
-            onBlur={() => setTimeout(() => setShowYearList(false), 100)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") setShowYearList(false);
-            }}
-          >
-            {form.academic_year || "Selecciona año"}
-          </div>
-          {showYearList && (
-            <ul
-              style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                right: 0,
-                background: "white",
-                border: "1px solid #ccc",
-                borderRadius: "0 0 8px 8px",
-                zIndex: 10,
-                maxHeight: "200px",
-                overflowY: "auto",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                margin: 0,
-                padding: 0,
-                listStyle: "none",
-              }}
-            >
-              {years.map((year) => (
-                <li
-                  key={year}
-                  style={{
-                    padding: "8px",
-                    cursor: "pointer",
-                    transition: "background 0.2s",
-                  }}
-                  onMouseDown={() => {
-                    setForm({ ...form, academic_year: year.toString() });
-                    setShowYearList(false);
-                  }}
-                  onMouseOver={(e) =>
-                    (e.currentTarget.style.background = "#f3f4f6")
-                  }
-                  onMouseOut={(e) =>
-                    (e.currentTarget.style.background = "white")
-                  }
-                >
-                  {year}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <select
+          id="year-select"
+          className="select select-bordered w-full transition-all focus:select-primary"
+          value={form.academic_year || ""}
+          onChange={(e) =>
+            setForm({ ...form, academic_year: e.target.value })
+          }
+        >
+          <option value="">Selecciona año</option>
+          {years.map((year) => (
+            <option key={year} value={year}>
+              {year}
+            </option>
+          ))}
+        </select>
       </div>
-      <div className="flex justify-end gap-3 pt-4">
+
+      <div className="flex justify-end gap-3 pt-2">
         <button
           type="button"
           onClick={handleCancel}
           disabled={loading}
-          className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium border bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+          className="btn btn-ghost"
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={!isFormValid || loading}
-          className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium h-10 px-4 py-2
-    ${
-      isFormValid && !loading
-        ? "bg-primary text-white hover:bg-accent hover:text-accent-foreground"
-        : "bg-gray-300 text-gray-500 cursor-not-allowed"
-    }
-  `}
+          className="btn btn-primary text-primary-content shadow-sm"
         >
           {loading ? (
             <span className="loading loading-spinner loading-sm"></span>

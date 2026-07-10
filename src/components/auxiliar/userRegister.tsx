@@ -106,7 +106,7 @@ export default function UserRegister({ onCancel, onSuccess }) {
               Nombre <span className="text-red-500">*</span>
             </label>
             <input
-              className={`flex h-10 w-full rounded-md border ${inputBorder} bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`}
+              className={`flex h-10 w-full rounded-md border ${inputBorder} bg-base-100 px-3 py-2 text-base placeholder:text-base-content/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2`}
               id="first_name"
               name="first_name"
               required
@@ -123,7 +123,7 @@ export default function UserRegister({ onCancel, onSuccess }) {
               Apellido <span className="text-red-500">*</span>
             </label>
             <input
-              className={`flex h-10 w-full rounded-md border ${inputBorder} bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`}
+              className={`flex h-10 w-full rounded-md border ${inputBorder} bg-base-100 px-3 py-2 text-base placeholder:text-base-content/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2`}
               id="last_name"
               name="last_name"
               required
@@ -139,7 +139,7 @@ export default function UserRegister({ onCancel, onSuccess }) {
           </label>
           <input
             type="email"
-            className={`flex h-10 w-full rounded-md border ${inputBorder} bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`}
+            className={`flex h-10 w-full rounded-md border ${inputBorder} bg-base-100 px-3 py-2 text-base placeholder:text-base-content/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2`}
             id="email"
             name="email"
             required
@@ -164,7 +164,7 @@ export default function UserRegister({ onCancel, onSuccess }) {
               Nombre Completo <span className="text-red-500">*</span>
             </label>
             <input
-              className={`flex h-10 w-full rounded-md border ${inputBorder} bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`}
+              className={`flex h-10 w-full rounded-md border ${inputBorder} bg-base-100 px-3 py-2 text-base placeholder:text-base-content/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2`}
               id="guardian_full_name"
               name="guardian_full_name"
               required
@@ -181,7 +181,7 @@ export default function UserRegister({ onCancel, onSuccess }) {
               Relación <span className="text-red-500">*</span>
             </label>
             <select
-              className={`flex h-10 w-full rounded-md border ${inputBorder} bg-background px-3 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`}
+              className={`flex h-10 w-full rounded-md border ${inputBorder} bg-base-100 px-3 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2`}
               id="guardian_relationship"
               name="guardian_relationship"
               required
@@ -208,7 +208,7 @@ export default function UserRegister({ onCancel, onSuccess }) {
             </label>
             <input
               type="email"
-              className={`flex h-10 w-full rounded-md border ${inputBorder} bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`}
+              className={`flex h-10 w-full rounded-md border ${inputBorder} bg-base-100 px-3 py-2 text-base placeholder:text-base-content/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2`}
               id="guardian_email"
               name="guardian_email"
               required
@@ -226,7 +226,7 @@ export default function UserRegister({ onCancel, onSuccess }) {
             </label>
             <input
               type="tel"
-              className={`flex h-10 w-full rounded-md border ${inputBorder} bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`}
+              className={`flex h-10 w-full rounded-md border ${inputBorder} bg-base-100 px-3 py-2 text-base placeholder:text-base-content/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2`}
               id="guardian_phone"
               name="guardian_phone"
               required
@@ -240,7 +240,7 @@ export default function UserRegister({ onCancel, onSuccess }) {
 
       <div className="flex justify-end gap-3 pt-4">
         <button
-          className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium border ${inputBorder} bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2`}
+          className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium border ${inputBorder} bg-base-100 hover:bg-base-200 h-10 px-4 py-2`}
           type="button"
           onClick={handleCancel}
           disabled={loading}
@@ -248,7 +248,7 @@ export default function UserRegister({ onCancel, onSuccess }) {
           Cancelar
         </button>
         <button
-          className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium bg-primary text-white hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+          className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium bg-primary text-white hover:bg-primary/90 h-10 px-4 py-2"
           type="submit"
           disabled={loading}
         >

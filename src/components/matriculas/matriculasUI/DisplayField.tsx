@@ -18,12 +18,13 @@ export const DisplayField = ({
 
     return (
         <div className="flex flex-col gap-1 py-1">
-            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-base-content/40">
                 {label}
             </span>
             <span
-                className={`font-medium text-sm text-gray-700 leading-snug border-b border-gray-100 pb-1 ${highlight ? "text-red-500 font-bold" : ""
-                    }`}
+                className={`border-b border-base-200 pb-1 text-sm font-medium leading-snug ${
+                    highlight ? "font-bold text-error" : "text-base-content/80"
+                }`}
             >
                 {displayValue}
             </span>

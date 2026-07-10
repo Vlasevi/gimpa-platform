@@ -32,7 +32,7 @@ export const EnrollmentBlockedMessage = ({
             </div>
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 font-poppins">
+            <h2 className="font-display text-2xl font-bold text-base-content">
               Matrícula No Disponible
             </h2>
             <p className="text-gray-600 mt-1">Año Académico {targetYear}</p>

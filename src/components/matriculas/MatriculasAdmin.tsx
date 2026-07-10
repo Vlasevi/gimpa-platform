@@ -1,13 +1,30 @@
 // components/Matriculas/MatriculasAdmin.tsx
-import { useState, useEffect, useMemo } from "react";
-import { FilePlus, UserCog, X, User, Sheet, FileSpreadsheet, Loader2 } from "lucide-react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import {
+  FilePlus,
+  UserCog,
+  X,
+  User,
+  Sheet,
+  FileSpreadsheet,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Info,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import UserRegister from "@/components/auxiliar/userRegister";
 import EnrollmentUpdate from "@/components/auxiliar/enrollmentUpdate";
 import UserEnroll from "@/components/auxiliar/userEnroll";
 import { getStatusLabel, getStatusBadgeClass } from "@/utils/statusHelpers";
 import { apiUrl, API_ENDPOINTS, buildHeaders } from "@/utils/api";
-import { GradeAccordion } from "./matriculasUI/GradeAccordion";
+import { EnrollmentRow } from "./matriculasUI/EnrollmentRow";
 import { StudentDataTabs } from "./StudentDataTabs";
+import { Alert } from "@/components/ui/Alert";
+import { FilterSelect } from "@/components/ui/FilterSelect";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import { useAuth } from "@/components/Login/loginLogic";
 
 interface Grade {
@@ -38,16 +55,12 @@ interface Enrollment {
   documents_folder_url?: string | null;
 }
 
-interface EnrollmentsByGrade {
-  [gradeName: string]: Enrollment[];
-}
-
 // Componente wrapper para modales con animación de entrada y salida
 const AnimatedModal = ({
   isOpen,
   onClose,
   children,
-  className = "max-w-2xl bg-white p-6",
+  className = "max-w-2xl bg-base-100 p-6",
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -55,6 +68,8 @@ const AnimatedModal = ({
   className?: string;
 }) => {
   const [isVisible, setIsVisible] = useState(false);
+
+  useBodyScrollLock(isOpen);
 
   useEffect(() => {
     if (isOpen) {
@@ -67,13 +82,16 @@ const AnimatedModal = ({
 
   if (!isVisible) return null;
 
+  // `fill-mode-forwards` en la salida: sin él, al terminar la animación el
+  // elemento revierte por un frame a su estado base (centrado, opacidad 1)
+  // antes de desmontarse, lo que se ve como un parpadeo al cerrar.
   const modalAnimation = isOpen
     ? "animate-in fade-in slide-in-from-bottom-16 duration-500"
-    : "animate-out fade-out slide-out-to-bottom-16 duration-300";
+    : "animate-out fade-out slide-out-to-bottom-16 duration-300 fill-mode-forwards";
 
   const backdropAnimation = isOpen
     ? "animate-in fade-in duration-300"
-    : "animate-out fade-out duration-300";
+    : "animate-out fade-out duration-300 fill-mode-forwards";
 
   return (
     <>
@@ -84,7 +102,7 @@ const AnimatedModal = ({
       <div
         role="dialog"
         aria-modal="true"
-        className={`fixed left-1/2 top-1/2 z-50 flex flex-col w-full translate-x-[-50%] translate-y-[-50%] gap-4 border border-gray-300 shadow-lg sm:rounded-lg ${className} ${modalAnimation}`}
+        className={`fixed left-1/2 top-1/2 z-50 flex flex-col w-full translate-x-[-50%] translate-y-[-50%] gap-4 border border-base-300 shadow-lg sm:rounded-lg ${className} ${modalAnimation}`}
         tabIndex={-1}
       >
         {children}
@@ -92,6 +110,62 @@ const AnimatedModal = ({
     </>
   );
 };
+
+// Mini-estadística de la barra superior
+const Stat = ({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: number;
+  tone?: "default" | "success" | "warning";
+}) => {
+  const labelColor =
+    tone === "success"
+      ? "text-success"
+      : tone === "warning"
+        ? "text-warning"
+        : "text-base-content/50";
+  const valueColor =
+    tone === "success"
+      ? "text-success"
+      : tone === "warning"
+        ? "text-warning"
+        : "text-base-content";
+  return (
+    <div className="flex flex-col items-end">
+      <span
+        className={`text-[10px] font-bold uppercase tracking-wider leading-tight ${labelColor}`}
+      >
+        {label}
+      </span>
+      <span className={`text-xl font-bold leading-none ${valueColor}`}>
+        {value}
+      </span>
+    </div>
+  );
+};
+
+// Alturas aproximadas (px) para estimar cuántas filas caben sin scroll
+const ROW_HEIGHT = 69; // alto de una fila de estudiante
+const HEADER_HEIGHT = 53; // encabezado de la tabla
+const FOOTER_HEIGHT = 57; // barra de paginación
+const BOTTOM_GAP = 24; // margen inferior deseado
+const MIN_pageSize = 5; // nunca menos de 5 filas
+
+// Números de página a mostrar (con elipsis cuando hay muchas)
+function getPageList(current: number, total: number): (number | "…")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages: (number | "…")[] = [1];
+  const left = Math.max(2, current - 1);
+  const right = Math.min(total - 1, current + 1);
+  if (left > 2) pages.push("…");
+  for (let i = left; i <= right; i++) pages.push(i);
+  if (right < total - 1) pages.push("…");
+  pages.push(total);
+  return pages;
+}
 
 export const MatriculasAdmin = () => {
   const { user } = useAuth();
@@ -115,9 +189,35 @@ export const MatriculasAdmin = () => {
   const [showStudentDataModal, setShowStudentDataModal] = useState(false);
   const [selectedEnrollmentData, setSelectedEnrollmentData] = useState<any | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
-  const [openAccordion, setOpenAccordion] = useState<string | null>(null);
   const [excelLoading, setExcelLoading] = useState(false);
   const [studentsDataLoading, setStudentsDataLoading] = useState(false);
+  const [gradeFilter, setGradeFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(8);
+  const tableRef = useRef<HTMLDivElement>(null);
+  const [toast, setToast] = useState<{
+    type: "success" | "error" | "warning" | "info";
+    msg: string;
+  } | null>(null);
+  const [confirmState, setConfirmState] = useState<{
+    title: string;
+    message: string;
+    acceptText: string;
+    variant: "warning" | "error" | "info" | "success";
+    onAccept: () => void;
+  } | null>(null);
+  const toastTimer = useRef<number | null>(null);
+
+  const showToast = (
+    msg: string,
+    type: "success" | "error" | "warning" | "info" = "success",
+  ) => {
+    if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    setToast({ type, msg });
+    toastTimer.current = window.setTimeout(() => setToast(null), 3500);
+  };
+
   const enrollmentPermissions = user?.permissions?.enrollments;
   const canCreateEnrollments = Boolean(enrollmentPermissions?.canCreate);
   const canEditEnrollments = Boolean(enrollmentPermissions?.canEdit);
@@ -127,41 +227,31 @@ export const MatriculasAdmin = () => {
   const canExport = Boolean(user?.permissions?.global?.canExport);
   const isAdminRector = user?.role === "admin" || user?.role === "rector";
 
-  // Auto-expandir el primer grado con coincidencias cuando cambia el término de búsqueda
-  useEffect(() => {
-    if (searchTerm.trim()) {
-      // Buscar el primer grado que tenga estudiantes que coincidan con la búsqueda
-      const matchingGrades = grades
-        .sort((a, b) => (a as any).order - (b as any).order)
-        .filter((grade) => {
-          const gradeEnrollments = enrollments.filter(
-            (e) =>
-              e.academic_year === selectedYear &&
-              e.grade.description === grade.description &&
-              (
-                e.student.first_name.toLowerCase() +
-                " " +
-                e.student.last_name.toLowerCase() +
-                " " +
-                e.student.email.toLowerCase()
-              ).includes(searchTerm.toLowerCase()),
-          );
-          return gradeEnrollments.length > 0;
-        });
-
-      if (matchingGrades.length > 0) {
-        setOpenAccordion(matchingGrades[0].description);
-      }
-    } else {
-      // Si no hay búsqueda, cerrar todos los acordeones
-      setOpenAccordion(null);
-    }
-  }, [searchTerm, enrollments, grades, selectedYear]);
-
   // Fetch de matrículas y grados (solo una vez al montar)
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Volver a la primera página cuando cambian los filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, gradeFilter, statusFilter, selectedYear]);
+
+  // Calcular cuántas filas caben sin scroll según el alto de la ventana
+  useEffect(() => {
+    const computePageSize = () => {
+      const el = tableRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top;
+      const available =
+        window.innerHeight - top - HEADER_HEIGHT - FOOTER_HEIGHT - BOTTOM_GAP;
+      const rows = Math.floor(available / ROW_HEIGHT);
+      setPageSize(Math.max(MIN_pageSize, rows));
+    };
+    computePageSize();
+    window.addEventListener("resize", computePageSize);
+    return () => window.removeEventListener("resize", computePageSize);
+  }, [loading]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -219,9 +309,9 @@ export const MatriculasAdmin = () => {
       }
 
       await fetchData(); // Refresh data
-      alert("Matrícula aprobada exitosamente");
+      showToast("Matrícula aprobada exitosamente", "success");
     } catch (err: any) {
-      alert(err.message || "Error al aprobar matrícula");
+      showToast(err.message || "Error al aprobar matrícula", "error");
       console.error(err);
     } finally {
       setActionLoading(null);
@@ -230,7 +320,7 @@ export const MatriculasAdmin = () => {
 
   const requestCorrection = async () => {
     if (!selectedEnrollment || !correctionMessage.trim()) {
-      alert("Debes proporcionar un mensaje de corrección");
+      showToast("Debes proporcionar un mensaje de corrección", "warning");
       return;
     }
 
@@ -258,9 +348,9 @@ export const MatriculasAdmin = () => {
       setShowCorrectionModal(false);
       setCorrectionMessage("");
       setSelectedEnrollment(null);
-      alert("Corrección solicitada exitosamente");
+      showToast("Corrección solicitada exitosamente", "success");
     } catch (err: any) {
-      alert(err.message || "Error al solicitar corrección");
+      showToast(err.message || "Error al solicitar corrección", "error");
       console.error(err);
     } finally {
       setActionLoading(null);
@@ -268,10 +358,6 @@ export const MatriculasAdmin = () => {
   };
 
   const cancelEnrollment = async (enrollmentId: number) => {
-    if (!confirm("¿Estás seguro de que deseas cancelar esta matrícula?")) {
-      return;
-    }
-
     setActionLoading(enrollmentId);
     try {
       const response = await fetch(
@@ -290,9 +376,9 @@ export const MatriculasAdmin = () => {
       }
 
       await fetchData(); // Refresh data
-      alert("Matrícula cancelada exitosamente");
+      showToast("Matrícula cancelada exitosamente", "success");
     } catch (err: any) {
-      alert(err.message || "Error al cancelar matrícula");
+      showToast(err.message || "Error al cancelar matrícula", "error");
       console.error(err);
     } finally {
       setActionLoading(null);
@@ -300,14 +386,6 @@ export const MatriculasAdmin = () => {
   };
 
   const deleteEnrollment = async (enrollmentId: number) => {
-    if (
-      !confirm(
-        "¿Estás seguro de que deseas eliminar permanentemente esta matrícula? Esta acción no se puede deshacer.",
-      )
-    ) {
-      return;
-    }
-
     setActionLoading(enrollmentId);
     try {
       const response = await fetch(
@@ -325,9 +403,9 @@ export const MatriculasAdmin = () => {
       }
 
       await fetchData(); // Refresh data
-      alert("Matrícula eliminada exitosamente");
+      showToast("Matrícula eliminada exitosamente", "success");
     } catch (err: any) {
-      alert(err.message || "Error al eliminar matrícula");
+      showToast(err.message || "Error al eliminar matrícula", "error");
       console.error(err);
     } finally {
       setActionLoading(null);
@@ -362,9 +440,9 @@ export const MatriculasAdmin = () => {
       await fetchData(); // Refresh data
       setShowEditModal(false);
       setSelectedEnrollment(null);
-      alert("Matrícula actualizada exitosamente");
+      showToast("Matrícula actualizada exitosamente", "success");
     } catch (err: any) {
-      alert(err.message || "Error al actualizar matrícula");
+      showToast(err.message || "Error al actualizar matrícula", "error");
       console.error(err);
     } finally {
       setActionLoading(null);
@@ -372,10 +450,6 @@ export const MatriculasAdmin = () => {
   };
 
   const generatePDFs = async (enrollmentId: number) => {
-    if (!confirm("¿Generar contrato y pagaré para esta matrícula?")) {
-      return;
-    }
-
     setActionLoading(enrollmentId);
     try {
       const response = await fetch(
@@ -392,12 +466,13 @@ export const MatriculasAdmin = () => {
         throw new Error(errorData.error || "Error al generar PDFs");
       }
 
-      const data = await response.json();
-      alert(
-        `✅ ${data.message}\n\nArchivos generados:\n- ${data.files[0]}\n- ${data.files[1]}\n\nRevisa la carpeta del estudiante en OneDrive.`,
+      await response.json();
+      showToast(
+        "Contrato y pagaré generados. Revisa la carpeta del estudiante en OneDrive.",
+        "success",
       );
     } catch (err: any) {
-      alert(err.message || "Error al generar PDFs");
+      showToast(err.message || "Error al generar PDFs", "error");
       console.error(err);
     } finally {
       setActionLoading(null);
@@ -409,7 +484,7 @@ export const MatriculasAdmin = () => {
     if (selectedEnrollmentData?.documents_folder_url) {
       window.open(selectedEnrollmentData.documents_folder_url, "_blank");
     } else {
-      alert("No se encontró la carpeta del estudiante en OneDrive");
+      showToast("No se encontró la carpeta del estudiante en OneDrive", "warning");
     }
   };
 
@@ -468,7 +543,7 @@ export const MatriculasAdmin = () => {
 
       setSelectedEnrollmentData(combinedData);
     } catch (err: any) {
-      alert(err.message || "Error al obtener datos del estudiante");
+      showToast(err.message || "Error al obtener datos del estudiante", "error");
       console.error(err);
       setShowStudentDataModal(false);
     } finally {
@@ -476,39 +551,56 @@ export const MatriculasAdmin = () => {
     }
   };
 
-  // Agrupar matrículas por grado
-  const enrollmentsByGradeTemp: EnrollmentsByGrade = enrollments
-    .filter(
-      (enrollment) =>
-        selectedYear !== null &&
-        enrollment.academic_year === selectedYear &&
-        (
-          enrollment.student.first_name.toLowerCase() +
-          " " +
-          enrollment.student.last_name.toLowerCase() +
-          " " +
-          enrollment.student.email.toLowerCase()
-        ).includes(searchTerm.toLowerCase()),
+  // Grados ordenados por el campo 'order' (copia, sin mutar el estado)
+  const sortedGrades = [...grades].sort(
+    (a, b) => ((a as any).order ?? 0) - ((b as any).order ?? 0),
+  );
+  const gradeOrder = new Map(
+    grades.map((g) => [g.description, (g as any).order ?? 0]),
+  );
+
+  // Matrículas del año seleccionado (para las estadísticas)
+  const yearEnrollments = enrollments.filter(
+    (e) => e.academic_year === selectedYear,
+  );
+  const yearTotal = yearEnrollments.length;
+  const yearActive = yearEnrollments.filter((e) => e.status === "ACTIVE").length;
+  const yearPending = yearEnrollments.filter(
+    (e) => e.status === "PENDING" || e.status === "IN_REVIEW",
+  ).length;
+
+  // Lista maestra: año + grado + estado + búsqueda, ordenada por grado y apellido
+  const filteredEnrollments = enrollments
+    .filter((e) => selectedYear !== null && e.academic_year === selectedYear)
+    .filter((e) => gradeFilter === "all" || e.grade.description === gradeFilter)
+    .filter((e) => statusFilter === "all" || e.status === statusFilter)
+    .filter((e) =>
+      (
+        e.student.first_name.toLowerCase() +
+        " " +
+        e.student.last_name.toLowerCase() +
+        " " +
+        e.student.email.toLowerCase()
+      ).includes(searchTerm.toLowerCase()),
     )
-    .reduce((acc, enrollment) => {
-      const gradeName = enrollment.grade.description;
-      if (!acc[gradeName]) {
-        acc[gradeName] = [];
-      }
-      acc[gradeName].push(enrollment);
-      return acc;
-    }, {} as EnrollmentsByGrade);
-
-  // Crear objeto con TODOS los grados de la DB, ordenados por el campo 'order'
-  const enrollmentsByGrade: EnrollmentsByGrade = {};
-
-  // Ordenar grados por el campo 'order' y crear entradas para todos
-  grades
-    .sort((a, b) => (a as any).order - (b as any).order)
-    .forEach((grade) => {
-      const gradeName = grade.description;
-      enrollmentsByGrade[gradeName] = enrollmentsByGradeTemp[gradeName] || [];
+    .sort((a, b) => {
+      const go =
+        (gradeOrder.get(a.grade.description) ?? 0) -
+        (gradeOrder.get(b.grade.description) ?? 0);
+      if (go !== 0) return go;
+      return (a.student.last_name + a.student.first_name).localeCompare(
+        b.student.last_name + b.student.first_name,
+      );
     });
+
+  // Paginación de la lista maestra
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredEnrollments.length / pageSize),
+  );
+  const page = Math.min(currentPage, totalPages);
+  const pageStart = (page - 1) * pageSize;
+  const pageItems = filteredEnrollments.slice(pageStart, pageStart + pageSize);
 
   // Función para obtener el color del badge según el estado (deprecated - usar getStatusBadgeClass)
   const getStatusBadge = (status: string) => {
@@ -562,7 +654,7 @@ export const MatriculasAdmin = () => {
       window.URL.revokeObjectURL(url);
       a.remove();
     } catch (err: any) {
-      alert(err.message || 'Error al descargar el listado');
+      showToast(err.message || 'Error al descargar el listado', "error");
       console.error(err);
     } finally {
       setExcelLoading(false);
@@ -599,7 +691,7 @@ export const MatriculasAdmin = () => {
       window.URL.revokeObjectURL(url);
       a.remove();
     } catch (err: any) {
-      alert(err.message || 'Error al descargar datos de estudiantes');
+      showToast(err.message || 'Error al descargar datos de estudiantes', "error");
       console.error(err);
     } finally {
       setStudentsDataLoading(false);
@@ -624,10 +716,10 @@ export const MatriculasAdmin = () => {
       {/* Header & Actions */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+          <h1 className="font-display text-3xl font-bold tracking-tight text-secondary">
             {isAdminRector ? "Gestión de Matrículas" : "Estudiantes"}
           </h1>
-          <p className="text-gray-500 mt-1">
+          <p className="mt-1 text-base-content/60">
             {isAdminRector
               ? "Administra los estudiantes y sus matrículas por año académico"
               : "Consulta de estudiantes por año académico"}
@@ -655,13 +747,13 @@ export const MatriculasAdmin = () => {
         </div>
       </div>
 
-      {/* Unified Stats & Controls Bar */}
-      <div className="card bg-base-100 shadow-sm border border-base-200 mb-8">
-        <div className="card-body p-3 sm:p-4 flex-col lg:flex-row gap-4 items-center">
+      {/* Barra de filtros y estadísticas */}
+      <div className="card bg-base-100 shadow-sm border border-base-300 mb-6">
+        <div className="card-body p-3 sm:p-4 flex-col lg:flex-row gap-4 items-stretch lg:items-center">
 
-          {/* Search & Filter Group */}
-          <div className="flex-1 flex gap-3 w-full">
-            <div className="relative flex-1">
+          {/* Filtros: búsqueda + grado + estado + año */}
+          <div className="flex-1 flex flex-col sm:flex-row gap-3 w-full">
+            <div className="relative flex-1 min-w-[180px]">
               <input
                 type="text"
                 placeholder="Buscar estudiante..."
@@ -669,58 +761,68 @@ export const MatriculasAdmin = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40 h-5 w-5" />
             </div>
 
-            <select
-              className="select select-bordered w-24 sm:w-32 h-10 min-h-0 font-medium"
-              value={selectedYear || ""}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-            >
-              {enrollmentYears.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
+            <FilterSelect
+              className="min-w-[160px]"
+              ariaLabel="Filtrar por grado"
+              value={gradeFilter}
+              onChange={setGradeFilter}
+              options={[
+                { value: "all", label: "Todos los grados" },
+                ...sortedGrades.map((g) => ({
+                  value: g.description,
+                  label: g.description,
+                })),
+              ]}
+            />
+
+            <FilterSelect
+              className="min-w-[150px]"
+              ariaLabel="Filtrar por estado"
+              value={statusFilter}
+              onChange={setStatusFilter}
+              options={[
+                { value: "all", label: "Todos los estados" },
+                { value: "PENDING", label: getStatusLabel("PENDING") },
+                { value: "IN_REVIEW", label: getStatusLabel("IN_REVIEW") },
+                { value: "ACTIVE", label: getStatusLabel("ACTIVE") },
+                { value: "CANCELLED", label: getStatusLabel("CANCELLED") },
+              ]}
+            />
+
+            <FilterSelect
+              className="w-24 sm:w-28"
+              ariaLabel="Filtrar por año"
+              value={selectedYear ? String(selectedYear) : ""}
+              onChange={(v) => setSelectedYear(Number(v))}
+              options={enrollmentYears.map((year) => ({
+                value: String(year),
+                label: String(year),
+              }))}
+            />
           </div>
 
-          {/* Vertical Divider (Desktop) */}
-          <div className="hidden lg:block w-px h-8 bg-gray-200 mx-2"></div>
+          {/* Divisor (desktop) */}
+          <div className="hidden lg:block w-px h-8 bg-base-300 mx-2"></div>
 
-          {/* Stats & Actions Group */}
+          {/* Estadísticas + acciones */}
           <div className="flex items-center gap-6 w-full lg:w-auto justify-between lg:justify-end">
-
-            {/* Stat: Total Estudiantes (Año seleccionado) */}
-            <div className="flex items-center gap-6">
-              <div className="flex flex-col items-end">
-                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider leading-tight">
-                  Total
-                </span>
-                <span className="text-xl font-bold text-gray-900 leading-none">
-                  {enrollments.filter((e) => e.academic_year === selectedYear).length}
-                </span>
-              </div>
-
-              <div className="flex flex-col items-end">
-                <span className="text-[10px] text-green-600 font-bold uppercase tracking-wider leading-tight">
-                  Activos
-                </span>
-                <span className="text-xl font-bold text-green-700 leading-none">
-                  {enrollments.filter((e) => e.academic_year === selectedYear && e.status === 'ACTIVE').length}
-                </span>
-              </div>
+            <div className="flex items-center gap-5">
+              <Stat label="Total" value={yearTotal} />
+              <Stat label="Pendientes" value={yearPending} tone="warning" />
+              <Stat label="Activos" value={yearActive} tone="success" />
             </div>
 
-            {/* Action: Excel Downloads (solo quien puede exportar) */}
+            {/* Descargas Excel (solo quien puede exportar) */}
             {canExport && (
               <>
-                {/* Vertical Divider */}
-                <div className="hidden lg:block w-px h-8 bg-gray-200"></div>
+                <div className="hidden lg:block w-px h-8 bg-base-300"></div>
                 <button
                   onClick={downloadExcel}
                   disabled={excelLoading}
-                  className="p-1.5 transition-colors duration-200 text-green-600 hover:text-primary disabled:opacity-50"
+                  className="p-1.5 transition-colors duration-200 text-base-content/50 hover:text-primary disabled:opacity-50"
                   title={`Descargar Listas Grados ${selectedYear}`}
                 >
                   {excelLoading ? (
@@ -732,7 +834,7 @@ export const MatriculasAdmin = () => {
                 <button
                   onClick={downloadStudentsData}
                   disabled={studentsDataLoading}
-                  className="p-1.5 transition-colors duration-200 text-blue-600 hover:text-primary disabled:opacity-50"
+                  className="p-1.5 transition-colors duration-200 text-base-content/50 hover:text-primary disabled:opacity-50"
                   title={`Descargar Datos Estudiantes ${selectedYear}`}
                 >
                   {studentsDataLoading ? (
@@ -748,54 +850,136 @@ export const MatriculasAdmin = () => {
         </div>
       </div>
 
-      <div className="space-y-3">
+      {/* Tabla maestra (sin overflow-hidden para que los dropdowns de acciones no se corten) */}
+      <div
+        ref={tableRef}
+        className="rounded-lg border border-base-300 bg-base-100 shadow-sm"
+      >
         {loading ? (
           <div className="flex justify-center items-center py-16">
             <span className="loading loading-spinner loading-lg text-primary"></span>
           </div>
-        ) : (
-          Object.entries(enrollmentsByGrade).map(
-            ([gradeName, gradeEnrollments]) => (
-              <GradeAccordion
-                key={gradeName}
-                gradeName={gradeName}
-                enrollments={gradeEnrollments}
-                isOpen={openAccordion === gradeName}
-                onToggle={() =>
-                  setOpenAccordion(
-                    openAccordion === gradeName ? null : gradeName,
-                  )
-                }
-                onViewDetails={fetchEnrollmentDetails}
-                onApprove={approveEnrollment}
-                onRequestCorrection={(enrollment) => {
-                  setSelectedEnrollment(enrollment);
-                  setShowCorrectionModal(true);
-                }}
-                onCancel={cancelEnrollment}
-                onDelete={deleteEnrollment}
-                onEdit={(enrollment) => {
-                  setSelectedEnrollment(enrollment);
-                  setShowEditModal(true);
-                }}
-                onGeneratePDFs={generatePDFs}
-                canEdit={canEditEnrollments}
-                canDelete={canDeleteEnrollments}
-                canApprove={canApproveEnrollments}
-                actionLoading={actionLoading}
-                formatDate={formatDate}
-              />
-            ),
-          )
-        )}
-
-        {/* Mensaje si no hay matrículas */}
-        {!loading && Object.keys(enrollmentsByGrade).length === 0 && (
-          <div className="text-center py-12 text-gray-500">
+        ) : filteredEnrollments.length === 0 ? (
+          <div className="text-center py-16 text-base-content/50">
             {enrollments.length === 0
               ? "No hay matrículas registradas"
-              : `No hay matrículas para el año ${selectedYear}`}
+              : "No hay estudiantes que coincidan con los filtros"}
           </div>
+        ) : (
+          <>
+            <table className="w-full text-left border-separate border-spacing-0">
+            <thead className="bg-base-200">
+              <tr className="text-base-content font-bold text-sm">
+                <th className="py-4 px-6 align-middle rounded-tl-lg">Estudiante</th>
+                <th className="py-4 px-6 align-middle">Grado</th>
+                <th className="py-4 px-6 align-middle">Fecha de Matrícula</th>
+                <th className="py-4 px-6 text-center align-middle">Estado</th>
+                <th className="py-4 px-6 text-right align-middle rounded-tr-lg">
+                  Acciones
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-base-300">
+              {pageItems.map((enrollment, index) => (
+                <EnrollmentRow
+                  key={enrollment.id}
+                  enrollment={enrollment}
+                  showGrade
+                  isLastRows={index >= pageItems.length - 2}
+                  onViewDetails={fetchEnrollmentDetails}
+                  onApprove={approveEnrollment}
+                  onRequestCorrection={(enrollment) => {
+                    setSelectedEnrollment(enrollment);
+                    setShowCorrectionModal(true);
+                  }}
+                  onCancel={(id) =>
+                    setConfirmState({
+                      title: "Cancelar matrícula",
+                      message:
+                        "¿Seguro que deseas cancelar esta matrícula? El estudiante quedará como cancelado.",
+                      acceptText: "Cancelar matrícula",
+                      variant: "warning",
+                      onAccept: () => cancelEnrollment(id),
+                    })
+                  }
+                  onDelete={(id) =>
+                    setConfirmState({
+                      title: "Eliminar matrícula",
+                      message: "Esta acción es permanente y no se puede deshacer.",
+                      acceptText: "Eliminar",
+                      variant: "error",
+                      onAccept: () => deleteEnrollment(id),
+                    })
+                  }
+                  onEdit={(enrollment) => {
+                    setSelectedEnrollment(enrollment);
+                    setShowEditModal(true);
+                  }}
+                  onGeneratePDFs={(id) =>
+                    setConfirmState({
+                      title: "Generar documentos",
+                      message: "¿Generar contrato y pagaré para esta matrícula?",
+                      acceptText: "Generar",
+                      variant: "info",
+                      onAccept: () => generatePDFs(id),
+                    })
+                  }
+                  canEdit={canEditEnrollments}
+                  canDelete={canDeleteEnrollments}
+                  canApprove={canApproveEnrollments}
+                  actionLoading={actionLoading}
+                  formatDate={formatDate}
+                />
+              ))}
+            </tbody>
+          </table>
+
+            {totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-base-300 px-6 py-3">
+                <p className="text-sm text-base-content/60">
+                  Mostrando {pageStart + 1}–
+                  {Math.min(pageStart + pageSize, filteredEnrollments.length)} de{" "}
+                  {filteredEnrollments.length}
+                </p>
+                <div className="join">
+                  <button
+                    className="join-item btn btn-sm"
+                    disabled={page === 1}
+                    onClick={() => setCurrentPage(page - 1)}
+                    aria-label="Página anterior"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  {getPageList(page, totalPages).map((p, i) =>
+                    p === "…" ? (
+                      <button
+                        key={`ellipsis-${i}`}
+                        className="join-item btn btn-sm btn-disabled pointer-events-none"
+                      >
+                        …
+                      </button>
+                    ) : (
+                      <button
+                        key={p}
+                        className={`join-item btn btn-sm ${p === page ? "btn-primary" : ""}`}
+                        onClick={() => setCurrentPage(p)}
+                      >
+                        {p}
+                      </button>
+                    ),
+                  )}
+                  <button
+                    className="join-item btn btn-sm"
+                    disabled={page === totalPages}
+                    onClick={() => setCurrentPage(page + 1)}
+                    aria-label="Página siguiente"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -804,10 +988,10 @@ export const MatriculasAdmin = () => {
         onClose={() => setShowRegisterModal(false)}
       >
         <div className="flex flex-col space-y-1.5 text-center sm:text-left">
-          <h2 className="text-lg font-semibold leading-none tracking-tight">
+          <h2 className="font-display text-lg font-semibold leading-none tracking-tight text-secondary">
             Registrar estudiante
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-base-content/60">
             Completa la información para crear un nuevo estudiante
           </p>
         </div>
@@ -820,7 +1004,7 @@ export const MatriculasAdmin = () => {
         />
         <button
           type="button"
-          className="absolute right-4 top-4 p-1 rounded-full transition-colors text-gray-400 hover:text-gray-900 focus:outline-none"
+          className="absolute right-4 top-4 p-1 rounded-full transition-colors text-base-content/40 hover:text-base-content focus:outline-none"
           onClick={() => setShowRegisterModal(false)}
         >
           <X className="h-5 w-5" />
@@ -833,10 +1017,10 @@ export const MatriculasAdmin = () => {
         onClose={() => setShowUpdateModal(false)}
       >
         <div className="flex flex-col space-y-1.5 text-center sm:text-left">
-          <h2 className="text-lg font-semibold leading-none tracking-tight">
+          <h2 className="font-display text-lg font-semibold leading-none tracking-tight text-secondary">
             Actualizar Matrícula
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-base-content/60">
             Modifica estado, grado o año de la última matrícula del estudiante
           </p>
         </div>
@@ -852,7 +1036,7 @@ export const MatriculasAdmin = () => {
         />
         <button
           type="button"
-          className="absolute right-4 top-4 p-1 rounded-full transition-colors text-gray-400 hover:text-gray-900 focus:outline-none"
+          className="absolute right-4 top-4 p-1 rounded-full transition-colors text-base-content/40 hover:text-base-content focus:outline-none"
           onClick={() => setShowUpdateModal(false)}
         >
           <X className="h-5 w-5" />
@@ -865,10 +1049,10 @@ export const MatriculasAdmin = () => {
         onClose={() => setShowEnrollModal(false)}
       >
         <div className="flex flex-col space-y-1.5 text-center sm:text-left">
-          <h2 className="text-lg font-semibold leading-none tracking-tight">
+          <h2 className="font-display text-lg font-semibold leading-none tracking-tight text-secondary">
             Matricular estudiante
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-base-content/60">
             Completa la información para matricular un nuevo estudiante
           </p>
         </div>
@@ -882,7 +1066,7 @@ export const MatriculasAdmin = () => {
         />
         <button
           type="button"
-          className="absolute right-4 top-4 p-1 rounded-full transition-colors text-gray-400 hover:text-gray-900 focus:outline-none"
+          className="absolute right-4 top-4 p-1 rounded-full transition-colors text-base-content/40 hover:text-base-content focus:outline-none"
           onClick={() => setShowEnrollModal(false)}
         >
           <X className="h-5 w-5" />
@@ -897,10 +1081,10 @@ export const MatriculasAdmin = () => {
         {selectedEnrollment && (
           <>
             <div className="flex flex-col space-y-1.5 text-center sm:text-left">
-              <h2 className="text-lg font-semibold leading-none tracking-tight">
+              <h2 className="font-display text-lg font-semibold leading-none tracking-tight text-secondary">
                 Solicitar Correcciones
               </h2>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-base-content/60">
                 Estudiante: {selectedEnrollment.student.first_name}{" "}
                 {selectedEnrollment.student.last_name} - Grado:{" "}
                 {selectedEnrollment.grade.name}
@@ -949,7 +1133,7 @@ export const MatriculasAdmin = () => {
 
             <button
               type="button"
-              className="absolute right-4 top-4 p-1 rounded-full transition-colors text-gray-400 hover:text-gray-900 focus:outline-none"
+              className="absolute right-4 top-4 p-1 rounded-full transition-colors text-base-content/40 hover:text-base-content focus:outline-none"
               onClick={() => {
                 setShowCorrectionModal(false);
               }}
@@ -969,10 +1153,10 @@ export const MatriculasAdmin = () => {
         {selectedEnrollment && (
           <>
             <div className="flex flex-col space-y-1.5 text-center sm:text-left">
-              <h2 className="text-lg font-semibold leading-none tracking-tight">
+              <h2 className="font-display text-lg font-semibold leading-none tracking-tight text-secondary">
                 Editar Matrícula
               </h2>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-base-content/60">
                 Estudiante: {selectedEnrollment.student.first_name}{" "}
                 {selectedEnrollment.student.last_name}
               </p>
@@ -994,7 +1178,7 @@ export const MatriculasAdmin = () => {
 
             <button
               type="button"
-              className="absolute right-4 top-4 p-1 rounded-full transition-colors text-gray-400 hover:text-gray-900 focus:outline-none"
+              className="absolute right-4 top-4 p-1 rounded-full transition-colors text-base-content/40 hover:text-base-content focus:outline-none"
               onClick={() => {
                 setShowEditModal(false);
               }}
@@ -1014,7 +1198,7 @@ export const MatriculasAdmin = () => {
         {selectedEnrollment && (
           <>
             <div className="flex flex-col space-y-1.5 text-center sm:text-left">
-              <h2 className="text-lg font-semibold leading-none tracking-tight">
+              <h2 className="font-display text-lg font-semibold leading-none tracking-tight text-secondary">
                 Información de Matrícula
               </h2>
             </div>
@@ -1022,7 +1206,7 @@ export const MatriculasAdmin = () => {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-base-content/70 mb-1">
                     Estudiante
                   </label>
                   <p className="text-sm">
@@ -1031,25 +1215,25 @@ export const MatriculasAdmin = () => {
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-base-content/70 mb-1">
                     Email
                   </label>
                   <p className="text-sm">{selectedEnrollment.student.email}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-base-content/70 mb-1">
                     Grado
                   </label>
                   <p className="text-sm">{selectedEnrollment.grade.name}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-base-content/70 mb-1">
                     Año Académico
                   </label>
                   <p className="text-sm">{selectedEnrollment.academic_year}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-base-content/70 mb-1">
                     Estado
                   </label>
                   <span
@@ -1061,7 +1245,7 @@ export const MatriculasAdmin = () => {
                   </span>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-base-content/70 mb-1">
                     Fecha de Matrícula
                   </label>
                   <p className="text-sm">
@@ -1084,7 +1268,7 @@ export const MatriculasAdmin = () => {
 
             <button
               type="button"
-              className="absolute right-4 top-4 p-1 rounded-full transition-colors text-gray-400 hover:text-gray-900 focus:outline-none"
+              className="absolute right-4 top-4 p-1 rounded-full transition-colors text-base-content/40 hover:text-base-content focus:outline-none"
               onClick={() => {
                 setShowViewModal(false);
               }}
@@ -1125,7 +1309,7 @@ export const MatriculasAdmin = () => {
                 <>
                   <h2
                     id="student-title"
-                    className="text-2xl font-bold text-primary leading-tight"
+                    className="font-display text-2xl font-bold text-secondary leading-tight"
                   >
                     {selectedEnrollmentData.student.first_name}{" "}
                     {selectedEnrollmentData.student.last_name}
@@ -1184,6 +1368,49 @@ export const MatriculasAdmin = () => {
           )}
         </div>
       </AnimatedModal>
+
+      {/* Confirmación con estilo (reemplaza el confirm() nativo) */}
+      {confirmState && (
+        <Alert
+          isOpen={true}
+          onClose={() => setConfirmState(null)}
+          onAccept={() => {
+            const cb = confirmState.onAccept;
+            setConfirmState(null);
+            cb();
+          }}
+          title={confirmState.title}
+          variant={confirmState.variant}
+          acceptText={confirmState.acceptText}
+          cancelText="Cancelar"
+          acceptButtonVariant={
+            confirmState.variant === "error" ? "destructive" : "default"
+          }
+        >
+          <p className="text-base-content/80">{confirmState.message}</p>
+        </Alert>
+      )}
+
+      {/* Toast de feedback */}
+      {toast && (
+        <div className="fixed right-6 top-6 z-[60] animate-view-in">
+          <div className="flex items-center gap-2.5 rounded-xl border border-base-300 bg-base-100 px-4 py-3 text-sm text-base-content shadow-lg">
+            {toast.type === "success" && (
+              <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
+            )}
+            {toast.type === "error" && (
+              <XCircle className="h-5 w-5 shrink-0 text-error" />
+            )}
+            {toast.type === "warning" && (
+              <AlertTriangle className="h-5 w-5 shrink-0 text-warning" />
+            )}
+            {toast.type === "info" && (
+              <Info className="h-5 w-5 shrink-0 text-primary" />
+            )}
+            <span>{toast.msg}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

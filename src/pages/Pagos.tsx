@@ -10,8 +10,8 @@ export default function Pagos() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Pagos</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="font-display text-3xl font-bold text-secondary">Pagos</h1>
+          <p className="text-base-content/60 mt-1">
             Gestión de pagos y pensiones
           </p>
         </div>
@@ -37,7 +37,7 @@ export default function Pagos() {
         </div>
       </div>
 
-      <div className="card bg-card shadow-lg">
+      <div className="card bg-base-100 shadow-lg">
         <div className="card-body">
           <h2 className="card-title">Movimientos Recientes</h2>
 

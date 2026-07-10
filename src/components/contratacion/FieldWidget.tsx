@@ -39,8 +39,8 @@ const SearchSelect = ({
         onFocus={() => { setOpen(true); setQuery(""); }}
       />
       {open && (
-        <ul className="absolute z-30 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
-          {filtered.length === 0 && <li className="px-3 py-2 text-sm text-gray-400">Sin resultados</li>}
+        <ul className="absolute z-30 mt-1 w-full bg-base-100 border border-base-300 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+          {filtered.length === 0 && <li className="px-3 py-2 text-sm text-base-content/40">Sin resultados</li>}
           {filtered.map((o) => (
             <li
               key={o}
@@ -71,7 +71,7 @@ export const FieldWidget = ({
     return (
       <input
         type="text"
-        className="input input-bordered w-full bg-gray-100 text-gray-500 cursor-not-allowed"
+        className="input input-bordered w-full bg-base-200 text-base-content/50 cursor-not-allowed"
         value={value ?? ""}
         disabled
         readOnly

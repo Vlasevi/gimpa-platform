@@ -4,23 +4,24 @@ export default function Dashboard() {
   const { user } = useAuth();
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-8 border border-gray-200">
+    <div className="rounded-2xl border border-base-300 bg-base-100 p-8 shadow-sm">
       <div className="text-center space-y-4">
-        <h1 className="text-3xl font-bold text-primary font-poppins">
+        <h1 className="font-display text-3xl font-bold text-secondary">
           ¡Bienvenido a la plataforma de GIMPA!
         </h1>
         <div className="space-y-2">
-          <p className="text-lg text-secondary font-inter">
+          <p className="text-lg text-base-content/70">
             Has iniciado sesión exitosamente
           </p>
           {user?.email && (
-            <p className="text-base text-gray-700">
-              <span className="font-semibold">Email:</span> {user.email}
+            <p className="text-base text-base-content/70">
+              <span className="font-semibold text-base-content">Email:</span> {user.email}
             </p>
           )}
           {user?.displayname && (
-            <p className="text-base text-gray-700">
-              <span className="font-semibold">Usuario:</span> {user.displayname}
+            <p className="text-base text-base-content/70">
+              <span className="font-semibold text-base-content">Usuario:</span>{" "}
+              {user.displayname}
             </p>
           )}
         </div>

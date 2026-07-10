@@ -47,9 +47,9 @@ const ComboBox = ({
   return (
     <div className="form-control w-full">
       <label className="label">
-        <span className="label-text font-medium text-gray-600">
+        <span className="label-text font-medium text-base-content/70">
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className="text-error ml-1">*</span>}
         </span>
       </label>
       <div className="relative">
@@ -57,7 +57,7 @@ const ComboBox = ({
           ref={inputRef}
           type="text"
           className={`input input-bordered w-full focus:input-primary transition-all ${
-            disabled ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""
+            disabled ? "bg-base-200 text-base-content/50 cursor-not-allowed" : ""
           }`}
           placeholder={label}
           value={inputValue}
@@ -80,13 +80,13 @@ const ComboBox = ({
         {open && filteredOptions.length > 0 && !disabled && (
           <div
             ref={dropdownRef}
-            className="absolute left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-xl max-h-60 overflow-y-auto z-50"
+            className="absolute left-0 right-0 mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg max-h-60 overflow-y-auto z-50"
           >
             {filteredOptions.map((o: string, index: number) => (
               <div
                 key={`${o}-${index}`}
-                className={`px-4 py-2 cursor-pointer hover:bg-blue-500 hover:text-white ${
-                  o === value ? "bg-blue-500 text-white" : ""
+                className={`px-4 py-2 cursor-pointer transition-colors hover:bg-primary hover:text-primary-content ${
+                  o === value ? "bg-primary text-primary-content" : ""
                 }`}
                 onMouseDown={(e) => {
                   e.preventDefault();
@@ -102,8 +102,8 @@ const ComboBox = ({
         )}
 
         {open && filteredOptions.length === 0 && inputValue && !disabled && (
-          <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-xl p-3 z-50">
-            <p className="text-sm text-gray-500">
+          <div className="absolute left-0 right-0 mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg p-3 z-50">
+            <p className="text-sm text-base-content/50">
               No se encontraron estudiantes
             </p>
           </div>
@@ -241,13 +241,13 @@ export default function EnrollmentUpdate({
   };
 
   return (
-    <form className="space-y-4 bg-white" onSubmit={handleSubmit}>
+    <form className="space-y-4" onSubmit={handleSubmit}>
       {successMsg && (
         <div
-          className={`font-semibold mb-2 p-2 rounded ${
+          className={`font-medium mb-2 p-3 rounded-lg text-sm ${
             successMsg.includes("Error") || successMsg.includes("no tiene")
-              ? "bg-red-50 text-red-600"
-              : "bg-green-50 text-green-600"
+              ? "bg-error/10 text-error"
+              : "bg-success/10 text-success"
           }`}
         >
           {successMsg}
@@ -256,7 +256,7 @@ export default function EnrollmentUpdate({
 
       {/* Selector de Estudiante */}
       <div className="space-y-3">
-        <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">
+        <h3 className="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
           1. Seleccionar Estudiante
         </h3>
         <ComboBox
@@ -281,7 +281,7 @@ export default function EnrollmentUpdate({
       {/* Detalle Matrícula */}
       {selectedEnrollment && (
         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <h3 className="text-lg font-semibold text-gray-700 border-b pb-2 mt-4">
+          <h3 className="text-lg font-semibold text-base-content border-b border-base-300 pb-2 mt-4">
             2. Datos de la Matrícula (ID: {selectedEnrollment.id})
           </h3>
 
@@ -346,7 +346,7 @@ export default function EnrollmentUpdate({
                 <label className="label">
                   <span className="label-text font-medium">
                     Mensaje de Corrección
-                    <span className="text-orange-500 ml-1">*</span>
+                    <span className="text-warning ml-1">*</span>
                   </span>
                 </label>
                 <textarea

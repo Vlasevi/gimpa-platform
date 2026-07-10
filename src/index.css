@@ -44,7 +44,19 @@
   --border: 1px;
 }
 
-/* Variables personalizadas adicionales para Sidebar y componentes */
+/* =====================================================================
+   SISTEMA DE DISEÑO — Tipografía parametrizada
+   Para cambiar la fuente de TODO el sitio, edita solo estas dos líneas.
+   (Las familias se cargan en index.html vía Google Fonts.)
+   Uso: clase `font-sans` (por defecto en body) y `font-display` (títulos).
+   ===================================================================== */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Variables personalizadas para el Sidebar (usadas vía bg-[hsl(var(--...))]).
+   No borrar: Sidebar.tsx depende de --accent y --accentlight. */
 @layer base {
   :root {
     --accentlight: 120 56% 80%;
@@ -52,47 +64,80 @@
     --primary-light: 231 41% 54%;
     --primary-dark: 230 50% 35%;
     --accent-dark: 123 44% 38%;
-
-    /* Variables para shadcn/ui */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 10%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 10%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
-    --primary: 231 46% 43%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 231 37% 28%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
-    --accent: 122 39% 52%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 231 46% 43%;
-    --radius: 0.5rem;
   }
 }
 
+/* Fuente base del documento (parametrizada arriba) */
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+/* Accesibilidad: respeta a quien reduce el movimiento del sistema. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Pop de entrada para modales centrados por flexbox (Alert).
+   OJO: nada de translate(-50%,-50%) aquí — el centrado lo hace el contenedor
+   flex; un translate incrustado descentraría el diálogo (y con `forwards`,
+   de forma permanente). Solo escala + opacidad, origen en el centro. */
 @keyframes modal-pop {
   0% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.96);
+    transform: scale(0.96);
   }
 
   100% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: scale(1);
   }
 }
 
 .animate-modal-pop {
+  transform-origin: center;
   animation: modal-pop 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Transición suave al cambiar de vista dentro de un card (login, wizards…) */
+@keyframes view-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-view-in {
+  /* `backwards` (no `forwards`) evita que quede un transform pegado al final,
+     que promovía el texto a una capa GPU y lo hacía verse menos nítido. */
+  animation: view-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 /* Ocultar flechas de inputs numéricos */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+
+/* Selects (filtros y formularios): en vez del ✓ nativo, la opción seleccionada
+   se resalta con el color de marca. La sombra interna fuerza el fondo en Chrome,
+   que de otro modo ignora `background` en <option>. */
+select option:checked,
+select option[selected] {
+  background: var(--color-primary);
+  box-shadow: 0 0 0 100px var(--color-primary) inset;
+  color: var(--color-primary-content);
+  font-weight: 600;
+}

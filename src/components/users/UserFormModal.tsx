@@ -2,6 +2,17 @@ import { useState, useEffect } from "react";
 import { UserPlus, User, Mail, Phone, Save, X, UserCog, Users, ChevronDown } from "lucide-react";
 import { apiUrl, buildHeaders } from "@/utils/api";
 import { useAuth } from "@/components/Login/loginLogic";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+
+const ROLE_LABELS: Record<string, string> = {
+    admin: "Administrador",
+    rector: "Rector",
+    administrativo: "Administrativo",
+    teacher: "Profesor",
+    psychologist: "Psicóloga",
+    student: "Estudiante",
+    otros: "Otros",
+};
 
 interface UserFormModalProps {
     isOpen: boolean;
@@ -143,6 +154,8 @@ export function UserFormModal({ isOpen, onClose, onSuccess, userToEdit, isLoadin
 
     const [isVisible, setIsVisible] = useState(false);
 
+    useBodyScrollLock(isOpen);
+
     useEffect(() => {
         if (isOpen) {
             setIsVisible(true);
@@ -154,89 +167,124 @@ export function UserFormModal({ isOpen, onClose, onSuccess, userToEdit, isLoadin
 
     if (!isVisible) return null;
 
+    // `fill-mode-forwards` en la salida evita el parpadeo al cerrar (el elemento
+    // conserva el estado final desplazado/transparente hasta desmontarse).
     const modalAnimation = isOpen
         ? "animate-in fade-in slide-in-from-bottom-16 duration-500"
-        : "animate-out fade-out slide-out-to-bottom-16 duration-300";
+        : "animate-out fade-out slide-out-to-bottom-16 duration-300 fill-mode-forwards";
 
     const backdropAnimation = isOpen
         ? "animate-in fade-in duration-300"
-        : "animate-out fade-out duration-300";
+        : "animate-out fade-out duration-300 fill-mode-forwards";
 
     // Common input styles (Compact version)
-    const inputClass = "w-full pl-9 pr-3 py-2 border border-[#e9ecef] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b4aa0]/20 focus:border-[#3b4aa0] transition-all placeholder:text-gray-300 text-sm";
+    const inputClass = "w-full pl-9 pr-3 py-2 border border-base-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-base-content/30 text-sm";
 
     // Select class with custom arrow handling
-    const selectClass = "w-full pl-3 pr-8 py-2 border border-[#e9ecef] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#3b4aa0]/20 focus:border-[#3b4aa0] transition-all appearance-none cursor-pointer text-sm";
+    const selectClass = "w-full pl-3 pr-8 py-2 border border-base-300 rounded-lg bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none cursor-pointer text-sm";
 
-    const labelClass = "text-xs font-bold text-[#2a2a2a] mb-1 block";
-    const iconClass = "absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 group-focus-within:text-[#3b4aa0] pointer-events-none transition-colors";
+    const labelClass = "text-xs font-bold text-base-content mb-1 block";
+    const iconClass = "absolute inset-y-0 left-0 pl-3 flex items-center text-base-content/40 group-focus-within:text-primary pointer-events-none transition-colors";
 
     // Chevron for select
     const ChevronIcon = () => (
-        <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-gray-500">
+        <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-base-content/50">
             <ChevronDown className="h-4 w-4" />
         </div>
     );
 
+    // Título de la cabecera: al editar, el nombre del usuario (como un detalle);
+    // al crear, la acción. Durante la carga se mantiene el contexto de edición.
+    const headerTitle = isLoadingData
+        ? "Editar Usuario"
+        : isEditing
+            ? `${form.first_name} ${form.last_name}`.trim() || "Editar Usuario"
+            : "Registrar Nuevo Usuario";
+
     return (
         <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto ${backdropAnimation}`}>
-            {/* Removed border from modal container to clean up contour */}
-            <div className={`max-w-3xl w-full bg-[#f8f9fa] rounded-lg shadow-2xl overflow-hidden font-sans ${modalAnimation}`}>
+            <div className={`w-full max-w-3xl max-h-[90vh] bg-base-200 border border-base-300 rounded-lg shadow-2xl flex flex-col overflow-hidden font-sans ${modalAnimation}`}>
 
-                {/* HEADER (Compact) */}
-                <div className="bg-[#3b4aa0] px-5 py-3 flex items-center justify-between text-white">
-                    <div className="flex items-center space-x-3">
-                        <div className="p-1.5 bg-white/10 rounded-lg">
-                            {isEditing ? (
-                                <UserCog className="h-5 w-5" />
-                            ) : (
-                                <UserPlus className="h-5 w-5" />
-                            )}
+                {/* HEADER estándar: mismo lenguaje que el detalle de matrícula/contratación
+                    (cabecera clara, avatar con borde institucional, título font-display). */}
+                <header className="bg-base-100 border-b border-base-300 px-6 py-4 flex justify-between items-center shrink-0">
+                    <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 rounded-full border-2 border-primary p-1 bg-base-100 shrink-0">
+                            <div className="w-full h-full rounded-full bg-primary/10 flex items-center justify-center">
+                                {isEditing || isLoadingData ? (
+                                    <UserCog className="w-8 h-8 text-primary/70" />
+                                ) : (
+                                    <UserPlus className="w-8 h-8 text-primary/70" />
+                                )}
+                            </div>
                         </div>
-                        <h2 className="text-lg font-bold tracking-tight">
-                            {isEditing ? "Editar Usuario" : "Registrar Nuevo Usuario"}
-                        </h2>
+                        <div>
+                            <h2 className="font-display text-2xl font-bold text-secondary leading-tight">
+                                {headerTitle}
+                            </h2>
+                            <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                                {isLoadingData ? (
+                                    <span className="text-sm text-base-content/50">Cargando datos…</span>
+                                ) : isEditing ? (
+                                    <>
+                                        {form.email && (
+                                            <span className="text-sm text-base-content/60">{form.email}</span>
+                                        )}
+                                        {form.role && (
+                                            <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs font-bold rounded-full uppercase tracking-wider">
+                                                {ROLE_LABELS[form.role] || form.role}
+                                            </span>
+                                        )}
+                                    </>
+                                ) : (
+                                    <span className="text-sm text-base-content/60">
+                                        Completa los datos del nuevo usuario
+                                    </span>
+                                )}
+                            </div>
+                        </div>
                     </div>
                     <button
+                        type="button"
                         onClick={onClose}
-                        className="p-1.5 transition-colors text-white/70 hover:text-white focus:outline-none"
+                        className="p-2 opacity-60 hover:opacity-100 transition-opacity focus:outline-none"
                     >
-                        <X className="h-5 w-5" />
+                        <X className="h-6 w-6 text-base-content" />
                     </button>
-                </div>
+                </header>
 
                 {/* CONTENT */}
                 {isLoadingData ? (
-                    <div className="flex items-center justify-center py-20">
-                        <span className="loading loading-spinner loading-lg text-[#3b4aa0]"></span>
+                    <div className="flex flex-1 items-center justify-center py-20">
+                        <span className="loading loading-spinner loading-lg text-primary"></span>
                     </div>
                 ) : (
-                    <form className="p-5 space-y-5" onSubmit={handleSubmit}>
+                    <form className="flex-1 overflow-y-auto p-6 space-y-5" onSubmit={handleSubmit}>
 
                         {/* Messages */}
                         {successMsg && (
-                            <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-2 rounded-lg text-sm">
+                            <div className="bg-success/10 border border-success/20 text-success px-4 py-2 rounded-lg text-sm">
                                 {successMsg}
                             </div>
                         )}
                         {errorMsg && (
-                            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-2 rounded-lg text-sm">
+                            <div className="bg-error/10 border border-error/20 text-error px-4 py-2 rounded-lg text-sm">
                                 {errorMsg}
                             </div>
                         )}
 
                         {/* SECTION 1: USER DATA - Removed border */}
-                        <div className="bg-white p-5 rounded-lg shadow-sm">
-                            <h3 className="text-[#3b4aa0] font-bold text-base mb-4 flex items-center border-b border-[#f8f9fa] pb-2">
+                        <div className="bg-base-100 p-5 rounded-lg shadow-sm">
+                            <h3 className="text-primary font-bold text-base mb-4 flex items-center border-b border-base-200 pb-2">
                                 Datos del Usuario
-                                <span className="text-[#dc3545] ml-1">*</span>
+                                <span className="text-error ml-1">*</span>
                             </h3>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* First Name */}
                                 <div>
                                     <label className={labelClass}>
-                                        Nombre <span className="text-[#dc3545]">*</span>
+                                        Nombre <span className="text-error">*</span>
                                     </label>
                                     <div className="relative group">
                                         <span className={iconClass}>
@@ -257,7 +305,7 @@ export function UserFormModal({ isOpen, onClose, onSuccess, userToEdit, isLoadin
                                 {/* Last Name */}
                                 <div>
                                     <label className={labelClass}>
-                                        Apellido <span className="text-[#dc3545]">*</span>
+                                        Apellido <span className="text-error">*</span>
                                     </label>
                                     <div className="relative group">
                                         <span className={iconClass}>
@@ -278,7 +326,7 @@ export function UserFormModal({ isOpen, onClose, onSuccess, userToEdit, isLoadin
                                 {/* Email */}
                                 <div>
                                     <label className={labelClass}>
-                                        Email <span className="text-[#dc3545]">*</span>
+                                        Email <span className="text-error">*</span>
                                     </label>
                                     <div className="relative group">
                                         <span className={iconClass}>
@@ -291,7 +339,7 @@ export function UserFormModal({ isOpen, onClose, onSuccess, userToEdit, isLoadin
                                             value={form.email}
                                             onChange={handleChange}
                                             readOnly={isEditing}
-                                            className={`${inputClass} ${isEditing ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                                            className={`${inputClass} ${isEditing ? "bg-base-200 cursor-not-allowed" : ""}`}
                                             title={isEditing ? "El email no se puede cambiar" : ""}
                                         />
                                     </div>
@@ -301,7 +349,7 @@ export function UserFormModal({ isOpen, onClose, onSuccess, userToEdit, isLoadin
                                 {canSelectRole ? (
                                     <div>
                                         <label className={labelClass}>
-                                            Rol <span className="text-[#dc3545]">*</span>
+                                            Rol <span className="text-error">*</span>
                                         </label>
                                         <div className="relative group">
                                             <select
@@ -310,7 +358,7 @@ export function UserFormModal({ isOpen, onClose, onSuccess, userToEdit, isLoadin
                                                 value={form.role}
                                                 onChange={handleChange}
                                                 disabled={isEditingSelf}
-                                                className={`${selectClass} ${isEditingSelf ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                                                className={`${selectClass} ${isEditingSelf ? "bg-base-200 cursor-not-allowed" : ""}`}
                                                 title={isEditingSelf ? "No puedes cambiar tu propio rol" : ""}
                                             >
                                                 <option value="student">Estudiante</option>
@@ -334,17 +382,17 @@ export function UserFormModal({ isOpen, onClose, onSuccess, userToEdit, isLoadin
 
                         {/* SECTION 2: GUARDIAN DATA (Only for students) - Removed border */}
                         {isStudent && (
-                            <div className="bg-white p-5 rounded-lg shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
-                                <h3 className="text-[#3b4aa0] font-bold text-base mb-4 flex items-center border-b border-[#f8f9fa] pb-2">
+                            <div className="bg-base-100 p-5 rounded-lg shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                                <h3 className="text-primary font-bold text-base mb-4 flex items-center border-b border-base-200 pb-2">
                                     Datos del Acudiente
-                                    <span className="text-[#dc3545] ml-1">*</span>
+                                    <span className="text-error ml-1">*</span>
                                 </h3>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {/* Guardian Full Name */}
                                     <div>
                                         <label className={labelClass}>
-                                            Nombre Completo <span className="text-[#dc3545]">*</span>
+                                            Nombre Completo <span className="text-error">*</span>
                                         </label>
                                         <div className="relative group">
                                             <span className={iconClass}>
@@ -365,7 +413,7 @@ export function UserFormModal({ isOpen, onClose, onSuccess, userToEdit, isLoadin
                                     {/* Guardian Relationship */}
                                     <div>
                                         <label className={labelClass}>
-                                            Relación <span className="text-[#dc3545]">*</span>
+                                            Relación <span className="text-error">*</span>
                                         </label>
                                         <div className="relative group">
                                             <select
@@ -390,7 +438,7 @@ export function UserFormModal({ isOpen, onClose, onSuccess, userToEdit, isLoadin
                                     {/* Guardian Email */}
                                     <div>
                                         <label className={labelClass}>
-                                            Email Acudiente <span className="text-[#dc3545]">*</span>
+                                            Email Acudiente <span className="text-error">*</span>
                                         </label>
                                         <div className="relative group">
                                             <span className={iconClass}>
@@ -411,7 +459,7 @@ export function UserFormModal({ isOpen, onClose, onSuccess, userToEdit, isLoadin
                                     {/* Guardian Phone */}
                                     <div>
                                         <label className={labelClass}>
-                                            Teléfono Acudiente <span className="text-[#dc3545]">*</span>
+                                            Teléfono Acudiente <span className="text-error">*</span>
                                         </label>
                                         <div className="relative group">
                                             <span className={iconClass}>
@@ -433,26 +481,24 @@ export function UserFormModal({ isOpen, onClose, onSuccess, userToEdit, isLoadin
                         )}
 
                         {/* FOOTER / BUTTONS */}
-                        <div className="flex items-center justify-end space-x-3 pt-4 border-t border-[#e9ecef]">
+                        <div className="flex items-center justify-end gap-3 pt-4 border-t border-base-300">
                             <button
                                 type="button"
                                 onClick={onClose}
                                 disabled={loading}
-                                className="px-5 py-2 text-[#2a2a2a] text-sm font-bold bg-transparent border border-gray-300 hover:bg-green-500 hover:text-white hover:border-green-500 rounded-lg transition-all"
+                                className="btn btn-ghost"
                             >
                                 Cancelar
                             </button>
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="flex items-center space-x-2 bg-[#3b4aa0] text-white border border-[#3b4aa0] hover:bg-white hover:text-[#3b4aa0] px-6 py-2 rounded-lg text-sm font-bold shadow-lg shadow-[#3b4aa0]/20 transition-all active:scale-95 disabled:opacity-50"
+                                className="btn btn-primary text-primary-content shadow-sm"
                             >
                                 {loading ? (
                                     <span className="loading loading-spinner loading-xs"></span>
                                 ) : (
-                                    <>
-                                        <span>{isEditing ? "Guardar" : "Registrar"}</span>
-                                    </>
+                                    <span>{isEditing ? "Guardar" : "Registrar"}</span>
                                 )}
                             </button>
                         </div>

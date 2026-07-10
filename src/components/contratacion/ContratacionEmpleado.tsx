@@ -45,18 +45,18 @@ const SLOT_LABELS: Record<string, string> = {
 const SectionCard = ({ title, children }: { title: string; children: React.ReactNode }) => {
   const [open, setOpen] = useState(true);
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 transition-all duration-200 hover:shadow-md">
+    <div className="bg-base-100 rounded-lg shadow-sm border border-base-300 transition-all duration-200 hover:shadow-md">
       <button
         type="button"
-        className="w-full px-6 py-4 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors rounded-t-lg"
+        className="w-full px-6 py-4 flex justify-between items-center bg-base-200 hover:bg-base-200/70 transition-colors rounded-t-lg"
         onClick={() => setOpen(!open)}
       >
         <h3 className="text-lg font-bold text-primary uppercase tracking-wide flex items-center gap-2">
           {title}
         </h3>
-        <ChevronDown className={`h-5 w-5 text-gray-500 transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
+        <ChevronDown className={`h-5 w-5 text-base-content/40 transition-transform duration-300 ${open ? "rotate-180" : ""}`} />
       </button>
-      <div className={`border-t border-gray-100 transition-all duration-300 ease-in-out ${open ? "max-h-[5000px] opacity-100 overflow-visible" : "max-h-0 opacity-0 overflow-hidden"}`}>
+      <div className={`border-t border-base-300 transition-all duration-300 ease-in-out ${open ? "max-h-[5000px] opacity-100 overflow-visible" : "max-h-0 opacity-0 overflow-hidden"}`}>
         <div className="p-6">{children}</div>
       </div>
     </div>
@@ -105,9 +105,9 @@ export const ContratacionEmpleado = () => {
   if (!contract) {
     return (
       <div className="container mx-auto p-6 max-w-2xl">
-        <div className="bg-white rounded-lg shadow p-8 text-center">
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Sin contratación activa</h2>
-          <p className="text-gray-600">
+        <div className="bg-base-100 rounded-lg border border-base-300 shadow-sm p-8 text-center">
+          <h2 className="font-display text-xl font-bold text-secondary mb-2">Sin contratación activa</h2>
+          <p className="text-base-content/70">
             Aún no tienes una contratación habilitada. Cuando administración la habilite,
             podrás completarla aquí.
           </p>
@@ -119,11 +119,11 @@ export const ContratacionEmpleado = () => {
   if (!contract.is_editable) {
     return (
       <div className="container mx-auto p-6 max-w-2xl">
-        <div className="bg-white rounded-lg shadow p-8 text-center">
-          <h2 className="text-xl font-bold text-gray-800 mb-2">
+        <div className="bg-base-100 rounded-lg border border-base-300 shadow-sm p-8 text-center">
+          <h2 className="font-display text-xl font-bold text-secondary mb-2">
             Contratación {STATUS_LABELS[contract.status] || contract.status}
           </h2>
-          <p className="text-gray-600">
+          <p className="text-base-content/70">
             Tu contratación está en estado{" "}
             <strong>{STATUS_LABELS[contract.status] || contract.status}</strong>.
             {contract.status === "IN_REVIEW" && " Espera la revisión de administración."}
@@ -149,7 +149,7 @@ export const ContratacionEmpleado = () => {
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow-lg p-6">
+        <div className="bg-base-100 rounded-lg border border-base-300 shadow-sm p-6">
           {currentStep === 1 && <StepOTP next={next} />}
           {currentStep === 2 && (
             <StepData next={next} contractId={contract.id} formData={formData} setFormData={setFormData} />
@@ -222,8 +222,8 @@ const StepOTP = ({ next }: { next: () => void }) => {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-bold text-secondary mb-4">Verificación de Identidad</h2>
-      <p className="text-gray-600">
+      <h2 className="font-display text-xl font-bold text-secondary mb-4">Verificación de Identidad</h2>
+      <p className="text-base-content/60">
         Enviaremos un código de verificación a tu correo para iniciar tu contratación.
       </p>
       {error && <div className="alert alert-error"><span>{error}</span></div>}
@@ -363,17 +363,17 @@ const StepData = ({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold text-secondary">Datos del Empleado</h2>
+      <h2 className="font-display text-xl font-bold text-secondary">Datos del Empleado</h2>
       {error && <div className="alert alert-error"><span>{error}</span></div>}
 
       {/* Foto de perfil (se sube aquí, en los datos) */}
       <SectionCard title="Foto de Perfil">
         <div className="flex items-center gap-4">
-          <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 overflow-hidden flex items-center justify-center bg-base-100 shrink-0">
+          <div className="w-24 h-24 rounded-lg border-2 border-dashed border-base-300 overflow-hidden flex items-center justify-center bg-base-100 shrink-0">
             {photoUrl ? (
               <img src={photoUrl} alt="Foto" className="w-full h-full object-cover" />
             ) : (
-              <Camera className="w-8 h-8 text-gray-300" />
+              <Camera className="w-8 h-8 text-base-content/30" />
             )}
           </div>
           <div>
@@ -383,7 +383,7 @@ const StepData = ({
               <input type="file" accept="image/*" className="hidden"
                 onChange={(e) => { uploadPhoto(e.target.files?.[0]); e.target.value = ""; }} />
             </label>
-            <p className="text-xs text-gray-400 mt-1">Obligatoria para firmar el contrato.</p>
+            <p className="text-xs text-base-content/40 mt-1">Obligatoria para firmar el contrato.</p>
           </div>
         </div>
       </SectionCard>
@@ -397,7 +397,7 @@ const StepData = ({
               {sectionFields.map((f) => (
                 <div key={f.key} className="form-control w-full">
                   <label className="label">
-                    <span className="label-text font-medium text-gray-600">{f.label}</span>
+                    <span className="label-text font-medium text-base-content/60">{f.label}</span>
                   </label>
                   <FieldWidget field={effectiveField(f)} value={displayValue(f)} onChange={(v) => onChange(f.key, v)} />
                 </div>
@@ -413,11 +413,11 @@ const StepData = ({
             {readOnlyFields.map((f) => (
               <div key={f.key} className="form-control w-full">
                 <label className="label">
-                  <span className="label-text font-medium text-gray-600">{f.label}</span>
+                  <span className="label-text font-medium text-base-content/60">{f.label}</span>
                 </label>
                 <input
                   type="text"
-                  className="input input-bordered w-full bg-gray-100 text-gray-500 cursor-not-allowed"
+                  className="input input-bordered w-full bg-base-200 text-base-content/50 cursor-not-allowed"
                   value={formData[f.key] ?? ""}
                   disabled
                   readOnly
@@ -507,8 +507,8 @@ const StepDocuments = ({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold text-secondary">Documentos Requeridos</h2>
-      <p className="text-sm text-gray-600">
+      <h2 className="font-display text-xl font-bold text-secondary">Documentos Requeridos</h2>
+      <p className="text-sm text-base-content/60">
         Sube los documentos en PDF/imagen. Los marcados con <span className="text-error">*</span> son obligatorios.
       </p>
       {error && <div className="alert alert-error"><span>{error}</span></div>}
@@ -517,7 +517,7 @@ const StepDocuments = ({
         {docs.map((d) => {
           const uploaded = Boolean(documents[d.key]);
           return (
-            <div key={d.key} className="card bg-base-100 border shadow-sm">
+            <div key={d.key} className="card bg-base-100 border border-base-300 shadow-sm">
               <div className="card-body p-4">
                 <h4 className="font-semibold text-sm mb-2">
                   {d.label} {d.required && <span className="text-error">*</span>}
@@ -691,8 +691,8 @@ const StepSign = ({
   if (done) {
     return (
       <div className="text-center py-10">
-        <h2 className="text-2xl font-bold text-success mb-2">¡Contratación enviada!</h2>
-        <p className="text-gray-600">
+        <h2 className="font-display text-2xl font-bold text-success mb-2">¡Contratación enviada!</h2>
+        <p className="text-base-content/70">
           Tu contrato firmado fue enviado a revisión. Recibirás una notificación cuando sea aprobado.
         </p>
       </div>
@@ -701,8 +701,8 @@ const StepSign = ({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold text-secondary">Firma del Contrato</h2>
-      <p className="text-sm text-gray-500">
+      <h2 className="font-display text-xl font-bold text-secondary">Firma del Contrato</h2>
+      <p className="text-sm text-base-content/60">
         Abre el documento y haz clic en los campos resaltados para subir tu firma y huella
         directamente sobre el PDF.
       </p>
@@ -718,17 +718,17 @@ const StepSign = ({
           {total > 0 && (
             <div className="flex items-center gap-3">
               <progress className="progress progress-primary flex-1" value={filled} max={total} />
-              <span className="text-xs text-gray-500 shrink-0">{filled}/{total} campos</span>
+              <span className="text-xs text-base-content/50 shrink-0">{filled}/{total} campos</span>
             </div>
           )}
 
           {/* Tarjeta del documento */}
           <div className="card border bg-base-100 shadow-sm hover:shadow-md transition-shadow">
             <div className="card-body p-4 flex-row items-center gap-4">
-              <div className="bg-red-100 text-red-600 font-bold text-sm rounded-lg px-3 py-2 shrink-0">PDF</div>
+              <div className="bg-error/10 text-error font-bold text-sm rounded-lg px-3 py-2 shrink-0">PDF</div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-sm">Contrato</p>
-                <p className="text-xs text-gray-400">Haz clic en los campos resaltados para firmar</p>
+                <p className="text-xs text-base-content/40">Haz clic en los campos resaltados para firmar</p>
               </div>
               <button
                 className="btn btn-sm btn-outline btn-primary shrink-0"

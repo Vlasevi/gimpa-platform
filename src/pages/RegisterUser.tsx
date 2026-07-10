@@ -100,7 +100,7 @@ export default function RegisterUser() {
         <div className="container mx-auto p-6 max-w-4xl">
             <div className="flex items-center gap-3 mb-6">
                 <UserPlus className="w-8 h-8 text-primary" />
-                <h1 className="text-3xl font-bold text-gray-800">Registrar Nuevo Usuario</h1>
+                <h1 className="font-display text-3xl font-bold text-secondary">Registrar Nuevo Usuario</h1>
             </div>
 
             <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">

@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
-import { Users, UserPlus, Pencil, Trash2, Search, RefreshCw, AlertTriangle } from "lucide-react";
+import { UserPlus, Pencil, Trash2, RefreshCw } from "lucide-react";
 import { apiUrl, buildHeaders } from "@/utils/api";
 import { useAuth } from "@/components/Login/loginLogic";
 import { UserFormModal } from "@/components/users/UserFormModal";
+import { Alert } from "@/components/ui/Alert";
+import { FilterSelect } from "@/components/ui/FilterSelect";
 
 interface User {
     first_name: string;
@@ -56,16 +58,13 @@ export default function Usuarios() {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState<User | null>(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
-    const [isDeleteVisible, setIsDeleteVisible] = useState(false);
 
-    useEffect(() => {
-        if (isDeleteModalOpen) {
-            setIsDeleteVisible(true);
-        } else {
-            const timer = setTimeout(() => setIsDeleteVisible(false), 300);
-            return () => clearTimeout(timer);
-        }
-    }, [isDeleteModalOpen]);
+    // Toast de feedback (mismo patrón daisyui que Contratación)
+    const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+    const showToast = (type: "success" | "error", msg: string) => {
+        setToast({ type, msg });
+        window.setTimeout(() => setToast(null), 3500);
+    };
 
     // Fetch users
     const fetchUsers = async () => {
@@ -117,11 +116,11 @@ export default function Usuarios() {
                 setEditingUser(fullUserData);
             } else {
                 const errorData = await response.json();
-                alert(errorData.detail || "Error al cargar datos del usuario");
+                showToast("error", errorData.detail || "Error al cargar datos del usuario");
                 setIsFormModalOpen(false);
             }
         } catch (error) {
-            alert("Error de conexión al cargar usuario");
+            showToast("error", "Error de conexión al cargar usuario");
             setIsFormModalOpen(false);
         } finally {
             setLoadingUserDetail(false);
@@ -148,12 +147,13 @@ export default function Usuarios() {
                 setUserToDelete(null);
                 setIsDeleteModalOpen(false);
                 fetchUsers();
+                showToast("success", "Usuario eliminado correctamente");
             } else {
                 const data = await response.json();
-                alert(data.detail || "Error al eliminar usuario");
+                showToast("error", data.detail || "Error al eliminar usuario");
             }
         } catch (error) {
-            alert("Error de conexión al eliminar usuario");
+            showToast("error", "Error de conexión al eliminar usuario");
         } finally {
             setDeleteLoading(false);
         }
@@ -219,7 +219,7 @@ export default function Usuarios() {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                    <h1 className="text-3xl font-bold text-gray-800">Gestión de Usuarios</h1>
+                    <h1 className="font-display text-3xl font-bold text-secondary">Gestión de Usuarios</h1>
                 </div>
             </div>
 
@@ -234,18 +234,16 @@ export default function Usuarios() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
 
-                    <select
-                        className="select select-bordered w-56"
+                    <FilterSelect
+                        className="w-56"
+                        ariaLabel="Filtrar por rol"
                         value={roleFilter}
-                        onChange={(e) => setRoleFilter(e.target.value)}
-                    >
-                        <option value="">Todos los roles</option>
-                        {ROLE_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                                {opt.label}
-                            </option>
-                        ))}
-                    </select>
+                        onChange={setRoleFilter}
+                        options={[
+                            { value: "", label: "Todos los roles" },
+                            ...ROLE_OPTIONS,
+                        ]}
+                    />
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -270,9 +268,9 @@ export default function Usuarios() {
             )}
 
             {/* Users table */}
-            <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+            <div className="bg-base-100 rounded-lg shadow-sm border border-base-300 overflow-hidden">
                 <table className="table w-full table-fixed">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-base-200 text-base-content">
                         <tr>
                             <th className="w-[30%]">Nombre</th>
                             <th className="w-[40%]">Email</th>
@@ -289,7 +287,7 @@ export default function Usuarios() {
                             </tr>
                         ) : paginatedUsers.length === 0 ? (
                             <tr>
-                                <td colSpan={4} className="text-center py-8 text-gray-500">
+                                <td colSpan={4} className="text-center py-8 text-base-content/50">
                                     {filteredUsers.length === 0 && (searchTerm || roleFilter)
                                         ? "No se encontraron usuarios que coincidan con los filtros"
                                         : "No se encontraron usuarios"}
@@ -297,11 +295,11 @@ export default function Usuarios() {
                             </tr>
                         ) : (
                             paginatedUsers.map((u) => (
-                                <tr key={u.email} className="hover:bg-gray-50">
+                                <tr key={u.email} className="hover:bg-base-200/50 transition-colors">
                                     <td className="font-medium truncate" title={getUserDisplayName(u)}>
                                         {getUserDisplayName(u)}
                                     </td>
-                                    <td className="text-gray-600 truncate" title={u.email}>
+                                    <td className="text-base-content/60 truncate" title={u.email}>
                                         {u.email}
                                     </td>
                                     <td>{getRoleBadge(u.role)}</td>
@@ -309,7 +307,7 @@ export default function Usuarios() {
                                         <div className="flex justify-center gap-1">
                                             {canEditUsers && (
                                                 <button
-                                                    className="p-1 text-gray-500 hover:text-primary transition-colors cursor-pointer"
+                                                    className="p-2 text-base-content/50 hover:text-primary hover:bg-primary/10 rounded-full transition-all cursor-pointer"
                                                     title="Editar"
                                                     onClick={() => handleEdit(u)}
                                                 >
@@ -318,7 +316,7 @@ export default function Usuarios() {
                                             )}
                                             {canDeleteUsers && (
                                                 <button
-                                                    className="p-1 text-gray-500 hover:text-error transition-colors cursor-pointer"
+                                                    className="p-2 text-base-content/50 hover:text-error hover:bg-error/10 rounded-full transition-all cursor-pointer"
                                                     title="Eliminar"
                                                     onClick={() => handleDeleteClick(u)}
                                                 >
@@ -337,7 +335,7 @@ export default function Usuarios() {
             {/* Pagination */}
             {!loading && filteredUsers.length > 0 && (
                 <div className="flex items-center justify-between mt-4">
-                    <div className="text-m text-gray-500">
+                    <div className="text-sm text-base-content/60">
                         Mostrando {startIndex + 1} a {Math.min(endIndex, filteredUsers.length)} de {filteredUsers.length} usuarios
                     </div>
 
@@ -384,43 +382,38 @@ export default function Usuarios() {
                 isLoadingData={loadingUserDetail}
             />
 
-            {/* Delete Confirmation Modal */}
-            {isDeleteVisible && userToDelete && (
-                <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 ${isDeleteModalOpen ? "animate-in fade-in duration-300" : "animate-out fade-out duration-300"}`}>
-                    <div className={`bg-white rounded-lg shadow-xl w-full max-w-md ${isDeleteModalOpen ? "animate-in fade-in slide-in-from-bottom-16 duration-500" : "animate-out fade-out slide-out-to-bottom-16 duration-300"}`}>
-                        <div className="p-6 text-center">
-                            <AlertTriangle className="w-12 h-12 text-error mx-auto mb-4" />
-                            <h3 className="text-lg font-bold text-gray-900 mb-2">
-                                ¿Eliminar usuario?
-                            </h3>
-                            <p className="text-gray-600 mb-6">
-                                Estás a punto de eliminar al usuario <strong>{getUserDisplayName(userToDelete)}</strong> ({userToDelete.email}).
-                            </p>
-                            <div className="rounded-md border border-error/40 bg-error/10 p-3 mb-6 text-left">
-                                <p className="text-sm font-semibold text-error">
-                                    Advertencia: esta acción no se puede deshacer.
-                                </p>
-                                <p className="text-sm text-gray-700 mt-1">
-                                    Se eliminarán los datos del usuario y sus archivos asociados.
-                                </p>
-                            </div>
-                            <div className="flex justify-center gap-3">
-                                <button
-                                    className="btn btn-ghost"
-                                    onClick={() => setIsDeleteModalOpen(false)}
-                                    disabled={deleteLoading}
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    className="btn btn-error"
-                                    onClick={confirmDelete}
-                                    disabled={deleteLoading}
-                                >
-                                    {deleteLoading ? <span className="loading loading-spinner loading-sm"></span> : "Sí, eliminar"}
-                                </button>
-                            </div>
-                        </div>
+            {/* Delete Confirmation Modal (Alert compartido) */}
+            {isDeleteModalOpen && userToDelete && (
+                <Alert
+                    isOpen={isDeleteModalOpen}
+                    onClose={() => setIsDeleteModalOpen(false)}
+                    onAccept={confirmDelete}
+                    title="¿Eliminar usuario?"
+                    variant="error"
+                    acceptText={deleteLoading ? "Eliminando…" : "Sí, eliminar"}
+                    cancelText="Cancelar"
+                    acceptButtonVariant="destructive"
+                >
+                    <p className="text-base-content/80">
+                        Estás a punto de eliminar al usuario{" "}
+                        <strong>{getUserDisplayName(userToDelete)}</strong> ({userToDelete.email}).
+                    </p>
+                    <div className="mt-3 rounded-lg border border-error/40 bg-error/10 p-3">
+                        <p className="text-sm font-semibold text-error">
+                            Advertencia: esta acción no se puede deshacer.
+                        </p>
+                        <p className="mt-1 text-sm text-base-content/70">
+                            Se eliminarán los datos del usuario y sus archivos asociados.
+                        </p>
+                    </div>
+                </Alert>
+            )}
+
+            {/* Toast de feedback */}
+            {toast && (
+                <div className="toast toast-top toast-end z-[60]">
+                    <div className={`alert ${toast.type === "success" ? "alert-success" : "alert-error"} shadow-lg`}>
+                        <span>{toast.msg}</span>
                     </div>
                 </div>
             )}

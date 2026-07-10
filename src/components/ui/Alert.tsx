@@ -1,14 +1,13 @@
 // components/ui/Alert.tsx
-import { ReactNode, useRef, useState, useEffect, useCallback } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+  ReactNode,
+  useRef,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
+import { cn } from "@/lib/utils";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 interface AlertProps {
   isOpen: boolean;
@@ -41,21 +40,27 @@ interface AlertProps {
   requireScrollToBottom?: boolean;
 }
 
+// Color del ícono según la intención del aviso (tokens del theme daisyui)
 const variantStyles = {
-  warning: "text-amber-500",
-  info: "text-blue-500",
-  error: "text-red-500",
-  success: "text-green-500",
+  warning: "text-warning",
+  info: "text-info",
+  error: "text-error",
+  success: "text-success",
+};
+
+// Mapea las variantes (nombres heredados) a clases de botón daisyui
+const buttonVariantClasses = {
+  default: "btn btn-primary",
+  destructive: "btn btn-error",
+  outline: "btn btn-outline",
+  secondary: "btn btn-secondary",
+  ghost: "btn btn-ghost",
+  link: "btn btn-link",
 };
 
 const variantIcons = {
   warning: (
-    <svg
-      className="w-8 h-8"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
+    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -65,12 +70,7 @@ const variantIcons = {
     </svg>
   ),
   info: (
-    <svg
-      className="w-8 h-8"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
+    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -80,12 +80,7 @@ const variantIcons = {
     </svg>
   ),
   error: (
-    <svg
-      className="w-8 h-8"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
+    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -95,12 +90,7 @@ const variantIcons = {
     </svg>
   ),
   success: (
-    <svg
-      className="w-8 h-8"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
+    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -148,6 +138,19 @@ export const Alert = ({
     }
   }, [isOpen, requireScrollToBottom, children]);
 
+  // Bloquear el scroll del fondo mientras el modal está abierto (patrón compartido).
+  useBodyScrollLock(isOpen);
+
+  // Cerrar con la tecla Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, onClose]);
+
   const handleScroll = useCallback(() => {
     if (contentRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = contentRef.current;
@@ -159,49 +162,72 @@ export const Alert = ({
     }
   }, []);
 
+  if (!isOpen) return null;
+
   const isAcceptDisabled = requireScrollToBottom && !hasScrolledToBottom;
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col bg-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Fondo */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      {/* Contenedor del modal */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="alert-title"
+        className="animate-modal-pop relative z-10 flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-base-100 shadow-xl"
+      >
         {/* Header fijo */}
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="flex items-center gap-3 text-xl">
-            <span className={variantStyles[variant]}>
-              {variantIcons[variant]}
-            </span>
+        <div className="flex-shrink-0 px-6 pt-6">
+          <h2
+            id="alert-title"
+            className="flex items-center gap-3 text-xl font-semibold text-base-content"
+          >
+            <span className={variantStyles[variant]}>{variantIcons[variant]}</span>
             {title}
-          </DialogTitle>
-          {description && <DialogDescription>{description}</DialogDescription>}
-        </DialogHeader>
+          </h2>
+          {description && (
+            <p className="mt-1.5 text-sm text-base-content/60">{description}</p>
+          )}
+        </div>
 
         {/* Contenido scrollable */}
         <div
           ref={contentRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto text-gray-700 leading-relaxed space-y-4 py-4 pl-4 pr-6"
+          className="flex-1 space-y-4 overflow-y-auto px-6 py-4 leading-relaxed text-base-content/80"
         >
           {children}
         </div>
 
         {/* Footer fijo */}
-        <DialogFooter className="flex-shrink-0 gap-2 sm:gap-0 pt-4 border-t">
-          <Button
-            variant={cancelButtonVariant}
-            className={cancelButtonClassName}
+        <div className="flex flex-shrink-0 flex-col-reverse gap-2 border-t border-base-300 px-6 py-4 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            className={cn(buttonVariantClasses[cancelButtonVariant], cancelButtonClassName)}
             onClick={onClose}
           >
             {cancelText}
-          </Button>
-          <Button
-            variant={acceptButtonVariant}
-            className={`${acceptButtonClassName || ""} ${isAcceptDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
+          </button>
+          <button
+            type="button"
+            className={cn(
+              buttonVariantClasses[acceptButtonVariant],
+              acceptButtonClassName,
+              isAcceptDisabled && "cursor-not-allowed opacity-50",
+            )}
             onClick={onAccept}
             disabled={isAcceptDisabled}
           >
             {acceptText}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };

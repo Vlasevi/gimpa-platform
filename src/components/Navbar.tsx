@@ -1,5 +1,6 @@
 import { useAuth } from "./Login/loginLogic";
 import { useState } from "react";
+import { ChevronDown, User, LogOut, Loader2 } from "lucide-react";
 
 export const Navbar = () => {
   const { user, logout } = useAuth();
@@ -17,84 +18,56 @@ export const Navbar = () => {
   };
 
   return (
-    <header className="flex h-18 items-center justify-end px-6 border-b border-gray-200">
+    // El título de la sección lo pone cada página (su propio H1), no el navbar.
+    <header className="flex h-18 items-center justify-end border-b border-base-300 bg-base-100 px-6">
       <div className="flex items-center gap-4">
         {user && (
-          <>
-            {/* Avatar y menú de usuario */}
-            <div className="dropdown dropdown-end">
-              <div
-                tabIndex={0}
-                role="button"
-                className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors"
-              >
-                <div className="hidden sm:block text-right">
-                  <p className="text-sm font-medium text-gray-900">
-                    {user.displayname || "Usuario"}
-                  </p>
-                  <p className="text-xs text-gray-500">{user.email}</p>
-                </div>
-                <svg
-                  className="w-4 h-4 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
+          <div className="dropdown dropdown-end">
+            <div
+              tabIndex={0}
+              role="button"
+              className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors duration-200 hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            >
+              <div className="hidden text-right sm:block">
+                <p className="text-sm font-medium text-base-content">
+                  {user.displayname || "Usuario"}
+                </p>
+                <p className="text-xs text-base-content/60">{user.email}</p>
               </div>
-
-              {/* Menú desplegable */}
-              <ul
-                tabIndex={0}
-                className="dropdown-content z-50 menu p-2 shadow-lg bg-white rounded-lg w-52 border border-gray-200"
-              >
-                <li>
-                  <button
-                    onClick={handleProfile}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                      />
-                    </svg>
-                    Ver Perfil
-                  </button>
-                </li>
-                <div className="divider my-0"></div>
-                <li>
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <span className="loading loading-spinner loading-sm"></span>
-                    ) : (
-                      <>
-                        {/* ...icon... */}
-                        Cerrar Sesión
-                      </>
-                    )}
-                  </button>
-                </li>
-              </ul>
+              <ChevronDown className="h-4 w-4 text-base-content/40" />
             </div>
-          </>
+
+            {/* Menú desplegable */}
+            <ul
+              tabIndex={0}
+              className="dropdown-content menu z-50 w-52 rounded-lg border border-base-300 bg-base-100 p-2 shadow-lg"
+            >
+              <li>
+                <button
+                  onClick={handleProfile}
+                  className="flex items-center gap-2 rounded-md px-4 py-2 text-sm text-base-content/80 transition-colors hover:bg-base-200"
+                >
+                  <User className="h-4 w-4" />
+                  Ver Perfil
+                </button>
+              </li>
+              <div className="divider my-0"></div>
+              <li>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 rounded-md px-4 py-2 text-sm text-error transition-colors hover:bg-error/10"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <LogOut className="h-4 w-4" />
+                  )}
+                  Cerrar Sesión
+                </button>
+              </li>
+            </ul>
+          </div>
         )}
       </div>
     </header>

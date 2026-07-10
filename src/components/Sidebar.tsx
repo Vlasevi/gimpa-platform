@@ -104,9 +104,18 @@ export const Sidebar = () => {
   const displayLabel = (label: string) =>
     label === "Matriculas" && !isAdminRector ? "Estudiantes" : label;
 
+  // Estilo compartido de cada ítem del menú (activo = verde oscuro para
+  // contrastar con el fondo verde claro del sidebar).
+  const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+    `flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
+      isActive
+        ? "bg-[hsl(var(--accent-dark))] text-white shadow-sm"
+        : "text-base-content/80 hover:bg-white/60 hover:text-primary"
+    }`;
+
   return (
-    <aside className="w-64 min-h-screen bg-[hsl(var(--accentlight))] border-r border-gray-200">
-      <div className="flex h-18 justify-center items-center px-4 py-6 mb-4 border-b border-gray-200">
+    <aside className="w-64 min-h-screen border-r border-base-300 bg-[hsl(var(--accentlight))]">
+      <div className="mb-4 flex h-18 items-center justify-center border-b border-base-300 px-4 py-6">
         <img
           onClick={() => {
             navigate("/dashboard", { replace: true });
@@ -117,58 +126,24 @@ export const Sidebar = () => {
         />
       </div>
 
-      <nav className="px-4 space-y-1">
+      <nav className="space-y-1 px-4">
         {filteredMenuItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) =>
-              `flex items-center px-4 py-3 text-sm font-inter rounded-lg transition-colors ${
-                isActive
-                  ? "bg-[hsl(var(--accent))] text-white shadow-sm"
-                  : "text-gray-700 hover:bg-gray-100 hover:text-primary"
-              }`
-            }
-          >
-            <span className="text-lg mr-3">
-              <item.icon />
-            </span>
+          <NavLink key={item.path} to={item.path} className={navLinkClass}>
+            <item.icon className="h-5 w-5 shrink-0" />
             {displayLabel(item.label)}
           </NavLink>
         ))}
 
         {showContratacionesAll && (
-          <NavLink
-            to="/contratacion"
-            className={({ isActive }) =>
-              `flex items-center px-4 py-3 text-sm font-inter rounded-lg transition-colors ${
-                isActive
-                  ? "bg-[hsl(var(--accent))] text-white shadow-sm"
-                  : "text-gray-700 hover:bg-gray-100 hover:text-primary"
-              }`
-            }
-          >
-            <span className="text-lg mr-3">
-              <FileSignature />
-            </span>
+          <NavLink to="/contratacion" className={navLinkClass}>
+            <FileSignature className="h-5 w-5 shrink-0" />
             Contrataciones
           </NavLink>
         )}
 
         {showMiContrato && (
-          <NavLink
-            to="/mi-contrato"
-            className={({ isActive }) =>
-              `flex items-center px-4 py-3 text-sm font-inter rounded-lg transition-colors ${
-                isActive
-                  ? "bg-[hsl(var(--accent))] text-white shadow-sm"
-                  : "text-gray-700 hover:bg-gray-100 hover:text-primary"
-              }`
-            }
-          >
-            <span className="text-lg mr-3">
-              <FileText />
-            </span>
+          <NavLink to="/mi-contrato" className={navLinkClass}>
+            <FileText className="h-5 w-5 shrink-0" />
             Mi Contrato
           </NavLink>
         )}

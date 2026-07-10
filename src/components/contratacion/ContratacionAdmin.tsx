@@ -8,6 +8,9 @@ import type { LucideIcon } from "lucide-react";
 import { apiUrl, API_ENDPOINTS, apiFetch, buildHeaders } from "@/utils/api";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DisplayField } from "@/components/matriculas/matriculasUI/DisplayField";
+import { Alert } from "@/components/ui/Alert";
+import { FilterSelect } from "@/components/ui/FilterSelect";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import {
   DATA_FIELDS,
   DATA_SECTIONS,
@@ -129,8 +132,8 @@ export const ContratacionAdmin = ({ readOnly = false }: { readOnly?: boolean }) 
       )}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Contratación</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="font-display text-3xl font-bold text-secondary">Contratación</h1>
+          <p className="text-base-content/60 mt-1">
             {readOnly ? "Consulta de contrataciones" : "Gestión de contrataciones de empleados"}
           </p>
         </div>
@@ -144,16 +147,13 @@ export const ContratacionAdmin = ({ readOnly = false }: { readOnly?: boolean }) 
             />
             <span className="label-text">Mostrar eliminadas</span>
           </label>
-          <select
-            className="select select-bordered select-sm w-28 font-medium"
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-            title="Filtrar por año"
-          >
-            {yearOptions.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
+          <FilterSelect
+            className="w-28"
+            ariaLabel="Filtrar por año"
+            value={String(selectedYear)}
+            onChange={(v) => setSelectedYear(Number(v))}
+            options={yearOptions.map((y) => ({ value: String(y), label: String(y) }))}
+          />
           {!readOnly && (
             <>
               <button className="btn btn-outline gap-2" onClick={() => setShowTemplates(true)}>
@@ -172,9 +172,9 @@ export const ContratacionAdmin = ({ readOnly = false }: { readOnly?: boolean }) 
           <span className="loading loading-spinner loading-lg text-primary" />
         </div>
       ) : (
-        <div className="overflow-x-auto bg-white rounded-lg shadow">
+        <div className="overflow-x-auto bg-base-100 rounded-lg border border-base-300 shadow-sm">
           <table className="table">
-            <thead>
+            <thead className="bg-base-200 text-base-content">
               <tr>
                 <th>Empleado</th>
                 <th>Puesto</th>
@@ -185,13 +185,13 @@ export const ContratacionAdmin = ({ readOnly = false }: { readOnly?: boolean }) 
             </thead>
             <tbody>
               {contracts.map((c) => (
-                <tr key={c.id} className={c.is_deleted ? "opacity-60" : ""}>
+                <tr key={c.id} className={`hover:bg-base-200/50 transition-colors ${c.is_deleted ? "opacity-60" : ""}`}>
                   <td>
                     <div className="font-medium flex items-center gap-2">
                       {c.employee.first_name} {c.employee.last_name}
                       {c.is_deleted && <span className="badge badge-error badge-sm">Eliminada</span>}
                     </div>
-                    <div className="text-xs text-gray-500">{c.employee.email}</div>
+                    <div className="text-xs text-base-content/50">{c.employee.email}</div>
                   </td>
                   <td>{c.position?.name || "—"}</td>
                   <td>
@@ -213,7 +213,7 @@ export const ContratacionAdmin = ({ readOnly = false }: { readOnly?: boolean }) 
               ))}
               {contracts.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="text-center text-gray-500 py-8">
+                  <td colSpan={5} className="text-center text-base-content/50 py-8">
                     No hay contrataciones para {selectedYear}.
                   </td>
                 </tr>
@@ -299,9 +299,9 @@ const SearchSelect = ({
         onFocus={() => { setOpen(true); setQuery(""); }}
       />
       {open && (
-        <ul className="absolute z-30 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+        <ul className="absolute z-30 mt-1 w-full bg-base-100 border border-base-300 rounded-lg shadow-lg max-h-52 overflow-y-auto">
           {filtered.length === 0 && (
-            <li className="px-3 py-2 text-sm text-gray-400">Sin resultados</li>
+            <li className="px-3 py-2 text-sm text-base-content/40">Sin resultados</li>
           )}
           {filtered.map((o) => (
             <li
@@ -470,7 +470,7 @@ const EnableModal = ({
         )}
       </div>
 
-      <h3 className="font-semibold text-gray-700 mt-4 mb-2 border-b pb-1 text-sm">
+      <h3 className="font-semibold text-base-content mt-4 mb-2 border-b border-base-300 pb-1 text-sm">
         Nómina
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -496,7 +496,7 @@ const EnableModal = ({
         <Field label="Total (automático)">
           <input
             type="text"
-            className="input input-bordered w-full bg-gray-100 text-gray-500 cursor-not-allowed"
+            className="input input-bordered w-full bg-base-200 text-base-content/50 cursor-not-allowed"
             value={nominaTotal ? formatMoney(String(nominaTotal)) : ""}
             disabled
             readOnly
@@ -552,6 +552,7 @@ const DetailModal = ({
   onClose: () => void;
   onChanged: () => void;
 }) => {
+  useBodyScrollLock(true);
   const [tab, setTab] = useState<string>(DATA_SECTIONS[0]?.id || "personal");
   const [data, setData] = useState<Record<string, any>>(contract.data || {});
   const [docs, setDocs] = useState<Record<string, any>>({});
@@ -561,6 +562,13 @@ const DetailModal = ({
   const [correctionText, setCorrectionText] = useState("");
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<"soft" | "hard" | "restore" | null>(null);
+  const [confirmState, setConfirmState] = useState<{
+    title: string;
+    message: string;
+    acceptText: string;
+    variant: "warning" | "error" | "info" | "success";
+    onAccept: () => void;
+  } | null>(null);
   const [meta, setMeta] = useState({
     position_id: contract.position?.id ? String(contract.position.id) : "",
     subcargo: contract.subcargo || "",
@@ -630,10 +638,6 @@ const DetailModal = ({
   };
 
   const deleteContract = async (hard: boolean) => {
-    const confirmMsg = hard
-      ? "¿Eliminar PERMANENTEMENTE esta contratación y sus documentos? Esta acción no se puede deshacer."
-      : "¿Eliminar esta contratación? Podrás restaurarla más adelante.";
-    if (!confirm(confirmMsg)) return;
     setBusy(true);
     setPendingAction(hard ? "hard" : "soft");
     try {
@@ -679,7 +683,6 @@ const DetailModal = ({
   };
 
   const deleteDoc = async (key: string) => {
-    if (!confirm("¿Eliminar este documento?")) return;
     setBusy(true);
     try {
       const res = await fetch(
@@ -716,10 +719,10 @@ const DetailModal = ({
   };
 
   const renderDocCard = ([key, meta]: [string, any]) => (
-    <div key={key} className="flex items-center justify-between gap-3 p-3 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
+    <div key={key} className="flex items-center justify-between gap-3 p-3 bg-base-100 border border-base-300 rounded-lg hover:border-primary/30 hover:shadow-md transition-all duration-200">
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-gray-900 truncate">{docLabel(key)}</p>
-        {meta.uploaded_at && <p className="text-xs text-gray-500">{fmtDate(meta.uploaded_at)}</p>}
+        <p className="font-medium text-base-content truncate">{docLabel(key)}</p>
+        {meta.uploaded_at && <p className="text-xs text-base-content/50">{fmtDate(meta.uploaded_at)}</p>}
       </div>
       <div className="flex items-center gap-1 shrink-0">
         {meta.url && (
@@ -729,12 +732,24 @@ const DetailModal = ({
         )}
         {canManage && (
           <>
-            <label className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer" title="Cambiar">
+            <label className="p-2 text-info hover:bg-info/10 rounded-lg cursor-pointer" title="Cambiar">
               <Upload className="h-4 w-4" />
               <input type="file" className="hidden"
                 onChange={(e) => { uploadDoc(key, e.target.files?.[0]); e.currentTarget.value = ""; }} />
             </label>
-            <button className="p-2 text-error hover:bg-error/10 rounded-lg" onClick={() => deleteDoc(key)} title="Borrar">
+            <button
+              className="p-2 text-error hover:bg-error/10 rounded-lg"
+              onClick={() =>
+                setConfirmState({
+                  title: "Eliminar documento",
+                  message: "¿Eliminar este documento? Esta acción no se puede deshacer.",
+                  acceptText: "Eliminar",
+                  variant: "error",
+                  onAccept: () => deleteDoc(key),
+                })
+              }
+              title="Borrar"
+            >
               <Trash2 className="h-4 w-4" />
             </button>
           </>
@@ -759,7 +774,7 @@ const DetailModal = ({
               )}
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-primary leading-tight">{fullName}</h2>
+              <h2 className="font-display text-2xl font-bold text-secondary leading-tight">{fullName}</h2>
               <div className="flex flex-wrap items-center gap-2 mt-1.5 align-middle">
                 <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs font-bold rounded-full uppercase tracking-wider">
                   {STATUS_LABELS[contract.status] || contract.status}
@@ -837,7 +852,7 @@ const DetailModal = ({
                     <TabsTrigger
                       key={s.id}
                       value={s.id}
-                      className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-colors data-[state=active]:bg-primary data-[state=active]:text-white data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:bg-base-300 whitespace-nowrap"
+                      className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-colors data-[state=active]:bg-primary data-[state=active]:text-primary-content data-[state=active]:shadow-sm data-[state=inactive]:text-base-content/60 data-[state=inactive]:hover:bg-base-300 whitespace-nowrap"
                     >
                       <Icon className="h-4 w-4" />
                       <span>{s.label}</span>
@@ -846,7 +861,7 @@ const DetailModal = ({
                 })}
                 <TabsTrigger
                   value="documentos"
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-colors data-[state=active]:bg-primary data-[state=active]:text-white data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:bg-base-300 whitespace-nowrap"
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-colors data-[state=active]:bg-primary data-[state=active]:text-primary-content data-[state=active]:shadow-sm data-[state=inactive]:text-base-content/60 data-[state=inactive]:hover:bg-base-300 whitespace-nowrap"
                 >
                   <FileText className="h-4 w-4" />
                   <span>Documentos</span>
@@ -854,7 +869,7 @@ const DetailModal = ({
               </TabsList>
             </div>
 
-            <div className="h-[400px] overflow-y-auto">
+            <div className="min-h-[220px]">
               {DATA_SECTIONS.map((s) => {
                 const fields = DATA_FIELDS.filter((f) => f.section === s.id);
                 const hasData = fields.some(
@@ -878,12 +893,12 @@ const DetailModal = ({
                           return (
                             <div key={f.key} className="form-control">
                               <label className="label py-1">
-                                <span className="label-text text-xs font-semibold text-gray-600">{f.label}</span>
+                                <span className="label-text text-xs font-semibold text-base-content/60">{f.label}</span>
                               </label>
                               {f.computed ? (
                                 <input
                                   type="text"
-                                  className="input input-bordered input-sm bg-gray-100 text-gray-500 cursor-not-allowed"
+                                  className="input input-bordered input-sm bg-base-200 text-base-content/50 cursor-not-allowed"
                                   value={computedValue ?? ""}
                                   disabled
                                   readOnly
@@ -913,7 +928,7 @@ const DetailModal = ({
                         ))}
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-gray-400">
+                      <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-base-content/40">
                         <Info className="h-12 w-12 mb-3 opacity-50" />
                         <p className="text-sm">Aún no hay información registrada</p>
                       </div>
@@ -926,7 +941,7 @@ const DetailModal = ({
                         {editing && canManage ? (
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             <div className="form-control">
-                              <label className="label py-1"><span className="label-text text-xs font-semibold text-gray-600">Puesto</span></label>
+                              <label className="label py-1"><span className="label-text text-xs font-semibold text-base-content/60">Puesto</span></label>
                               <select className="select select-bordered select-sm" value={meta.position_id}
                                 onChange={(e) => setMeta({ ...meta, position_id: e.target.value })}>
                                 <option value="">— Ninguno —</option>
@@ -934,17 +949,17 @@ const DetailModal = ({
                               </select>
                             </div>
                             <div className="form-control">
-                              <label className="label py-1"><span className="label-text text-xs font-semibold text-gray-600">Subcargo</span></label>
+                              <label className="label py-1"><span className="label-text text-xs font-semibold text-base-content/60">Subcargo</span></label>
                               <input className="input input-bordered input-sm" value={meta.subcargo}
                                 onChange={(e) => setMeta({ ...meta, subcargo: e.target.value })} />
                             </div>
                             <div className="form-control">
-                              <label className="label py-1"><span className="label-text text-xs font-semibold text-gray-600">Fecha de ingreso</span></label>
+                              <label className="label py-1"><span className="label-text text-xs font-semibold text-base-content/60">Fecha de ingreso</span></label>
                               <input type="date" className="input input-bordered input-sm" value={meta.start_date}
                                 onChange={(e) => setMeta({ ...meta, start_date: e.target.value })} />
                             </div>
                             <div className="form-control">
-                              <label className="label py-1"><span className="label-text text-xs font-semibold text-gray-600">¿Término indefinido?</span></label>
+                              <label className="label py-1"><span className="label-text text-xs font-semibold text-base-content/60">¿Término indefinido?</span></label>
                               <label className="label cursor-pointer justify-start gap-2 py-1">
                                 <input type="checkbox" className="checkbox checkbox-sm" checked={indefinite}
                                   onChange={(e) => setIndefinite(e.target.checked)} />
@@ -953,7 +968,7 @@ const DetailModal = ({
                             </div>
                             {!indefinite && (
                               <div className="form-control">
-                                <label className="label py-1"><span className="label-text text-xs font-semibold text-gray-600">Fecha de salida</span></label>
+                                <label className="label py-1"><span className="label-text text-xs font-semibold text-base-content/60">Fecha de salida</span></label>
                                 <input type="date" className="input input-bordered input-sm" value={meta.end_date}
                                   onChange={(e) => setMeta({ ...meta, end_date: e.target.value })} />
                               </div>
@@ -976,7 +991,7 @@ const DetailModal = ({
               <TabsContent value="documentos" className="mt-0">
                 <div className="p-4 bg-base-100 rounded-lg space-y-6">
                   {Object.keys(docs).length === 0 && (
-                    <div className="flex flex-col items-center justify-center min-h-[200px] text-gray-400">
+                    <div className="flex flex-col items-center justify-center min-h-[200px] text-base-content/40">
                       <Info className="h-12 w-12 mb-3 opacity-50" />
                       <p className="text-sm">No hay documentos subidos aún</p>
                     </div>
@@ -1034,7 +1049,7 @@ const DetailModal = ({
                                 onChange={(e) => { uploadDoc(`examen_anual_${examYear}`, e.target.files?.[0]); e.currentTarget.value = ""; }} />
                             </label>
                           </div>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-base-content/40">
                             Se guarda uno por año (Examen Anual {examYear}); no reemplaza los años anteriores.
                           </p>
                         </div>
@@ -1054,46 +1069,75 @@ const DetailModal = ({
               </TabsContent>
             </div>
           </Tabs>
+        </div>
 
-          {/* Flujo de aprobación */}
-          {canManage && contract.status === "IN_REVIEW" && (
-            <div className="flex flex-wrap justify-end gap-2 mt-5 pt-4 border-t">
-              <button className="btn btn-warning btn-sm" disabled={busy}
-                onClick={() => { setCorrectionText(""); setShowCorrection(true); }}>
-                Solicitar corrección
-              </button>
-              <button className="btn btn-error btn-sm" disabled={busy} onClick={() => setStatus("REJECTED")}>
-                {pendingStatus === "REJECTED" ? <span className="loading loading-spinner loading-xs" /> : "Rechazar"}
-              </button>
-              <button className="btn btn-success btn-sm" disabled={busy} onClick={() => setStatus("APPROVED")}>
-                {pendingStatus === "APPROVED" ? <span className="loading loading-spinner loading-xs" /> : "Aprobar"}
-              </button>
-            </div>
-          )}
-
-          {/* Eliminar / restaurar contratación */}
-          {canManage && (
-            <div className="flex flex-wrap justify-start gap-2 mt-5 pt-4 border-t">
+        {/* Footer fijo con acciones: una sola barra, para que el cuerpo tenga
+            un único scroll (sin doble barra) y las acciones queden siempre visibles. */}
+        {canManage && (
+          <footer className="flex flex-wrap items-center justify-between gap-2 shrink-0 border-t border-base-300 bg-base-100 px-6 py-3">
+            {/* Eliminar / restaurar (izquierda) */}
+            <div className="flex flex-wrap gap-2">
               {contract.is_deleted ? (
                 <button className="btn btn-success btn-sm" disabled={busy} onClick={restoreContract}>
                   {pendingAction === "restore" ? <span className="loading loading-spinner loading-xs" /> : "Restaurar"}
                 </button>
               ) : (
-                <button className="btn btn-outline btn-warning btn-sm gap-1" disabled={busy} onClick={() => deleteContract(false)}>
+                <button
+                  className="btn btn-outline btn-warning btn-sm gap-1"
+                  disabled={busy}
+                  onClick={() =>
+                    setConfirmState({
+                      title: "Eliminar contratación",
+                      message: "¿Eliminar esta contratación? Podrás restaurarla más adelante.",
+                      acceptText: "Eliminar",
+                      variant: "warning",
+                      onAccept: () => deleteContract(false),
+                    })
+                  }
+                >
                   {pendingAction === "soft" ? <span className="loading loading-spinner loading-xs" /> : <><Trash2 size={14} /> Eliminar</>}
                 </button>
               )}
-              <button className="btn btn-outline btn-error btn-sm gap-1" disabled={busy} onClick={() => deleteContract(true)}>
+              <button
+                className="btn btn-outline btn-error btn-sm gap-1"
+                disabled={busy}
+                onClick={() =>
+                  setConfirmState({
+                    title: "Eliminar permanentemente",
+                    message:
+                      "¿Eliminar PERMANENTEMENTE esta contratación y sus documentos? Esta acción no se puede deshacer.",
+                    acceptText: "Eliminar",
+                    variant: "error",
+                    onAccept: () => deleteContract(true),
+                  })
+                }
+              >
                 {pendingAction === "hard" ? <span className="loading loading-spinner loading-xs" /> : <><Trash2 size={14} /> Eliminar permanentemente</>}
               </button>
             </div>
-          )}
-        </div>
+
+            {/* Flujo de aprobación (derecha, solo en revisión) */}
+            {contract.status === "IN_REVIEW" && (
+              <div className="flex flex-wrap gap-2">
+                <button className="btn btn-warning btn-sm" disabled={busy}
+                  onClick={() => { setCorrectionText(""); setShowCorrection(true); }}>
+                  Solicitar corrección
+                </button>
+                <button className="btn btn-error btn-sm" disabled={busy} onClick={() => setStatus("REJECTED")}>
+                  {pendingStatus === "REJECTED" ? <span className="loading loading-spinner loading-xs" /> : "Rechazar"}
+                </button>
+                <button className="btn btn-success btn-sm" disabled={busy} onClick={() => setStatus("APPROVED")}>
+                  {pendingStatus === "APPROVED" ? <span className="loading loading-spinner loading-xs" /> : "Aprobar"}
+                </button>
+              </div>
+            )}
+          </footer>
+        )}
       </div>
 
       {showCorrection && (
         <Overlay title="Solicitar corrección" onClose={() => setShowCorrection(false)}>
-          <p className="text-sm text-gray-600 mb-2">
+          <p className="text-sm text-base-content/60 mb-2">
             Describe qué debe corregir el empleado. Volverá a estado editable y recibirá el comentario.
           </p>
           <textarea
@@ -1115,6 +1159,26 @@ const DetailModal = ({
             </button>
           </div>
         </Overlay>
+      )}
+
+      {/* Confirmación con estilo (reemplaza confirm() nativo) */}
+      {confirmState && (
+        <Alert
+          isOpen={true}
+          onClose={() => setConfirmState(null)}
+          onAccept={() => {
+            const cb = confirmState.onAccept;
+            setConfirmState(null);
+            cb();
+          }}
+          title={confirmState.title}
+          variant={confirmState.variant}
+          acceptText={confirmState.acceptText}
+          cancelText="Cancelar"
+          acceptButtonVariant={confirmState.variant === "error" ? "destructive" : "default"}
+        >
+          <p className="text-base-content/80">{confirmState.message}</p>
+        </Alert>
       )}
     </div>
   );
@@ -1140,9 +1204,9 @@ const TemplatesModal = ({
   const [fieldMap, setFieldMap] = useState("");
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [confirmId, setConfirmId] = useState<number | null>(null);
 
   const remove = async (id: number) => {
-    if (!confirm("¿Eliminar esta plantilla? Esta acción no se puede deshacer.")) return;
     setDeletingId(id);
     try {
       const res = await fetch(apiUrl(API_ENDPOINTS.contractTemplateById(id)), {
@@ -1229,7 +1293,7 @@ const TemplatesModal = ({
             onChange={(e) => setFieldMap(e.target.value)}
           />
         </Field>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-base-content/50">
           Valor de cada campo del PDF:
           <br />• <code>to_fill</code> → el empleado sube una imagen ahí (firma, huella, etc.).
           <br />• una <strong>clave de dato</strong> (ej. <code>full_name</code>, <code>salary</code>, <code>cargo</code>).
@@ -1243,18 +1307,18 @@ const TemplatesModal = ({
         </div>
       </div>
 
-      <div className="border-t pt-3">
-        <h3 className="font-semibold text-gray-700 mb-2 text-sm">Plantillas existentes</h3>
+      <div className="border-t border-base-300 pt-3">
+        <h3 className="font-semibold text-base-content mb-2 text-sm">Plantillas existentes</h3>
         {templates.length === 0 ? (
-          <p className="text-gray-500 text-sm">Aún no hay plantillas.</p>
+          <p className="text-base-content/50 text-sm">Aún no hay plantillas.</p>
         ) : (
           <ul className="space-y-1">
             {templates.map((t) => (
-              <li key={t.id} className="flex items-center justify-between gap-2 text-sm p-2 border rounded">
+              <li key={t.id} className="flex items-center justify-between gap-2 text-sm p-2 border border-base-300 rounded-lg">
                 <span className="truncate">{t.name}</span>
                 <button
                   className="btn btn-ghost btn-xs text-error"
-                  onClick={() => remove(t.id)}
+                  onClick={() => setConfirmId(t.id)}
                   disabled={deletingId === t.id}
                   title="Eliminar plantilla"
                 >
@@ -1265,6 +1329,27 @@ const TemplatesModal = ({
           </ul>
         )}
       </div>
+
+      {confirmId != null && (
+        <Alert
+          isOpen={true}
+          onClose={() => setConfirmId(null)}
+          onAccept={() => {
+            const id = confirmId;
+            setConfirmId(null);
+            remove(id);
+          }}
+          title="Eliminar plantilla"
+          variant="error"
+          acceptText="Eliminar"
+          cancelText="Cancelar"
+          acceptButtonVariant="destructive"
+        >
+          <p className="text-base-content/80">
+            ¿Eliminar esta plantilla? Esta acción no se puede deshacer.
+          </p>
+        </Alert>
+      )}
     </Overlay>
   );
 };
@@ -1276,17 +1361,20 @@ const Overlay = ({
   title, children, onClose, wide = false,
 }: {
   title: string; children: React.ReactNode; onClose: () => void; wide?: boolean;
-}) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
-    <div className={`bg-white rounded-lg shadow-2xl w-full ${wide ? "max-w-4xl" : "max-w-2xl"} p-6`}>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold text-gray-900">{title}</h2>
-        <button className="btn btn-ghost btn-sm" onClick={onClose}><X size={18} /></button>
+}) => {
+  useBodyScrollLock(true);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className={`bg-base-100 border border-base-300 rounded-lg shadow-2xl w-full ${wide ? "max-w-4xl" : "max-w-2xl"} p-6`}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-lg font-bold text-secondary">{title}</h2>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}><X size={18} /></button>
+        </div>
+        {children}
       </div>
-      {children}
     </div>
-  </div>
-);
+  );
+};
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="form-control">

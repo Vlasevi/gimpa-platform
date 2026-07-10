@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import * as pdfjs from "pdfjs-dist";
 import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist";
 import { PDFDocument } from "pdf-lib";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
@@ -254,6 +255,8 @@ export const PdfModal = ({
   const [scale, setScale] = useState(1.2);
   const zoomIn = () => setScale((s) => Math.min(s + 0.2, 3));
   const zoomOut = () => setScale((s) => Math.max(s - 0.2, 0.4));
+
+  useBodyScrollLock(true);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {

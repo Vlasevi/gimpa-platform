@@ -14,12 +14,17 @@ import {
   PenTool,
   FolderOpen,
   Building,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
 } from "lucide-react";
 import { DisplayField } from "./matriculasUI/DisplayField";
+import { Alert } from "@/components/ui/Alert";
 import { apiUrl, API_ENDPOINTS, buildHeaders } from "@/utils/api";
 import { classifyDocument } from "@/utils/documentSensitivity";
 import type { DocumentPermissions } from "@/components/Login/loginLogic";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface StudentDataTabsProps {
   studentData: Record<string, any>;
@@ -47,7 +52,7 @@ const EmptyState = ({
 }: {
   message?: string;
 }) => (
-  <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-gray-400">
+  <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-base-content/40">
     <Info className="h-12 w-12 mb-3 opacity-50" />
     <p className="text-sm">{message}</p>
   </div>
@@ -86,6 +91,24 @@ export const StudentDataTabs = ({
   const [currentDocuments, setCurrentDocuments] = useState<Record<string, any>>(
     documentsMetadata || {},
   );
+  // Feedback sin diálogos nativos: toast efímero + modal de confirmación.
+  // Se renderizan por portal a document.body porque el modal de detalle usa
+  // `transform`, y un elemento `fixed` hijo se posicionaría respecto a él.
+  const [toast, setToast] = useState<{
+    type: "success" | "error" | "warning" | "info";
+    msg: string;
+  } | null>(null);
+  const [confirmDeleteKey, setConfirmDeleteKey] = useState<string | null>(null);
+  const toastTimer = useRef<number | null>(null);
+
+  const showToast = (
+    msg: string,
+    type: "success" | "error" | "warning" | "info" = "success",
+  ) => {
+    if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    setToast({ type, msg });
+    toastTimer.current = window.setTimeout(() => setToast(null), 3500);
+  };
 
   useEffect(() => {
     setCurrentDocuments(documentsMetadata || {});
@@ -170,7 +193,7 @@ export const StudentDataTabs = ({
 
   const handleDownloadDocument = async (docKey: string) => {
     if (!enrollmentId) {
-      alert("No se encontró el ID de matrícula");
+      showToast("No se encontró el ID de matrícula", "error");
       return;
     }
 
@@ -190,10 +213,10 @@ export const StudentDataTabs = ({
       if (docUrl) {
         window.open(docUrl, "_blank");
       } else {
-        alert("Documento no disponible");
+        showToast("Documento no disponible", "warning");
       }
     } catch (err: any) {
-      alert(err.message || "Error al descargar documento");
+      showToast(err.message || "Error al descargar documento", "error");
       console.error(err);
     } finally {
       setDownloadingDoc(null);
@@ -241,8 +264,9 @@ export const StudentDataTabs = ({
       }
 
       await refreshDocuments();
+      showToast("Documento actualizado", "success");
     } catch (err: any) {
-      alert(err.message || "Error al cambiar documento");
+      showToast(err.message || "Error al cambiar documento", "error");
       console.error(err);
     } finally {
       setChangingDoc(null);
@@ -251,9 +275,6 @@ export const StudentDataTabs = ({
 
   const handleDeleteDocument = async (docKey: string) => {
     if (!enrollmentId) return;
-    if (!confirm("¿Eliminar este documento? Esta accion no se puede deshacer.")) {
-      return;
-    }
 
     setDeletingDoc(docKey);
 
@@ -273,8 +294,9 @@ export const StudentDataTabs = ({
       }
 
       await refreshDocuments();
+      showToast("Documento eliminado", "success");
     } catch (err: any) {
-      alert(err.message || "Error al borrar documento");
+      showToast(err.message || "Error al borrar documento", "error");
       console.error(err);
     } finally {
       setDeletingDoc(null);
@@ -324,6 +346,7 @@ export const StudentDataTabs = ({
   ];
 
   return (
+    <>
     <Tabs defaultValue="info" className="w-full">
       {/* Tabs horizontales con scroll */}
       <div className="overflow-x-auto mb-4 pb-1">
@@ -332,7 +355,7 @@ export const StudentDataTabs = ({
             <TabsTrigger
               key={tab.value}
               value={tab.value}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-colors data-[state=active]:bg-primary data-[state=active]:text-white data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:bg-base-300 whitespace-nowrap"
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md transition-colors data-[state=active]:bg-primary data-[state=active]:text-primary-content data-[state=active]:shadow-sm data-[state=inactive]:text-base-content/60 data-[state=inactive]:hover:bg-base-300 whitespace-nowrap"
             >
               <tab.icon className="h-4 w-4" />
               <span>{tab.name}</span>
@@ -341,8 +364,9 @@ export const StudentDataTabs = ({
         </TabsList>
       </div>
 
-      {/* Contenido de cada tab - altura fija para evitar saltos */}
-      <div className="h-[400px] overflow-y-auto">
+      {/* Contenido de cada tab: crece con el contenido, con un mínimo para no
+          saltar entre tabs y un tope con scroll propio para no desbordar el modal. */}
+      <div className="min-h-[220px] max-h-[56vh] overflow-y-auto">
         {/* Tab: Información del Estudiante */}
         <TabsContent value="info" className="mt-0 h-full">
           {hasData(studentData, infoFields) || student.email ? (
@@ -831,13 +855,13 @@ export const StudentDataTabs = ({
                           return (
                             <div
                               key={docKey}
-                              className="flex items-center justify-between gap-3 p-3 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+                              className="flex items-center justify-between gap-3 p-3 bg-base-100 border border-base-300 rounded-lg hover:border-primary/30 hover:shadow-md transition-all duration-200"
                             >
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium text-gray-900 truncate">
+                                <p className="font-medium text-base-content truncate">
                                   {label}
                                 </p>
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs text-base-content/50">
                                   {uploadedDate}
                                 </p>
                               </div>
@@ -872,7 +896,7 @@ export const StudentDataTabs = ({
                                     />
                                     <label
                                       htmlFor={`replace-${docKey}`}
-                                      className={`p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer ${
+                                      className={`p-2 text-info hover:bg-info/10 rounded-lg transition-colors cursor-pointer ${
                                         changingDoc === docKey
                                           ? "opacity-50 pointer-events-none"
                                           : ""
@@ -891,7 +915,7 @@ export const StudentDataTabs = ({
                                 {canManageDocuments && (
                                   <button
                                     type="button"
-                                    onClick={() => handleDeleteDocument(docKey)}
+                                    onClick={() => setConfirmDeleteKey(docKey)}
                                     disabled={deletingDoc === docKey}
                                     className="p-2 text-error hover:bg-error/10 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                     title="Borrar documento"
@@ -919,6 +943,55 @@ export const StudentDataTabs = ({
         </TabsContent>
       </div>
     </Tabs>
+
+    {/* Confirmación de borrado (por portal, sobre el modal de detalle) */}
+    {confirmDeleteKey &&
+      createPortal(
+        <Alert
+          isOpen={true}
+          onClose={() => setConfirmDeleteKey(null)}
+          onAccept={() => {
+            const key = confirmDeleteKey;
+            setConfirmDeleteKey(null);
+            if (key) handleDeleteDocument(key);
+          }}
+          title="Eliminar documento"
+          variant="error"
+          acceptText="Eliminar"
+          cancelText="Cancelar"
+          acceptButtonVariant="destructive"
+        >
+          <p className="text-base-content/80">
+            ¿Eliminar <span className="font-semibold">{getDocumentLabel(confirmDeleteKey)}</span>?
+            Esta acción no se puede deshacer.
+          </p>
+        </Alert>,
+        document.body,
+      )}
+
+    {/* Toast de feedback (por portal, esquina superior derecha del viewport) */}
+    {toast &&
+      createPortal(
+        <div className="fixed right-6 top-6 z-[70] animate-view-in">
+          <div className="flex items-center gap-2.5 rounded-xl border border-base-300 bg-base-100 px-4 py-3 text-sm text-base-content shadow-lg">
+            {toast.type === "success" && (
+              <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
+            )}
+            {toast.type === "error" && (
+              <XCircle className="h-5 w-5 shrink-0 text-error" />
+            )}
+            {toast.type === "warning" && (
+              <AlertTriangle className="h-5 w-5 shrink-0 text-warning" />
+            )}
+            {toast.type === "info" && (
+              <Info className="h-5 w-5 shrink-0 text-primary" />
+            )}
+            <span>{toast.msg}</span>
+          </div>
+        </div>,
+        document.body,
+      )}
+    </>
   );
 };
 
