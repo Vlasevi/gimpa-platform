@@ -205,8 +205,12 @@ export const ContratacionAdmin = ({ readOnly = false }: { readOnly?: boolean }) 
                     </span>
                   </td>
                   <td>
-                    <button className="btn btn-ghost btn-sm" onClick={() => setSelected(c)}>
-                      <Eye size={16} /> Ver
+                    <button
+                      className="p-2 text-base-content/40 hover:text-primary hover:bg-primary/10 rounded-full transition-all cursor-pointer"
+                      title="Ver detalles"
+                      onClick={() => setSelected(c)}
+                    >
+                      <Eye className="h-5 w-5" />
                     </button>
                   </td>
                 </tr>

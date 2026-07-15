@@ -307,20 +307,20 @@ export default function Usuarios() {
                                         <div className="flex justify-center gap-1">
                                             {canEditUsers && (
                                                 <button
-                                                    className="p-2 text-base-content/50 hover:text-primary hover:bg-primary/10 rounded-full transition-all cursor-pointer"
+                                                    className="p-2 text-base-content/40 hover:text-primary hover:bg-primary/10 rounded-full transition-all cursor-pointer"
                                                     title="Editar"
                                                     onClick={() => handleEdit(u)}
                                                 >
-                                                    <Pencil className="w-4 h-4" />
+                                                    <Pencil className="h-5 w-5" />
                                                 </button>
                                             )}
                                             {canDeleteUsers && (
                                                 <button
-                                                    className="p-2 text-base-content/50 hover:text-error hover:bg-error/10 rounded-full transition-all cursor-pointer"
+                                                    className="p-2 text-base-content/40 hover:text-error hover:bg-error/10 rounded-full transition-all cursor-pointer"
                                                     title="Eliminar"
                                                     onClick={() => handleDeleteClick(u)}
                                                 >
-                                                    <Trash2 className="w-4 h-4" />
+                                                    <Trash2 className="h-5 w-5" />
                                                 </button>
                                             )}
                                         </div>
