@@ -6,9 +6,11 @@ import {
   ArrowLeft,
   Info,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/login-hero.webp";
 import Logo from "@/assets/logo.png";
-import { loginUrl } from "@/components/Login/loginLogic";
+import { useAuth } from "@/components/Login/loginLogic";
+import { apiUrl, AUTH_PATHS } from "@/utils/api";
 
 // ---- Clases compartidas (ver DESIGN_SYSTEM.md) --------------------------
 const labelClass = "mb-1.5 block text-sm font-medium text-base-content/70";
@@ -150,6 +152,8 @@ type View = "main" | "email" | "register";
 const SOON = "Esta opción estará disponible próximamente.";
 
 export default function Login() {
+  const navigate = useNavigate();
+  const { loginWithPayload } = useAuth();
   const [view, setView] = useState<View>("main");
   const [isConnecting, setIsConnecting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -174,10 +178,10 @@ export default function Login() {
     setView(next);
   };
 
-  // Único método real: SSO de Microsoft.
+  // SSO de Microsoft: navegación de página completa hacia el back.
   const handleMicrosoftLogin = () => {
     setIsConnecting(true);
-    window.location.href = loginUrl;
+    window.location.href = apiUrl(AUTH_PATHS.loginSocial);
   };
 
   // Mock: simula una llamada breve y luego muestra el aviso correspondiente.
@@ -190,9 +194,29 @@ export default function Login() {
     }, 700);
   };
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
+  // Login real por correo/contraseña (acudientes de admisiones).
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    mockSubmit(SOON);
+    setSubmitting(true);
+    setNotice(null);
+    try {
+      const res = await fetch(apiUrl(AUTH_PATHS.loginAdmissions), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        loginWithPayload(data);
+        navigate("/dashboard", { replace: true });
+      } else {
+        setNotice(data.detail || "Correo o contraseña incorrectos.");
+        setSubmitting(false);
+      }
+    } catch {
+      setNotice("Error de conexión. Intenta nuevamente.");
+      setSubmitting(false);
+    }
   };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {

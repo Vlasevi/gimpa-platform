@@ -1,20 +1,24 @@
 import React, { useContext, useState, useEffect } from "react";
 import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import Spinner from "@/components/auxiliar/Spinner";
-import { API_BASE_URL, apiUrl, buildHeaders } from "@/utils/api";
-
-const apiAccountsCheck = apiUrl("/api/accounts/me");
-const logoutEndpoint = apiUrl("/api/accounts/me/logout/");
-export const loginUrl = apiUrl("/auth/login/azuread-tenant-oauth2");
+import { apiUrl, AUTH_PATHS, API_ENDPOINTS } from "@/utils/api";
+import {
+  getRefreshToken,
+  setTokens,
+  clearTokens,
+} from "@/utils/tokens";
 
 // Tipos de roles del backend
 export type UserRole =
   | 'admin'
   | 'rector'
   | 'administrativo'
+  | 'coordinacion'
   | 'teacher'
   | 'student'
   | 'psychologist'
+  | 'acudiente'
   | 'otros';
 
 // Permisos por sección que vienen del backend
@@ -66,8 +70,10 @@ export interface User {
   email: string;
   first_name: string;
   last_name: string;
-  role: UserRole;
-  permissions: UserPermissions;
+  // Puede ser null: un usuario nuevo entra SIN rol hasta que un admin se lo asigne.
+  role: UserRole | null;
+  // null → "cuenta sin accesos".
+  permissions: UserPermissions | null;
   guardian_full_name?: string;
   guardian_email?: string;
   guardian_phone?: string;
@@ -75,11 +81,20 @@ export interface User {
   student_data?: Record<string, any>;
 }
 
+// Payload que devuelven login-admissions y login-social/exchange.
+export interface AuthPayload {
+  access: string;
+  refresh: string;
+  user: User;
+}
+
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   isLoading: boolean;
+  isLoggingOut: boolean;
   checkAuth: () => Promise<void>;
+  loginWithPayload: (payload: AuthPayload) => void;
   logout: () => Promise<void>;
 }
 
@@ -87,28 +102,11 @@ const AuthContext = React.createContext<AuthContextType>({
   isAuthenticated: false,
   user: null,
   isLoading: true,
+  isLoggingOut: false,
   checkAuth: async () => {},
+  loginWithPayload: () => {},
   logout: async () => {},
 });
-
-function getCookie(cookieName: String) {
-  let cookieValue = null;
-  if (document.cookie && document.cookie !== "") {
-    const cookies = document.cookie.split(";");
-
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim();
-
-      if (cookie.substring(0, cookieName.length + 1) === cookieName + "=") {
-        cookieValue = decodeURIComponent(
-          cookie.substring(cookieName.length + 1)
-        );
-        break;
-      }
-    }
-  }
-  return cookieValue;
-}
 
 export function useAuth() {
   return useContext(AuthContext);
@@ -118,39 +116,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setLoading] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const navigate = useNavigate();
 
+  // Rehidratación al cargar: si hay refresh en localStorage, pedimos /me. El
+  // interceptor global adjunta el Bearer y refresca el access si hace falta.
   const checkAuth = async () => {
     setLoading(true);
+
+    if (!getRefreshToken()) {
+      setAuthenticated(false);
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
     try {
-      console.log("🔍 Verificando sesión...");
-
-      const response = await fetch(apiAccountsCheck, {
-        method: "GET",
-        credentials: "include",
-        headers: {
-          Accept: "application/json",
-        },
+      const response = await fetch(apiUrl(API_ENDPOINTS.me), {
+        headers: { Accept: "application/json" },
       });
-
-      console.log("📡 Response status:", response.status);
 
       if (response.ok) {
         const userData = await response.json();
-        console.log("✅ Sesión válida:", userData);
         setUser(userData);
         setAuthenticated(true);
       } else {
-        console.log("❌ No hay sesión");
+        clearTokens();
         setAuthenticated(false);
         setUser(null);
       }
     } catch (error) {
-      console.error("❌ Error:", error);
+      clearTokens();
       setAuthenticated(false);
       setUser(null);
     } finally {
-      console.log("🏁 Verificación completa");
       setLoading(false);
     }
   };
@@ -159,33 +158,47 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     checkAuth();
   }, []);
 
-  const logout = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(logoutEndpoint, {
-        method: "POST",
-        credentials: "include",
-        headers: buildHeaders(),
-      });
+  // Tras login por correo o canje del one-time code del SSO.
+  const loginWithPayload = (payload: AuthPayload) => {
+    setTokens(payload.access, payload.refresh);
+    setUser(payload.user);
+    setAuthenticated(true);
+    setLoading(false);
+  };
 
-      if (!response.ok) {
-        console.error("Error al cerrar sesión");
+  const logout = async () => {
+    setIsLoggingOut(true);
+    const refresh = getRefreshToken();
+    try {
+      if (refresh) {
+        await fetch(apiUrl(AUTH_PATHS.logout), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refresh }),
+        });
       }
     } catch (error) {
-      console.error("Error:", error);
+      // Ignoramos errores de red en logout: igual limpiamos el estado local.
     } finally {
-      setLoading(false);
+      clearTokens();
       setAuthenticated(false);
       setUser(null);
       navigate("/login", { replace: true });
+      setIsLoggingOut(false);
     }
   };
 
   return (
     <AuthContext.Provider
-      value={{ isAuthenticated, user, isLoading, checkAuth, logout }}
+      value={{ isAuthenticated, user, isLoading, isLoggingOut, checkAuth, loginWithPayload, logout }}
     >
       {children}
+      {isLoggingOut && (
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-3 bg-base-100/80 backdrop-blur-sm">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-base-content/70">Cerrando sesión…</p>
+        </div>
+      )}
     </AuthContext.Provider>
   );
 };
@@ -199,20 +212,16 @@ export const ProtectedRoute = () => {
   }
 
   if (!isAuthenticated) {
-    console.log(
-      `No se puede redirigir a porque el usuario no está autenticado.`
-    );
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  console.log("✅ Autenticado - Mostrando contenido");
   return <Outlet />;
 };
 
 // Hook helper para acceder a permisos de una sección específica
 export function usePermissions(section: PermissionSection): SectionPermissions {
   const { user } = useAuth();
-  
+
   const defaultPermissions: SectionPermissions = {
     canView: false,
     canCreate: false,
@@ -221,11 +230,11 @@ export function usePermissions(section: PermissionSection): SectionPermissions {
     canApprove: false,
     canManage: false,
   };
-  
+
   if (!user?.permissions) {
     return defaultPermissions;
   }
-  
+
   return user.permissions[section] || defaultPermissions;
 }
 

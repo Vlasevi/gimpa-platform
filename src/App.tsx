@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, ProtectedRoute } from "@/components/Login/loginLogic";
 import { PermissionRoute } from "@/components/PermissionRoute";
 import Login from "./pages/Login";
+import AuthCallback from "./pages/AuthCallback";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Estudiantes from "./pages/Estudiantes";
@@ -24,6 +25,7 @@ const App = () => (
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/unauthorized" element={<NotAuthorized />} />
           <Route path="/404" element={<NotFound />} />
 

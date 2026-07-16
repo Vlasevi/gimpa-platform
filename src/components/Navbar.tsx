@@ -1,15 +1,12 @@
 import { useAuth } from "./Login/loginLogic";
-import { useState } from "react";
-import { ChevronDown, User, LogOut, Loader2 } from "lucide-react";
+import { ChevronDown, User, LogOut } from "lucide-react";
 
 export const Navbar = () => {
-  const { user, logout } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const { user, logout, isLoggingOut } = useAuth();
 
-  const handleLogout = async () => {
-    setLoading(true);
-    await logout();
-    setLoading(false);
+  const handleLogout = () => {
+    // El feedback de carga lo muestra el overlay global del AuthProvider.
+    logout();
   };
 
   const handleProfile = () => {
@@ -55,14 +52,10 @@ export const Navbar = () => {
               <li>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-2 rounded-md px-4 py-2 text-sm text-error transition-colors hover:bg-error/10"
-                  disabled={loading}
+                  className="flex items-center gap-2 rounded-md px-4 py-2 text-sm text-error transition-colors hover:bg-error/10 disabled:opacity-70"
+                  disabled={isLoggingOut}
                 >
-                  {loading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <LogOut className="h-4 w-4" />
-                  )}
+                  <LogOut className="h-4 w-4" />
                   Cerrar Sesión
                 </button>
               </li>

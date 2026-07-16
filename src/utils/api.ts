@@ -1,6 +1,7 @@
 /**
  * API Configuration
- * Centraliza todas las configuraciones relacionadas con el backend API
+ * Centraliza la configuración del backend. Autenticación por JWT (Bearer) —
+ * el header lo inyecta el interceptor global (`utils/authInterceptor`), no aquí.
  */
 
 // URL base del API - toma el valor de la variable de entorno o usa localhost por defecto
@@ -9,31 +10,22 @@ export const API_BASE_URL =
 
 // Helper para construir URLs del API
 export const apiUrl = (path: string) => {
-  // Asegura que el path comience con /
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   return `${API_BASE_URL}${normalizedPath}`;
 };
 
-// Configuración de fetch con credenciales
-export const fetchConfig: RequestInit = {
-  credentials: "include",
-  headers: {
-    "Content-Type": "application/json",
-  },
-};
+// Rutas de autenticación (nombres cortos; el path social puede venir de env).
+export const AUTH_PATHS = {
+  loginSocial: import.meta.env.VITE_LOGIN_SOCIAL_PATH || "/login-social",
+  loginSocialExchange: "/login-social/exchange",
+  loginAdmissions: "/login-admissions",
+  refresh: "/refresh",
+  logout: "/logout",
+} as const;
 
-// Función para obtener el token CSRF de las cookies
-export const getCsrfToken = (): string | null => {
-  const name = "gimpa_csrftoken";
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) {
-    return parts.pop()?.split(";").shift() || null;
-  }
-  return null;
-};
-
-// Helper para construir headers con CSRF token
+// Helper para construir headers. Solo maneja Content-Type; el Bearer lo pone el
+// interceptor. Se conserva la firma (additionalHeaders, includeContentType) porque
+// muchos call sites la usan; para FormData, pasar includeContentType = false.
 export const buildHeaders = (
   additionalHeaders: HeadersInit = {},
   includeContentType: boolean = true,
@@ -41,110 +33,20 @@ export const buildHeaders = (
   const headers: Record<string, string> = {
     ...(additionalHeaders as Record<string, string>),
   };
-
-  // Solo agregar Content-Type si se solicita (para FormData no debe incluirse)
-  if (includeContentType) {
-    headers["Content-Type"] = "application/json";
-  }
-
-  const csrfToken = getCsrfToken();
-  if (csrfToken) {
-    headers["X-CSRFToken"] = csrfToken;
-  }
-
+  if (includeContentType) headers["Content-Type"] = "application/json";
   return headers;
 };
 
-// Flag to prevent infinite loops during session verification
-let isVerifyingSession = false;
-
-// Verify if the session is still valid by calling /accounts/me/
-const verifySession = async (): Promise<boolean> => {
-  try {
-    const response = await fetch(apiUrl("/api/accounts/me/"), {
-      ...fetchConfig,
-      headers: buildHeaders(),
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
-};
-
-// Helper para hacer fetch con la configuración por defecto
-// Includes automatic session verification and retry on 401
+// Helper para hacer fetch con defaults JSON. El interceptor global adjunta el Bearer
+// y maneja el refresh/reintento ante 401, así que aquí ya no hay lógica de sesión.
 export const apiFetch = async (path: string, options: RequestInit = {}) => {
-  const url = apiUrl(path);
-
-  const config = {
-    ...fetchConfig,
-    ...options,
-    headers: buildHeaders(options.headers),
-  };
-
-  const response = await fetch(url, config);
-
-  // If we get a 401 and we're not already verifying session
-  if (response.status === 401 && !isVerifyingSession) {
-    isVerifyingSession = true;
-
-    try {
-      // Verify if session is still valid
-      const sessionValid = await verifySession();
-
-      if (sessionValid) {
-        // Session is valid, retry the original request (might be CSRF issue)
-        // Re-initialize CSRF token first
-        await initializeCsrfToken();
-
-        // Retry with fresh headers
-        const retryConfig = {
-          ...fetchConfig,
-          ...options,
-          headers: buildHeaders(options.headers),
-        };
-
-        const retryResponse = await fetch(url, retryConfig);
-
-        // If still 401 after retry, redirect to login
-        if (retryResponse.status === 401) {
-          localStorage.removeItem("auth_session");
-          window.location.href = "/login";
-          throw new Error("Session expired");
-        }
-
-        return retryResponse;
-      } else {
-        // Session is not valid, redirect to login
-        localStorage.removeItem("auth_session");
-        window.location.href = "/login";
-        throw new Error("Session expired");
-      }
-    } finally {
-      isVerifyingSession = false;
-    }
-  }
-
-  return response;
-};
-
-// Helper para inicializar CSRF token
-export const initializeCsrfToken = async () => {
-  try {
-    await fetch(apiUrl("/api/accounts/csrf/"), {
-      credentials: "include",
-    });
-  } catch (error) {
-    console.error("[API] Failed to initialize CSRF token:", error);
-  }
+  const { headers, ...rest } = options;
+  return fetch(apiUrl(path), { headers: buildHeaders(headers), ...rest });
 };
 
 // Endpoints del API
 export const API_ENDPOINTS = {
   // Auth
-  csrf: "/api/accounts/csrf/",
-  login: "/api/login/",
-  logout: "/api/logout/",
   me: "/api/accounts/me/",
 
   // Enrollments
