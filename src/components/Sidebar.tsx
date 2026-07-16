@@ -14,6 +14,7 @@ import {
   Users,
   FileSignature,
   FileText,
+  ShieldCheck,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -145,6 +146,13 @@ export const Sidebar = () => {
           <NavLink to="/mi-contrato" className={navLinkClass}>
             <FileText className="h-5 w-5 shrink-0" />
             Mi Contrato
+          </NavLink>
+        )}
+
+        {user.role === "admin" && (
+          <NavLink to="/roles" className={navLinkClass}>
+            <ShieldCheck className="h-5 w-5 shrink-0" />
+            Roles y Permisos
           </NavLink>
         )}
       </nav>

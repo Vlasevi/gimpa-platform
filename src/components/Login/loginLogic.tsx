@@ -9,7 +9,8 @@ import {
   clearTokens,
 } from "@/utils/tokens";
 
-// Tipos de roles del backend
+// Tipos de roles del backend. Con roles dinámicos, el rol es cualquier slug; se listan
+// los de sistema para autocompletar, pero `(string & {})` permite cualquier valor.
 export type UserRole =
   | 'admin'
   | 'rector'
@@ -19,7 +20,8 @@ export type UserRole =
   | 'student'
   | 'psychologist'
   | 'acudiente'
-  | 'otros';
+  | 'otros'
+  | (string & {});
 
 // Permisos por sección que vienen del backend
 export interface SectionPermissions {

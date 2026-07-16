@@ -4,6 +4,7 @@ import { apiUrl, buildHeaders } from "@/utils/api";
 import { useAuth } from "@/components/Login/loginLogic";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
+// Fallback de etiquetas mientras carga la lista dinámica de roles.
 const ROLE_LABELS: Record<string, string> = {
     admin: "Administrador",
     rector: "Rector",
@@ -12,7 +13,10 @@ const ROLE_LABELS: Record<string, string> = {
     psychologist: "Psicóloga",
     student: "Estudiante",
     otros: "Otros",
+    acudiente: "Acudiente",
 };
+
+type RoleOption = { slug: string; name: string; isSystem: boolean };
 
 interface UserFormModalProps {
     isOpen: boolean;
@@ -30,6 +34,18 @@ export function UserFormModal({ isOpen, onClose, onSuccess, userToEdit, isLoadin
 
     const canSelectRole = Boolean(user?.permissions?.users?.canCreate);
     const canAssignAdminRole = user?.role === "admin";
+
+    // Roles disponibles (dinámicos, desde la tabla Role).
+    const [availableRoles, setAvailableRoles] = useState<RoleOption[]>([]);
+    useEffect(() => {
+        if (!isOpen || !canSelectRole) return;
+        fetch(apiUrl("/api/accounts/roles/"))
+            .then((r) => (r.ok ? r.json() : []))
+            .then((data) => setAvailableRoles(Array.isArray(data) ? data : []))
+            .catch(() => {});
+    }, [isOpen, canSelectRole]);
+    const roleLabel = (slug: string) =>
+        availableRoles.find((r) => r.slug === slug)?.name || ROLE_LABELS[slug] || slug;
     const isEditing = !!userToEdit;
     // No se puede cambiar el propio rol (el backend también lo bloquea)
     const isEditingSelf = isEditing && userToEdit?.email === user?.email;
@@ -232,7 +248,7 @@ export function UserFormModal({ isOpen, onClose, onSuccess, userToEdit, isLoadin
                                         )}
                                         {form.role && (
                                             <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs font-bold rounded-full uppercase tracking-wider">
-                                                {ROLE_LABELS[form.role] || form.role}
+                                                {roleLabel(form.role)}
                                             </span>
                                         )}
                                     </>
@@ -361,15 +377,19 @@ export function UserFormModal({ isOpen, onClose, onSuccess, userToEdit, isLoadin
                                                 className={`${selectClass} ${isEditingSelf ? "bg-base-200 cursor-not-allowed" : ""}`}
                                                 title={isEditingSelf ? "No puedes cambiar tu propio rol" : ""}
                                             >
-                                                <option value="student">Estudiante</option>
-                                                <option value="teacher">Profesor</option>
-                                                <option value="psychologist">Psicóloga</option>
-                                                <option value="administrativo">Administrativo</option>
-                                                <option value="rector">Rector</option>
-                                                <option value="otros">Otros</option>
-                                                {canAssignAdminRole && (
-                                                    <option value="admin">Administrador</option>
-                                                )}
+                                                {/* Roles dinámicos desde la tabla Role. admin solo si el actor es admin. */}
+                                                {availableRoles
+                                                    .filter((r) => r.slug !== "admin" || canAssignAdminRole)
+                                                    .map((r) => (
+                                                        <option key={r.slug} value={r.slug}>
+                                                            {r.name}
+                                                        </option>
+                                                    ))}
+                                                {/* Asegura que el rol actual (al editar) siempre tenga opción. */}
+                                                {form.role &&
+                                                    !availableRoles.some((r) => r.slug === form.role) && (
+                                                        <option value={form.role}>{roleLabel(form.role)}</option>
+                                                    )}
                                             </select>
                                             <ChevronIcon />
                                         </div>

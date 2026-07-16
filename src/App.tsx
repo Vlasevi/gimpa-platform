@@ -12,6 +12,7 @@ import Notas from "./pages/Notas";
 import Pagos from "./pages/Pagos";
 import Certificados from "./pages/Certificados";
 import Usuarios from "./pages/Usuarios";
+import Roles from "./pages/Roles";
 import Contratacion from "./pages/Contratacion";
 import MiContrato from "./pages/MiContrato";
 import NotAuthorized from "./pages/NotAuthorized";
@@ -73,6 +74,7 @@ const App = () => (
                   </PermissionRoute>
                 }
               />
+              <Route path="/roles" element={<Roles />} />
               <Route path="/contratacion" element={<Contratacion />} />
               <Route path="/mi-contrato" element={<MiContrato />} />
             </Route>
