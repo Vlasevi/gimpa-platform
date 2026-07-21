@@ -100,7 +100,7 @@ export const MatriculasEstudiantes = () => {
         API_ENDPOINTS.enrollmentGenerateUnsigned(enrollmentId),
         {
           method: "POST",
-          body: JSON.stringify({ student_data: formData }),
+          body: JSON.stringify({ user_data: formData }),
         },
       );
       if (!res.ok) throw new Error("Error generando PDFs");

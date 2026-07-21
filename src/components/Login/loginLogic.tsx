@@ -80,7 +80,7 @@ export interface User {
   guardian_email?: string;
   guardian_phone?: string;
   guardian_relationship?: string;
-  student_data?: Record<string, any>;
+  user_data?: Record<string, any>;
 }
 
 // Payload que devuelven login-admissions y login-social/exchange.

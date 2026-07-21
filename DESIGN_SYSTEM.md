@@ -115,6 +115,43 @@ y anulación de movimiento con `motion-reduce`.
 
 ---
 
+## 5b. Botones de acción en filas/tablas (solo ícono)
+
+Las acciones por fila (ver, editar, eliminar) son **solo ícono**, sin texto ni
+color de fondo. Nunca `btn btn-ghost` con la palabra al lado ("Ver", "Editar").
+El significado lo da el ícono + `title` (tooltip/accesibilidad); el color aparece
+solo en hover. Referencia canónica: `matriculas/matriculasUI/EnrollmentRow` y
+`pages/Usuarios`.
+
+```tsx
+{/* Ver detalles / acción neutra → primary en hover */}
+<button
+  className="p-2 text-base-content/40 hover:text-primary hover:bg-primary/10
+             rounded-full transition-all cursor-pointer"
+  title="Ver detalles"
+  onClick={…}
+>
+  <Eye className="h-5 w-5" />
+</button>
+
+{/* Eliminar / destructiva → error en hover */}
+<button
+  className="p-2 text-base-content/40 hover:text-error hover:bg-error/10
+             rounded-full transition-all cursor-pointer"
+  title="Eliminar"
+  onClick={…}
+>
+  <Trash2 className="h-5 w-5" />
+</button>
+```
+
+Claves: `p-2 rounded-full` (área táctil circular), reposo apagado
+(`text-base-content/40`), el color de la acción solo en `hover:text-*` +
+`hover:bg-*/10`, `transition-all`, `cursor-pointer` y **siempre `title`**.
+Íconos `lucide-react` a `h-5 w-5`.
+
+---
+
 ## 6. Estados
 
 - **Carga:** ícono `Loader2` de `lucide-react` con `animate-spin` + texto de acción

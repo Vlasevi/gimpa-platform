@@ -762,7 +762,7 @@ export const Step3StudentData = ({
     update,
   ]);
 
-  // --- EFFECT: Auto-save Step 3 student_data (sin cambiar estado de matrícula) ---
+  // --- EFFECT: Auto-save Step 3 user_data (sin cambiar estado de matrícula) ---
   useEffect(() => {
     if (!enrollmentId) return;
     if (!initializedRef.current) return;
@@ -788,7 +788,7 @@ export const Step3StudentData = ({
           API_ENDPOINTS.enrollmentSaveStudentData(enrollmentId),
           {
             method: "POST",
-            body: JSON.stringify({ student_data: data }),
+            body: JSON.stringify({ user_data: data }),
           },
         );
         if (res.ok) {

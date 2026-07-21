@@ -1352,7 +1352,7 @@ export const MatriculasAdmin = () => {
           ) : (
             selectedEnrollmentData && (
               <StudentDataTabs
-                studentData={selectedEnrollmentData.student?.student_data || {}}
+                studentData={selectedEnrollmentData.student?.user_data || {}}
                 student={selectedEnrollmentData.student || {}}
                 documentsMetadata={selectedEnrollmentData.documents_metadata}
                 enrollmentId={selectedEnrollmentData.id}

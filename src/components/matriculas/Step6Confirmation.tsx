@@ -23,7 +23,7 @@ export const Step6Confirmation = ({
     setSending(true);
 
     try {
-      // ---------- PASO 1: Enviar datos de Step3 (student_data) ----------
+      // ---------- PASO 1: Enviar datos de Step3 (user_data) ----------
       const storageKey = `enrollment_step3_${enrollmentId}`;
       const step3DataStr = localStorage.getItem(storageKey);
 
@@ -258,7 +258,7 @@ export const Step6Confirmation = ({
         {
           method: "PATCH",
           headers: buildHeaders(),
-          body: JSON.stringify({ student_data: studentData }),
+          body: JSON.stringify({ user_data: studentData }),
           credentials: "include",
         },
       );
