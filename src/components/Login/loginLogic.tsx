@@ -32,6 +32,10 @@ export interface SectionPermissions {
   canApprove?: boolean;
   canManage?: boolean;
   canExport?: boolean;
+  // Operación interna de admisiones (fase 2)
+  canValidate?: boolean;
+  canManagePayments?: boolean;
+  canReviewDocuments?: boolean;
 }
 
 // Permisos de visibilidad/edición de documentos por clase de sensibilidad
@@ -58,6 +62,7 @@ export interface UserPermissions {
   certifications: SectionPermissions;
   documents: DocumentPermissions;
   contracting: ContractingPermissions;
+  admissions: SectionPermissions;
 }
 
 // Secciones cuyo valor es SectionPermissions (excluye 'documents' y
@@ -245,4 +250,34 @@ export function useHasRole(...roles: UserRole[]): boolean {
   const { user } = useAuth();
   if (!user?.role) return false;
   return roles.includes(user.role);
+}
+
+/**
+ * ¿Es una cuenta externa de admisiones (acudiente)?
+ *
+ * Se decide por **capabilities**, no por el slug del rol: cualquier usuario cuyo único
+ * acceso sea admisiones recibe la experiencia del acudiente. Así, si mañana se crea un
+ * rol distinto con ese mismo alcance desde `/roles`, funciona sin tocar código.
+ */
+export function isGuardianOnly(user: User | null): boolean {
+  const p = user?.permissions;
+  if (!p) return false;
+
+  const hasStaffAccess =
+    p.users?.canView ||
+    p.enrollments?.canView ||
+    p.grades?.canView ||
+    p.payments?.canView ||
+    p.certifications?.canView ||
+    p.contracting?.canManage ||
+    p.contracting?.canViewAll ||
+    p.contracting?.canFillOwn;
+
+  return !hasStaffAccess && Boolean(p.admissions?.canView);
+}
+
+/** Ruta de inicio según a qué tiene acceso el usuario. */
+export function resolveHomePath(user: User | null): string {
+  if (isGuardianOnly(user)) return "/admisiones";
+  return "/dashboard";
 }

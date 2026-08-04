@@ -15,6 +15,7 @@ import {
   FileSignature,
   FileText,
   ShieldCheck,
+  GraduationCap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -33,6 +34,9 @@ const featureEnvMap: Record<string, boolean> = {
   Certificados: import.meta.env.VITE_FEATURE_CERTIFICADOS === "true",
   Usuarios: import.meta.env.VITE_FEATURE_USUARIOS === "true",
   Contratacion: import.meta.env.VITE_FEATURE_CONTRATACION === "true",
+  // Admisiones es visible por defecto: se apaga poniendo la variable en "false"
+  // (los demás módulos son al revés porque se activaron uno a uno).
+  Admisiones: import.meta.env.VITE_FEATURE_ADMISIONES !== "false",
 };
 
 const ALL_MENU_ITEMS: MenuItem[] = [
@@ -69,6 +73,13 @@ const ALL_MENU_ITEMS: MenuItem[] = [
     path: "/usuarios",
     icon: Users,
     section: "users",
+    anyOf: ["canView"],
+  },
+  {
+    label: "Admisiones",
+    path: "/admisiones-admin",
+    icon: GraduationCap,
+    section: "admissions",
     anyOf: ["canView"],
   },
 ];

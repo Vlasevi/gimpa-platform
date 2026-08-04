@@ -85,4 +85,34 @@ export const API_ENDPOINTS = {
   positions: "/api/contracting/positions/",
   contractRequestOtp: "/api/contracting/contracts/request-otp/",
   contractValidateOtp: "/api/contracting/contracts/validate-otp/",
+
+  // Admissions — cuenta del acudiente (público)
+  admissionsRegister: "/api/admissions/auth/register/",
+  admissionsVerifyOtp: "/api/admissions/auth/verify-otp/",
+  admissionsResendOtp: "/api/admissions/auth/resend-otp/",
+  admissionsPasswordReset: "/api/admissions/auth/password-reset/",
+  admissionsPasswordResetConfirm: "/api/admissions/auth/password-reset/confirm/",
+
+  // Admissions — expedientes
+  admissionsApplications: "/api/admissions/applications/",
+  admissionsApplicationByCode: (code: string) =>
+    `/api/admissions/applications/${code}/`,
+  admissionsApplicationSubmit: (code: string) =>
+    `/api/admissions/applications/${code}/submit/`,
+  admissionsApplicationTransition: (code: string) =>
+    `/api/admissions/applications/${code}/transition/`,
+
+  // Admissions — operación interna (fase 2)
+  admissionsValidation: (code: string) =>
+    `/api/admissions/applications/${code}/validation/`,
+  admissionsPayment: (code: string) =>
+    `/api/admissions/applications/${code}/payment/`,
+  admissionsPaymentReport: (code: string) =>
+    `/api/admissions/applications/${code}/payment/report/`,
+  admissionsPaymentReview: (code: string) =>
+    `/api/admissions/applications/${code}/payment/review/`,
+  admissionsDocuments: (code: string) =>
+    `/api/admissions/applications/${code}/documents/`,
+  admissionsDocumentReview: (code: string) =>
+    `/api/admissions/applications/${code}/documents/review/`,
 } as const;

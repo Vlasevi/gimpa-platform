@@ -1,22 +1,30 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Loader2,
   Eye,
   EyeOff,
   ArrowLeft,
   Info,
+  AlertCircle,
+  CheckCircle2,
+  MailCheck,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/login-hero.webp";
 import Logo from "@/assets/logo.png";
 import { useAuth } from "@/components/Login/loginLogic";
-import { apiUrl, AUTH_PATHS } from "@/utils/api";
+import { apiUrl, AUTH_PATHS, API_ENDPOINTS } from "@/utils/api";
 
 // ---- Clases compartidas (ver DESIGN_SYSTEM.md) --------------------------
 const labelClass = "mb-1.5 block text-sm font-medium text-base-content/70";
 
 const inputClass =
   "h-12 w-full rounded-lg border border-base-300 bg-base-200 px-4 text-base text-base-content placeholder:text-base-content/40 transition-colors focus:border-primary focus:bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/40";
+
+// El campo del código replica el panel del correo (primary, grande, espaciado):
+// misma pieza visual en el email y en la app.
+const otpInputClass =
+  "h-16 w-full rounded-xl border border-base-300 bg-base-200 text-center font-display text-3xl font-bold tracking-[0.4em] text-primary placeholder:text-base-content/25 transition-colors focus:border-primary focus:bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/40";
 
 const primaryBtnClass =
   "flex h-12 w-full items-center justify-center gap-3 rounded-xl bg-primary px-6 text-base font-medium text-primary-content shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-primary/95 hover:shadow-lg hover:shadow-primary/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-base-100 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 motion-reduce:transition-none motion-reduce:hover:translate-y-0";
@@ -123,10 +131,39 @@ function Divider({ label }: { label: string }) {
   );
 }
 
-function Notice({ message }: { message: string }) {
+type NoticeTone = "info" | "error" | "success";
+
+const NOTICE_STYLES: Record<NoticeTone, { box: string; icon: string }> = {
+  info: {
+    box: "border-base-300 bg-base-200 text-base-content/70",
+    icon: "text-primary",
+  },
+  error: {
+    box: "border-error/25 bg-error/5 text-base-content/80",
+    icon: "text-error",
+  },
+  success: {
+    box: "border-accent/30 bg-accent/5 text-base-content/80",
+    icon: "text-accent",
+  },
+};
+
+function Notice({
+  message,
+  tone = "info",
+}: {
+  message: string;
+  tone?: NoticeTone;
+}) {
+  const styles = NOTICE_STYLES[tone];
+  const Icon =
+    tone === "error" ? AlertCircle : tone === "success" ? CheckCircle2 : Info;
   return (
-    <div className="flex items-start gap-2 rounded-lg border border-base-300 bg-base-200 px-4 py-3 text-sm text-base-content/70">
-      <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+    <div
+      role={tone === "error" ? "alert" : "status"}
+      className={`flex items-start gap-2 rounded-lg border px-4 py-3 text-sm ${styles.box}`}
+    >
+      <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${styles.icon}`} />
       <span>{message}</span>
     </div>
   );
@@ -145,11 +182,22 @@ function BackButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-// ---- Pantalla -----------------------------------------------------------
-type View = "main" | "email" | "register";
+/** Encabezado de una vista secundaria. */
+function ViewHeading({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <div className="mb-5">
+      <h1 className="font-display text-2xl font-bold tracking-tight text-secondary">
+        {title}
+      </h1>
+      <p className="mt-1 text-sm text-base-content/60">{subtitle}</p>
+    </div>
+  );
+}
 
-// Aviso reutilizable para las acciones que aún no tienen backend.
-const SOON = "Esta opción estará disponible próximamente.";
+// ---- Pantalla -----------------------------------------------------------
+type View = "main" | "email" | "register" | "verify" | "reset" | "resetConfirm";
+
+const RESEND_COOLDOWN_SECONDS = 30;
 
 export default function Login() {
   const navigate = useNavigate();
@@ -157,25 +205,64 @@ export default function Login() {
   const [view, setView] = useState<View>("main");
   const [isConnecting, setIsConnecting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ text: string; tone: NoticeTone } | null>(
+    null,
+  );
   const [rememberMe, setRememberMe] = useState(false);
 
-  // Formulario de correo (mock)
+  // Login por correo
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // Formulario de registro (mock)
+  // Registro del acudiente
   const [reg, setReg] = useState({
-    fullName: "",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
     confirm: "",
   });
 
+  // Verificación / recuperación
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const id = setInterval(() => setCooldown((c) => Math.max(0, c - 1)), 1000);
+    return () => clearInterval(id);
+  }, [cooldown]);
+
   const goTo = (next: View) => {
     setNotice(null);
     setSubmitting(false);
     setView(next);
+  };
+
+  const fail = (text: string) => {
+    setNotice({ text, tone: "error" });
+    setSubmitting(false);
+  };
+
+  /** POST JSON al API público (sin token). Devuelve [ok, data]. */
+  const postJson = async (path: string, body: unknown) => {
+    const res = await fetch(apiUrl(path), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    return [res.ok, data] as const;
+  };
+
+  /** Extrae un mensaje legible de la respuesta de error de DRF. */
+  const errorText = (data: Record<string, unknown>, fallback: string) => {
+    if (typeof data?.detail === "string") return data.detail;
+    const first = Object.values(data || {})[0];
+    if (Array.isArray(first) && typeof first[0] === "string") return first[0];
+    return fallback;
   };
 
   // SSO de Microsoft: navegación de página completa hacia el back.
@@ -184,47 +271,144 @@ export default function Login() {
     window.location.href = apiUrl(AUTH_PATHS.loginSocial);
   };
 
-  // Mock: simula una llamada breve y luego muestra el aviso correspondiente.
-  const mockSubmit = (message: string) => {
-    setSubmitting(true);
-    setNotice(null);
-    setTimeout(() => {
-      setSubmitting(false);
-      setNotice(message);
-    }, 700);
-  };
-
   // Login real por correo/contraseña (acudientes de admisiones).
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setNotice(null);
     try {
-      const res = await fetch(apiUrl(AUTH_PATHS.loginAdmissions), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+      const [ok, data] = await postJson(AUTH_PATHS.loginAdmissions, {
+        email,
+        password,
       });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
+      if (ok) {
         loginWithPayload(data);
-        navigate("/dashboard", { replace: true });
+        // "/" decide el destino según el acceso del usuario (staff vs acudiente).
+        navigate("/", { replace: true });
       } else {
-        setNotice(data.detail || "Correo o contraseña incorrectos.");
-        setSubmitting(false);
+        fail(errorText(data, "Correo o contraseña incorrectos."));
       }
     } catch {
-      setNotice("Error de conexión. Intenta nuevamente.");
-      setSubmitting(false);
+      fail("No pudimos conectar con el servidor. Intenta de nuevo.");
     }
   };
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  // Registro real: crea la cuenta y pasa a verificar el correo.
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock: aquí, más adelante, dispararemos la verificación por correo.
-    mockSubmit(
-      "Cuenta creada (simulado). Pronto te enviaremos un correo para verificar tu cuenta.",
-    );
+    if (reg.password !== reg.confirm) {
+      fail("Las contraseñas no coinciden.");
+      return;
+    }
+    setSubmitting(true);
+    setNotice(null);
+    try {
+      const [ok, data] = await postJson(API_ENDPOINTS.admissionsRegister, {
+        email: reg.email,
+        password: reg.password,
+        first_name: reg.firstName,
+        last_name: reg.lastName,
+      });
+      if (ok) {
+        setPendingEmail(reg.email);
+        setCode("");
+        setCooldown(RESEND_COOLDOWN_SECONDS);
+        setView("verify");
+        setNotice({
+          text: `Enviamos un código de 6 dígitos a ${reg.email}.`,
+          tone: "success",
+        });
+        setSubmitting(false);
+      } else {
+        fail(errorText(data, "No pudimos crear la cuenta."));
+      }
+    } catch {
+      fail("No pudimos conectar con el servidor. Intenta de nuevo.");
+    }
+  };
+
+  // Verificación del correo: activa la cuenta y entra directo.
+  const handleVerifySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setNotice(null);
+    try {
+      const [ok, data] = await postJson(API_ENDPOINTS.admissionsVerifyOtp, {
+        email: pendingEmail,
+        code,
+      });
+      if (ok) {
+        loginWithPayload(data);
+        // "/" decide el destino según el acceso del usuario (staff vs acudiente).
+        navigate("/", { replace: true });
+      } else {
+        fail(errorText(data, "El código no es válido."));
+      }
+    } catch {
+      fail("No pudimos conectar con el servidor. Intenta de nuevo.");
+    }
+  };
+
+  const handleResend = async () => {
+    if (cooldown > 0) return;
+    setNotice(null);
+    try {
+      await postJson(API_ENDPOINTS.admissionsResendOtp, { email: pendingEmail });
+      setCooldown(RESEND_COOLDOWN_SECONDS);
+      setNotice({ text: "Te enviamos un código nuevo.", tone: "success" });
+    } catch {
+      fail("No pudimos reenviar el código.");
+    }
+  };
+
+  // Recuperación: solicitar código.
+  const handleResetRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setNotice(null);
+    try {
+      await postJson(API_ENDPOINTS.admissionsPasswordReset, {
+        email: pendingEmail,
+      });
+      setCode("");
+      setNewPassword("");
+      setView("resetConfirm");
+      // Mensaje deliberadamente genérico: no revelamos si la cuenta existe.
+      setNotice({
+        text: `Si ${pendingEmail} corresponde a una cuenta, enviamos un código de recuperación.`,
+        tone: "success",
+      });
+      setSubmitting(false);
+    } catch {
+      fail("No pudimos conectar con el servidor. Intenta de nuevo.");
+    }
+  };
+
+  // Recuperación: confirmar código + nueva contraseña.
+  const handleResetConfirm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setNotice(null);
+    try {
+      const [ok, data] = await postJson(
+        API_ENDPOINTS.admissionsPasswordResetConfirm,
+        { email: pendingEmail, code, new_password: newPassword },
+      );
+      if (ok) {
+        setEmail(pendingEmail);
+        setPassword("");
+        setView("email");
+        setNotice({
+          text: "Contraseña actualizada. Ya puedes iniciar sesión.",
+          tone: "success",
+        });
+        setSubmitting(false);
+      } else {
+        fail(errorText(data, "No pudimos actualizar la contraseña."));
+      }
+    } catch {
+      fail("No pudimos conectar con el servidor. Intenta de nuevo.");
+    }
   };
 
   return (
@@ -252,7 +436,7 @@ export default function Login() {
         <div className="absolute inset-y-0 right-0 w-1 bg-accent/70" />
       </div>
 
-      {/* Panel derecho — acceso (panel plano, estilo Figma) */}
+      {/* Panel derecho — acceso */}
       <div className="flex w-full flex-col items-center justify-center overflow-y-auto bg-base-100 px-6 py-10 sm:px-10 lg:w-1/2 xl:w-2/5">
         <div className="w-full max-w-sm">
           <div>
@@ -278,7 +462,7 @@ export default function Login() {
                   </p>
                 </div>
 
-                {notice && <Notice message={notice} />}
+                {notice && <Notice message={notice.text} tone={notice.tone} />}
 
                 <button
                   type="button"
@@ -324,14 +508,10 @@ export default function Login() {
               <div key="email" className="animate-view-in">
                 <BackButton onClick={() => goTo("main")} />
 
-                <div className="mb-5">
-                  <h1 className="font-display text-2xl font-bold tracking-tight text-secondary">
-                    Iniciar sesión
-                  </h1>
-                  <p className="mt-1 text-sm text-base-content/60">
-                    Ingresa con tu correo y contraseña.
-                  </p>
-                </div>
+                <ViewHeading
+                  title="Iniciar sesión"
+                  subtitle="Ingresa con tu correo y contraseña."
+                />
 
                 {/* Aviso permanente: este acceso es solo para admisiones */}
                 <div className="mb-5 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-base-content/70">
@@ -347,7 +527,7 @@ export default function Login() {
 
                 {notice && (
                   <div className="mb-5">
-                    <Notice message={notice} />
+                    <Notice message={notice.text} tone={notice.tone} />
                   </div>
                 )}
 
@@ -384,7 +564,10 @@ export default function Login() {
                     </label>
                     <button
                       type="button"
-                      onClick={() => setNotice(SOON)}
+                      onClick={() => {
+                        setPendingEmail(email);
+                        goTo("reset");
+                      }}
                       className={`text-sm ${linkClass}`}
                     >
                       ¿Olvidaste tu contraseña?
@@ -425,30 +608,36 @@ export default function Login() {
               <div key="register" className="animate-view-in">
                 <BackButton onClick={() => goTo("email")} />
 
-                <div className="mb-6">
-                  <h1 className="font-display text-2xl font-bold tracking-tight text-secondary">
-                    Crear cuenta
-                  </h1>
-                  <p className="mt-1 text-sm text-base-content/60">
-                    Regístrate para el proceso de admisiones.
-                  </p>
-                </div>
+                <ViewHeading
+                  title="Crear cuenta"
+                  subtitle="Con esta cuenta gestionas la admisión de tus hijos."
+                />
 
                 {notice && (
                   <div className="mb-5">
-                    <Notice message={notice} />
+                    <Notice message={notice.text} tone={notice.tone} />
                   </div>
                 )}
 
                 <form onSubmit={handleRegisterSubmit} className="space-y-5">
-                  <TextField
-                    id="reg-name"
-                    label="Nombre completo"
-                    value={reg.fullName}
-                    onChange={(v) => setReg({ ...reg, fullName: v })}
-                    placeholder="Ej: María Pérez"
-                    autoComplete="name"
-                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <TextField
+                      id="reg-first"
+                      label="Nombres"
+                      value={reg.firstName}
+                      onChange={(v) => setReg({ ...reg, firstName: v })}
+                      placeholder="María"
+                      autoComplete="given-name"
+                    />
+                    <TextField
+                      id="reg-last"
+                      label="Apellidos"
+                      value={reg.lastName}
+                      onChange={(v) => setReg({ ...reg, lastName: v })}
+                      placeholder="Pérez"
+                      autoComplete="family-name"
+                    />
+                  </div>
                   <TextField
                     id="reg-email"
                     label="Correo electrónico"
@@ -463,7 +652,7 @@ export default function Login() {
                     label="Contraseña"
                     value={reg.password}
                     onChange={(v) => setReg({ ...reg, password: v })}
-                    placeholder="Crea una contraseña"
+                    placeholder="Mínimo 8 caracteres"
                     autoComplete="new-password"
                   />
                   <PasswordField
@@ -501,6 +690,193 @@ export default function Login() {
                     Inicia sesión
                   </button>
                 </p>
+              </div>
+            )}
+
+            {/* ---------------- Vista verificación de correo ---------------- */}
+            {view === "verify" && (
+              <div key="verify" className="animate-view-in">
+                <BackButton onClick={() => goTo("register")} />
+
+                <div className="mb-5 flex flex-col items-center text-center">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                    <MailCheck className="h-6 w-6 text-primary" />
+                  </div>
+                  <h1 className="font-display text-2xl font-bold tracking-tight text-secondary">
+                    Verifica tu correo
+                  </h1>
+                  <p className="mt-1 text-sm text-base-content/60">
+                    Escribe el código de 6 dígitos que enviamos a{" "}
+                    <span className="font-medium text-base-content">
+                      {pendingEmail}
+                    </span>
+                    .
+                  </p>
+                </div>
+
+                {notice && (
+                  <div className="mb-5">
+                    <Notice message={notice.text} tone={notice.tone} />
+                  </div>
+                )}
+
+                <form onSubmit={handleVerifySubmit} className="space-y-5">
+                  <div>
+                    <label htmlFor="otp" className="sr-only">
+                      Código de verificación
+                    </label>
+                    <input
+                      id="otp"
+                      value={code}
+                      onChange={(e) =>
+                        setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                      }
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      placeholder="000000"
+                      className={otpInputClass}
+                      autoFocus
+                    />
+                    <p className="mt-2 text-center text-xs text-base-content/50">
+                      El código vence en 5 minutos.
+                    </p>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={submitting || code.length < 6}
+                    className={primaryBtnClass}
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Verificando…
+                      </>
+                    ) : (
+                      "Verificar y continuar"
+                    )}
+                  </button>
+                </form>
+
+                <p className="mt-6 text-center text-sm text-base-content/60">
+                  ¿No te llegó?{" "}
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={cooldown > 0}
+                    className={`${linkClass} disabled:cursor-not-allowed disabled:text-base-content/40 disabled:no-underline`}
+                  >
+                    {cooldown > 0
+                      ? `Reenviar en ${cooldown}s`
+                      : "Reenviar código"}
+                  </button>
+                </p>
+              </div>
+            )}
+
+            {/* ---------------- Vista recuperar: pedir código ---------------- */}
+            {view === "reset" && (
+              <div key="reset" className="animate-view-in">
+                <BackButton onClick={() => goTo("email")} />
+
+                <ViewHeading
+                  title="Recuperar contraseña"
+                  subtitle="Te enviaremos un código para crear una nueva."
+                />
+
+                {notice && (
+                  <div className="mb-5">
+                    <Notice message={notice.text} tone={notice.tone} />
+                  </div>
+                )}
+
+                <form onSubmit={handleResetRequest} className="space-y-5">
+                  <TextField
+                    id="reset-email"
+                    label="Correo electrónico"
+                    type="email"
+                    value={pendingEmail}
+                    onChange={setPendingEmail}
+                    placeholder="tucorreo@ejemplo.com"
+                    autoComplete="email"
+                  />
+                  <button
+                    type="submit"
+                    disabled={submitting || !pendingEmail}
+                    className={primaryBtnClass}
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Enviando…
+                      </>
+                    ) : (
+                      "Enviar código"
+                    )}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* ---------------- Vista recuperar: nueva contraseña ---------------- */}
+            {view === "resetConfirm" && (
+              <div key="resetConfirm" className="animate-view-in">
+                <BackButton onClick={() => goTo("reset")} />
+
+                <ViewHeading
+                  title="Nueva contraseña"
+                  subtitle="Escribe el código que recibiste y tu nueva contraseña."
+                />
+
+                {notice && (
+                  <div className="mb-5">
+                    <Notice message={notice.text} tone={notice.tone} />
+                  </div>
+                )}
+
+                <form onSubmit={handleResetConfirm} className="space-y-5">
+                  <div>
+                    <label htmlFor="reset-otp" className="sr-only">
+                      Código de recuperación
+                    </label>
+                    <input
+                      id="reset-otp"
+                      value={code}
+                      onChange={(e) =>
+                        setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                      }
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      placeholder="000000"
+                      className={otpInputClass}
+                      autoFocus
+                    />
+                  </div>
+                  <PasswordField
+                    id="reset-password"
+                    label="Nueva contraseña"
+                    value={newPassword}
+                    onChange={setNewPassword}
+                    placeholder="Mínimo 8 caracteres"
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="submit"
+                    disabled={submitting || code.length < 6 || !newPassword}
+                    className={primaryBtnClass}
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Guardando…
+                      </>
+                    ) : (
+                      "Cambiar contraseña"
+                    )}
+                  </button>
+                </form>
               </div>
             )}
           </div>

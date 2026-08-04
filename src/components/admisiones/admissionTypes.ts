@@ -1,0 +1,103 @@
+/** Tipos del módulo de admisiones (espejo de los serializers del backend). */
+
+/** Fila del listado — `ApplicationListSerializer`. */
+export interface AdmissionApplicationRow {
+  code: string;
+  applicant_name: string;
+  grade_name: string;
+  academic_year: number;
+  status: string;
+  status_label: string;
+  submitted_at: string | null;
+  created_at: string;
+}
+
+/** Detalle — `ApplicationDetailSerializer`. */
+export interface AdmissionApplicant {
+  id: number;
+  full_name: string;
+  first_name1: string;
+  first_name2: string;
+  last_name1: string;
+  last_name2: string;
+  id_type: string;
+  id_number: string;
+  birth_date: string | null;
+  sex: string;
+  birth_city: string;
+  birth_department: string;
+  birth_country: string;
+  nationality: string;
+}
+
+export interface AdmissionApplication {
+  code: string;
+  applicant: AdmissionApplicant;
+  academic_year: number;
+  grade_applied: number;
+  grade_name: string;
+  aspirant_type: string;
+  route: string;
+  status: string;
+  status_label: string;
+  data: Record<string, Record<string, unknown>>;
+  correction_comment: string | null;
+  submitted_at: string | null;
+  decided_at: string | null;
+  created_at: string;
+  updated_at: string;
+  /** Solo llega a quien tiene `canViewAdmissions` (el acudiente nunca lo recibe). */
+  internal?: {
+    assigned_to: string | null;
+    alert_health: boolean;
+    alert_psychopedagogical: boolean;
+    owner_email: string;
+  };
+}
+
+/** Estados en los que el acudiente todavía puede editar (espejo de EDITABLE_BY_GUARDIAN). */
+export const EDITABLE_STATUSES = [
+  "PRE_REGISTRO_INICIADO",
+  "SOLICITUD_EN_DILIGENCIAMIENTO",
+  "DEVUELTA_PARA_CORRECCION",
+] as const;
+
+export const isEditable = (status: string) =>
+  (EDITABLE_STATUSES as readonly string[]).includes(status);
+
+/** Estados del tramo de pago (P8). */
+const PAYMENT_FLOW = [
+  "PENDIENTE_PAGO",
+  "PAGO_REPORTADO",
+  "PAGO_RECHAZADO",
+  "PAGO_VALIDADO",
+  "EXENTO_PAGO",
+];
+
+/** Estados del tramo de documentos (P9). */
+const DOCUMENT_FLOW = [
+  "PENDIENTE_DOCUMENTOS",
+  "DOCUMENTOS_EN_REVISION",
+  "DOCUMENTOS_COMPLETOS",
+];
+
+/** El pago sigue visible cuando ya se avanzó a documentos (para poder consultarlo). */
+export const showsPayment = (status: string) =>
+  PAYMENT_FLOW.includes(status) || DOCUMENT_FLOW.includes(status);
+
+export const showsDocuments = (status: string) => DOCUMENT_FLOW.includes(status);
+
+/** Tipos de documento del aspirante (espejo de `IdDocType`). */
+export const ID_DOC_TYPES = [
+  { value: "RC", label: "Registro civil" },
+  { value: "TI", label: "Tarjeta de identidad" },
+  { value: "CC", label: "Cédula de ciudadanía" },
+  { value: "CE", label: "Cédula de extranjería" },
+  { value: "PP", label: "Pasaporte" },
+  { value: "OTRO", label: "Otro" },
+] as const;
+
+export const SEXES = [
+  { value: "FEMENINO", label: "Femenino" },
+  { value: "MASCULINO", label: "Masculino" },
+] as const;
