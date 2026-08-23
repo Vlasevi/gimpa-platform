@@ -8,15 +8,21 @@ import {
   MinusCircle,
   ExternalLink,
   ShieldAlert,
+  Trash2,
+  RotateCcw,
 } from "lucide-react";
 
-import { apiFetch, API_ENDPOINTS } from "@/utils/api";
+import { apiFetch, apiUrl, API_ENDPOINTS } from "@/utils/api";
 import { usePermissions } from "@/components/Login/loginLogic";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import { Alert } from "@/components/ui/Alert";
 import { StatusBadge } from "@/components/admisiones/StatusBadge";
+import { ApplicationDataView } from "@/components/admisiones/admin/ApplicationDataView";
+import { InterviewsPanel } from "@/components/admisiones/admin/InterviewsPanel";
+import { DecisionPanel } from "@/components/admisiones/admin/DecisionPanel";
 import type { AdmissionApplication } from "@/components/admisiones/admissionTypes";
 
-type Tab = "validacion" | "pago" | "documentos";
+type Tab = "solicitud" | "validacion" | "pago" | "documentos" | "evaluacion" | "decision";
 
 interface PaymentInfo {
   status: string;
@@ -25,6 +31,7 @@ interface PaymentInfo {
   paid_at?: string | null;
   reference?: string | null;
   has_receipt?: boolean;
+  receipt_url?: string | null;
   admin_note?: string | null;
 }
 
@@ -48,8 +55,8 @@ const DECISIONS = [
   { value: "RECHAZAR_SIN_CUPO", label: "Rechazar por falta de cupo" },
 ];
 
-const controlClass =
-  "h-11 w-full rounded-lg border border-base-300 bg-base-200 px-3 text-sm text-base-content transition-colors focus:border-primary focus:bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/40";
+// Estilo daisyui, igual que el resto (los dos usos son <select>).
+const controlClass = "select select-bordered w-full focus:select-primary transition-all";
 
 const primaryBtn =
   "inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-medium text-primary-content transition-all duration-200 ease-out hover:bg-primary/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none";
@@ -69,7 +76,7 @@ export function ApplicationDetail({
   useBodyScrollLock(true);
   const perms = usePermissions("admissions");
 
-  const [tab, setTab] = useState<Tab>("validacion");
+  const [tab, setTab] = useState<Tab>("solicitud");
   const [application, setApplication] = useState<AdmissionApplication | null>(null);
   const [payment, setPayment] = useState<PaymentInfo | null>(null);
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
@@ -87,6 +94,21 @@ export function ApplicationDetail({
   const [rejecting, setRejecting] = useState<{ docType: string; reason: string } | null>(
     null,
   );
+  // Confirmación de borrado (soft/hard)
+  const [confirm, setConfirm] = useState<{
+    title: string;
+    message: string;
+    acceptText: string;
+    onAccept: () => void;
+  } | null>(null);
+
+  // Toast de feedback + qué acción concreta está en curso (para su spinner).
+  const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+  const [pending, setPending] = useState<string | null>(null);
+  const flash = (type: "success" | "error", msg: string) => {
+    setToast({ type, msg });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   const load = useCallback(async () => {
     setError(null);
@@ -116,10 +138,14 @@ export function ApplicationDetail({
     return () => window.removeEventListener("keydown", onEsc);
   }, [onClose]);
 
-  /** POST + recarga. Devuelve true si salió bien. */
-  const post = async (path: string, body: unknown) => {
+  /** POST + recarga. `pendingKey` = qué botón muestra spinner; `successMsg` = toast al terminar. */
+  const post = async (
+    path: string,
+    body: unknown,
+    opts: { pendingKey?: string; successMsg?: string } = {},
+  ) => {
     setBusy(true);
-    setError(null);
+    setPending(opts.pendingKey ?? "busy");
     try {
       const res = await apiFetch(path, {
         method: "POST",
@@ -127,36 +153,50 @@ export function ApplicationDetail({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(
+        flash(
+          "error",
           typeof data?.detail === "string" ? data.detail : "No se pudo completar la acción.",
         );
         return false;
       }
       await load();
       onChanged();
+      if (opts.successMsg) flash("success", opts.successMsg);
       return true;
     } catch {
-      setError("No pudimos conectar con el servidor.");
+      flash("error", "No pudimos conectar con el servidor.");
       return false;
     } finally {
       setBusy(false);
+      setPending(null);
     }
   };
 
   const submitDecision = async () => {
-    const ok = await post(API_ENDPOINTS.admissionsValidation(code), {
-      decision,
-      comment: comment || undefined,
-      next_step: decision === "CONTINUAR" ? nextStep : undefined,
-    });
+    const ok = await post(
+      API_ENDPOINTS.admissionsValidation(code),
+      {
+        decision,
+        comment: comment || undefined,
+        next_step: decision === "CONTINUAR" ? nextStep : undefined,
+      },
+      { pendingKey: "decision", successMsg: "Decisión aplicada." },
+    );
     if (ok) setComment("");
   };
 
+  const PAYMENT_MSG: Record<string, string> = {
+    validate: "Pago validado.",
+    reject: "Comprobante rechazado.",
+    exempt: "Marcado como exento.",
+  };
+
   const reviewPayment = async (action: "validate" | "reject" | "exempt") => {
-    const ok = await post(API_ENDPOINTS.admissionsPaymentReview(code), {
-      action,
-      note: paymentNote || undefined,
-    });
+    const ok = await post(
+      API_ENDPOINTS.admissionsPaymentReview(code),
+      { action, note: paymentNote || undefined },
+      { pendingKey: `pay-${action}`, successMsg: PAYMENT_MSG[action] },
+    );
     if (ok) setPaymentNote("");
   };
 
@@ -165,20 +205,81 @@ export function ApplicationDetail({
     action: "approve" | "reject" | "not_applicable",
     rejectReason?: string,
   ) =>
-    post(API_ENDPOINTS.admissionsDocumentReview(code), {
-      doc_type: docType,
-      action,
-      reject_reason: rejectReason,
+    post(
+      API_ENDPOINTS.admissionsDocumentReview(code),
+      { doc_type: docType, action, reject_reason: rejectReason },
+      {
+        pendingKey: `doc-${docType}-${action}`,
+        successMsg:
+          action === "approve"
+            ? "Documento aprobado."
+            : action === "reject"
+              ? "Documento rechazado."
+              : "Documento marcado como no aplica.",
+      },
+    );
+
+  /** Elimina el expediente (soft o hard). Al terminar cierra el modal. */
+  const doDelete = async (hard: boolean) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const url = apiUrl(
+        `${API_ENDPOINTS.admissionsApplicationByCode(code)}${hard ? "?hard=true" : ""}`,
+      );
+      const res = await fetch(url, { method: "DELETE" });
+      if (res.ok) {
+        onChanged();
+        onClose();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setError(data.detail || "No se pudo eliminar.");
+      }
+    } catch {
+      setError("No pudimos conectar con el servidor.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const doRestore = () =>
+    post(API_ENDPOINTS.admissionsApplicationRestore(code), {}, {
+      pendingKey: "restore",
+      successMsg: "Expediente restaurado.",
     });
 
+  // Las pestañas se muestran por permiso: un usuario asignado a una entrevista (sin
+  // permisos de validación/pago) solo ve Solicitud, Documentos y Evaluación.
   const TABS: { key: Tab; label: string }[] = [
-    { key: "validacion", label: "Validación" },
-    { key: "pago", label: "Pago" },
+    { key: "solicitud", label: "Solicitud" },
+    ...(perms.canValidate ? [{ key: "validacion" as Tab, label: "Validación" }] : []),
+    ...(perms.canManagePayments ? [{ key: "pago" as Tab, label: "Pago" }] : []),
     { key: "documentos", label: `Documentos (${documents.length})` },
+    { key: "evaluacion", label: "Evaluación" },
+    // La decisión solo la ve/gestiona el comité (rector/admin).
+    ...(perms.canManageCommittee || perms.canDecide
+      ? [{ key: "decision" as Tab, label: "Decisión" }]
+      : []),
   ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-secondary/40 p-4 backdrop-blur-sm">
+      {/* Toast de feedback (arriba a la derecha, por encima del modal) */}
+      {toast && (
+        <div
+          role="status"
+          className={`fixed right-4 top-4 z-[60] flex max-w-[calc(100vw-2rem)] items-center gap-2 rounded-xl border bg-base-100 px-4 py-3 text-sm shadow-lg duration-300 animate-in fade-in slide-in-from-top-2 slide-in-from-right-4 ${
+            toast.type === "success" ? "border-accent/40 text-accent" : "border-error/40 text-error"
+          }`}
+        >
+          {toast.type === "success" ? (
+            <CheckCircle2 className="h-5 w-5 shrink-0" />
+          ) : (
+            <XCircle className="h-5 w-5 shrink-0" />
+          )}
+          <span className="text-base-content/90">{toast.msg}</span>
+        </div>
+      )}
       <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-xl">
         {/* Header */}
         <div className="shrink-0 border-b border-base-300 px-6 py-5">
@@ -249,27 +350,14 @@ export function ApplicationDetail({
                 </div>
               )}
 
+              {/* -------------------- Solicitud (datos del acudiente) -------------------- */}
+              {tab === "solicitud" && application && (
+                <ApplicationDataView data={application.data} />
+              )}
+
               {/* -------------------- Validación -------------------- */}
               {tab === "validacion" && (
                 <div className="space-y-5">
-                  {(application?.internal?.alert_health ||
-                    application?.internal?.alert_psychopedagogical) && (
-                    <div className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/5 p-4 text-sm">
-                      <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
-                      <span className="text-base-content/80">
-                        El formulario marcó alertas:{" "}
-                        {[
-                          application?.internal?.alert_health && "salud",
-                          application?.internal?.alert_psychopedagogical &&
-                            "psicopedagógica",
-                        ]
-                          .filter(Boolean)
-                          .join(" y ")}
-                        .
-                      </span>
-                    </div>
-                  )}
-
                   {application?.correction_comment && (
                     <div className="rounded-xl border border-base-300 bg-base-200 p-4 text-sm">
                       <p className="font-medium text-base-content">
@@ -349,7 +437,9 @@ export function ApplicationDetail({
                         disabled={busy}
                         className={primaryBtn}
                       >
-                        {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                        {pending === "decision" && (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        )}
                         Aplicar decisión
                       </button>
                     </div>
@@ -388,7 +478,21 @@ export function ApplicationDetail({
                     <div className="col-span-2">
                       <dt className="text-base-content/60">Comprobante</dt>
                       <dd className="text-base-content">
-                        {payment?.has_receipt ? "Cargado por el acudiente" : "Sin cargar"}
+                        {payment?.receipt_url ? (
+                          <a
+                            href={payment.receipt_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 font-medium text-primary hover:underline"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            Ver comprobante
+                          </a>
+                        ) : payment?.has_receipt ? (
+                          "Cargado (no se pudo abrir)"
+                        ) : (
+                          "Sin cargar"
+                        )}
                       </dd>
                     </div>
                   </dl>
@@ -418,7 +522,11 @@ export function ApplicationDetail({
                           disabled={busy}
                           className={`${ghostBtn} text-accent hover:bg-accent/10`}
                         >
-                          <CheckCircle2 className="h-4 w-4" />
+                          {pending === "pay-validate" ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="h-4 w-4" />
+                          )}
                           Validar
                         </button>
                         <button
@@ -427,7 +535,11 @@ export function ApplicationDetail({
                           disabled={busy}
                           className={`${ghostBtn} text-error hover:bg-error/10`}
                         >
-                          <XCircle className="h-4 w-4" />
+                          {pending === "pay-reject" ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <XCircle className="h-4 w-4" />
+                          )}
                           Rechazar
                         </button>
                         <button
@@ -436,7 +548,11 @@ export function ApplicationDetail({
                           disabled={busy}
                           className={ghostBtn}
                         >
-                          <MinusCircle className="h-4 w-4" />
+                          {pending === "pay-exempt" ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <MinusCircle className="h-4 w-4" />
+                          )}
                           Eximir
                         </button>
                       </div>
@@ -485,9 +601,13 @@ export function ApplicationDetail({
                                 onClick={() => reviewDocument(doc.doc_type, "approve")}
                                 disabled={busy}
                                 title="Aprobar"
-                                className="rounded-full p-2 text-base-content/40 transition-colors hover:bg-accent/10 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                className="rounded-full p-2 text-base-content/40 transition-colors hover:bg-accent/10 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
                               >
-                                <CheckCircle2 className="h-5 w-5" />
+                                {pending === `doc-${doc.doc_type}-approve` ? (
+                                  <Loader2 className="h-5 w-5 animate-spin text-accent" />
+                                ) : (
+                                  <CheckCircle2 className="h-5 w-5" />
+                                )}
                               </button>
                               <button
                                 type="button"
@@ -510,9 +630,13 @@ export function ApplicationDetail({
                               }
                               disabled={busy}
                               title="Marcar como no aplica"
-                              className="rounded-full p-2 text-base-content/40 transition-colors hover:bg-base-200 hover:text-base-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                              className="rounded-full p-2 text-base-content/40 transition-colors hover:bg-base-200 hover:text-base-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
                             >
-                              <MinusCircle className="h-5 w-5" />
+                              {pending === `doc-${doc.doc_type}-not_applicable` ? (
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                              ) : (
+                                <MinusCircle className="h-5 w-5" />
+                              )}
                             </button>
                           )}
                         </div>
@@ -551,6 +675,9 @@ export function ApplicationDetail({
                               }}
                               className={`${ghostBtn} text-error hover:bg-error/10`}
                             >
+                              {pending === `doc-${doc.doc_type}-reject` && (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              )}
                               Confirmar rechazo
                             </button>
                             <button
@@ -572,10 +699,101 @@ export function ApplicationDetail({
                   )}
                 </ul>
               )}
+
+              {/* -------------------- Agenda + Evaluación -------------------- */}
+              {tab === "evaluacion" && (
+                <InterviewsPanel
+                  code={code}
+                  perms={perms}
+                  flash={flash}
+                  onChanged={onChanged}
+                />
+              )}
+
+              {/* -------------------- Comité / Decisión -------------------- */}
+              {tab === "decision" && (
+                <DecisionPanel
+                  code={code}
+                  perms={perms}
+                  flash={flash}
+                  onChanged={onChanged}
+                />
+              )}
             </>
           )}
         </div>
+
+        {/* Pie: eliminar / restaurar (solo con permiso) */}
+        {perms.canDelete && !loading && application && (
+          <div className="shrink-0 border-t border-base-300 px-6 py-4">
+            {application.is_deleted ? (
+              <button
+                type="button"
+                onClick={doRestore}
+                disabled={busy}
+                className={`${ghostBtn} text-accent hover:bg-accent/10`}
+              >
+                <RotateCcw className="h-4 w-4" />
+                Restaurar
+              </button>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() =>
+                    setConfirm({
+                      title: "Eliminar solicitud",
+                      message: `La solicitud de ${application.applicant.full_name} (${application.code}) se ocultará de los listados.`,
+                      acceptText: "Eliminar",
+                      onAccept: () => doDelete(false),
+                    })
+                  }
+                  className={`${ghostBtn} text-error hover:bg-error/10`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Eliminar
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() =>
+                    setConfirm({
+                      title: "Eliminar permanentemente",
+                      message: `Esto borra la solicitud de ${application.applicant.full_name} (${application.code}), con sus pagos, documentos y archivos. No se puede deshacer.`,
+                      acceptText: "Eliminar para siempre",
+                      onAccept: () => doDelete(true),
+                    })
+                  }
+                  className={`${ghostBtn} text-error hover:bg-error/10`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Eliminar permanentemente
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {confirm && (
+        <Alert
+          isOpen={true}
+          onClose={() => setConfirm(null)}
+          onAccept={() => {
+            const cb = confirm.onAccept;
+            setConfirm(null);
+            cb();
+          }}
+          title={confirm.title}
+          variant="error"
+          acceptText={confirm.acceptText}
+          cancelText="Cancelar"
+          acceptButtonVariant="destructive"
+        >
+          <p className="text-base-content/80">{confirm.message}</p>
+        </Alert>
+      )}
     </div>
   );
 }

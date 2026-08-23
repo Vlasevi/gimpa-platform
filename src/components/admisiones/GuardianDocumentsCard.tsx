@@ -8,6 +8,8 @@ import {
   Circle,
   MinusCircle,
   ExternalLink,
+  FileText,
+  X,
 } from "lucide-react";
 
 import { apiUrl, apiFetch, API_ENDPOINTS } from "@/utils/api";
@@ -33,6 +35,12 @@ const STATUS_ICON: Record<string, { Icon: typeof CheckCircle2; className: string
   PENDIENTE_POSTERIOR: { Icon: Clock, className: "text-base-content/40" },
 };
 
+const primaryBtn =
+  "inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-medium text-primary-content transition-all duration-200 ease-out hover:bg-primary/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none";
+
+const secondaryBtn =
+  "inline-flex h-10 items-center gap-1.5 rounded-lg border border-base-300 bg-base-100 px-3 text-sm font-medium text-base-content transition-colors hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
+
 export function GuardianDocumentsCard({
   code,
   onChanged,
@@ -42,8 +50,11 @@ export function GuardianDocumentsCard({
 }) {
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Archivos seleccionados pero AÚN NO subidos: se pueden cambiar o quitar
+  // antes de confirmar. Solo al confirmar se envían al servidor.
+  const [staged, setStaged] = useState<Record<string, File>>({});
   const inputs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const load = useCallback(async () => {
@@ -62,36 +73,55 @@ export function GuardianDocumentsCard({
     load();
   }, [load]);
 
-  const upload = async (docType: string, file: File) => {
-    setUploading(docType);
+  /** Selecciona (o quita) un archivo localmente, sin subirlo todavía. */
+  const pick = (docType: string, file: File | null) => {
+    setError(null);
+    setStaged((prev) => {
+      const next = { ...prev };
+      if (file) next[docType] = file;
+      else delete next[docType];
+      return next;
+    });
+  };
+
+  /** Sube todos los archivos seleccionados. Conserva los que fallen para reintentar. */
+  const confirmUpload = async () => {
+    const entries = Object.entries(staged);
+    if (entries.length === 0) return;
+    setSubmitting(true);
     setError(null);
 
-    const body = new FormData();
-    body.append("doc_type", docType);
-    body.append("file", file);
-
-    try {
-      // FormData: sin Content-Type manual; el Bearer lo pone el interceptor global.
-      const res = await fetch(apiUrl(API_ENDPOINTS.admissionsDocuments(code)), {
-        method: "POST",
-        body,
-      });
-      if (res.ok) {
-        setDocuments((await res.json()).documents ?? []);
-        onChanged();
-      } else {
-        const data = await res.json().catch(() => ({}));
-        setError(
-          typeof data?.detail === "string"
-            ? data.detail
-            : "No pudimos subir el documento.",
-        );
+    const failed: string[] = [];
+    for (const [docType, file] of entries) {
+      const body = new FormData();
+      body.append("doc_type", docType);
+      body.append("file", file);
+      try {
+        // FormData: sin Content-Type manual; el Bearer lo pone el interceptor global.
+        const res = await fetch(apiUrl(API_ENDPOINTS.admissionsDocuments(code)), {
+          method: "POST",
+          body,
+        });
+        if (!res.ok) failed.push(docType);
+      } catch {
+        failed.push(docType);
       }
-    } catch {
-      setError("No pudimos conectar con el servidor.");
-    } finally {
-      setUploading(null);
     }
+
+    await load();
+    onChanged();
+    // Deja seleccionados solo los que no lograron subir.
+    setStaged((prev) => {
+      const next: Record<string, File> = {};
+      for (const dt of failed) if (prev[dt]) next[dt] = prev[dt];
+      return next;
+    });
+    if (failed.length > 0) {
+      setError(
+        `No pudimos subir ${failed.length} documento(s). Revisa e inténtalo de nuevo.`,
+      );
+    }
+    setSubmitting(false);
   };
 
   if (loading) {
@@ -103,16 +133,15 @@ export function GuardianDocumentsCard({
     );
   }
 
-  const pending = documents.filter((d) => CAN_UPLOAD.includes(d.status)).length;
+  const pendingCount = documents.filter((d) => CAN_UPLOAD.includes(d.status)).length;
+  const stagedCount = Object.keys(staged).length;
 
   return (
     <div className="rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm">
       <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="font-display text-xl font-bold text-secondary">Documentos</h2>
         <span className="text-sm text-base-content/60">
-          {pending === 0
-            ? "No falta ninguno"
-            : `${pending} por cargar`}
+          {pendingCount === 0 ? "No falta ninguno" : `${pendingCount} por cargar`}
         </span>
       </div>
 
@@ -133,7 +162,7 @@ export function GuardianDocumentsCard({
             className: "text-base-content/25",
           };
           const canUpload = CAN_UPLOAD.includes(doc.status);
-          const busy = uploading === doc.doc_type;
+          const file = staged[doc.doc_type];
 
           return (
             <li key={doc.doc_type} className="py-4 first:pt-0 last:pb-0">
@@ -162,7 +191,7 @@ export function GuardianDocumentsCard({
                       href={doc.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-base-300 bg-base-100 px-3 text-sm font-medium text-base-content transition-colors hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className={secondaryBtn}
                     >
                       <ExternalLink className="h-4 w-4" />
                       Ver
@@ -179,37 +208,78 @@ export function GuardianDocumentsCard({
                         accept="image/*,application/pdf"
                         className="hidden"
                         onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (f) upload(doc.doc_type, f);
+                          pick(doc.doc_type, e.target.files?.[0] ?? null);
                           e.target.value = "";
                         }}
                       />
                       <button
                         type="button"
-                        disabled={busy}
+                        disabled={submitting}
                         onClick={() => inputs.current[doc.doc_type]?.click()}
-                        className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-medium text-primary-content transition-all duration-200 ease-out hover:bg-primary/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none"
+                        className={secondaryBtn}
                       >
-                        {busy ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Subiendo…
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="h-4 w-4" />
-                            {doc.status === "RECHAZADO" ? "Reemplazar" : "Subir"}
-                          </>
-                        )}
+                        <Upload className="h-4 w-4" />
+                        {file
+                          ? "Cambiar"
+                          : doc.status === "RECHAZADO"
+                            ? "Reemplazar"
+                            : "Seleccionar"}
                       </button>
                     </>
                   )}
                 </div>
               </div>
+
+              {/* Archivo seleccionado (aún NO subido): se puede cambiar o quitar. */}
+              {canUpload && file && (
+                <div className="mt-2 flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 text-sm sm:ml-8">
+                  <FileText className="h-4 w-4 shrink-0 text-primary" />
+                  <span className="truncate text-base-content">{file.name}</span>
+                  <span className="shrink-0 text-xs text-base-content/50">· sin subir</span>
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => pick(doc.doc_type, null)}
+                    aria-label="Quitar archivo"
+                    className="ml-auto shrink-0 rounded-md p-1 text-base-content/50 transition-colors hover:bg-base-200 hover:text-error disabled:opacity-50"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
             </li>
           );
         })}
       </ul>
+
+      {/* Barra de confirmación: nada se sube hasta pulsar aquí. */}
+      {stagedCount > 0 && (
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-base-300 pt-4">
+          <p className="text-sm text-base-content/60">
+            {stagedCount === 1
+              ? "1 documento seleccionado, sin subir."
+              : `${stagedCount} documentos seleccionados, sin subir.`}
+          </p>
+          <button
+            type="button"
+            onClick={confirmUpload}
+            disabled={submitting}
+            className={primaryBtn}
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Subiendo…
+              </>
+            ) : (
+              <>
+                <Upload className="h-4 w-4" />
+                Confirmar y subir
+              </>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

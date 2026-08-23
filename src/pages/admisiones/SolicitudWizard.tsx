@@ -20,7 +20,6 @@ import {
   AcademicHistoryStep,
   GuardiansStep,
   HealthStep,
-  RouteRequestStep,
   DeclarationsStep,
   type StepProps,
 } from "@/components/admisiones/steps";
@@ -55,12 +54,6 @@ const STEPS: {
     title: "Salud",
     subtitle: "Para cuidarlo mejor durante el año escolar.",
     Component: HealthStep,
-  },
-  {
-    key: "route_request",
-    title: "Ruta y jornada",
-    subtitle: "La modalidad que solicitas.",
-    Component: RouteRequestStep,
   },
   {
     key: "declarations",

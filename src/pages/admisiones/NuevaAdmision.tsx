@@ -7,8 +7,21 @@ import { ID_DOC_TYPES, SEXES } from "@/components/admisiones/admissionTypes";
 
 const labelClass = "mb-1.5 block text-sm font-medium text-base-content/70";
 
-const fieldClass =
-  "h-12 w-full rounded-lg border border-base-300 bg-base-200 px-4 text-base text-base-content placeholder:text-base-content/40 transition-colors focus:border-primary focus:bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/40";
+// Estilo daisyui, igual que matrículas.
+const fieldClass = "input input-bordered w-full focus:input-primary transition-all";
+const selectFieldClass = "select select-bordered w-full focus:select-primary transition-all";
+
+/** Edad en años a partir de la fecha de nacimiento (ISO YYYY-MM-DD). "" si no es válida. */
+function computeAge(iso: string): string {
+  if (!iso) return "";
+  const birth = new Date(iso);
+  if (Number.isNaN(birth.getTime())) return "";
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const m = now.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age -= 1;
+  return age >= 0 ? String(age) : "";
+}
 
 const primaryBtnClass =
   "inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-base font-medium text-primary-content shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-primary/95 hover:shadow-lg hover:shadow-primary/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-base-200 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 motion-reduce:transition-none motion-reduce:hover:translate-y-0";
@@ -213,7 +226,7 @@ export default function NuevaAdmision() {
               </label>
               <select
                 id="idtype"
-                className={fieldClass}
+                className={selectFieldClass}
                 value={form.id_type}
                 onChange={(e) => set("id_type")(e.target.value)}
               >
@@ -249,12 +262,24 @@ export default function NuevaAdmision() {
               />
             </div>
             <div>
+              <label htmlFor="edad" className={labelClass}>
+                Edad
+              </label>
+              <input
+                id="edad"
+                className={`${fieldClass} bg-base-200`}
+                value={computeAge(form.birth_date)}
+                readOnly
+                placeholder="Se calcula sola"
+              />
+            </div>
+            <div>
               <label htmlFor="sex" className={labelClass}>
                 Sexo
               </label>
               <select
                 id="sex"
-                className={fieldClass}
+                className={selectFieldClass}
                 value={form.sex}
                 onChange={(e) => set("sex")(e.target.value)}
               >
@@ -281,7 +306,7 @@ export default function NuevaAdmision() {
               </label>
               <select
                 id="grade"
-                className={fieldClass}
+                className={selectFieldClass}
                 value={form.grade_applied}
                 onChange={(e) => set("grade_applied")(e.target.value)}
                 required
@@ -303,7 +328,7 @@ export default function NuevaAdmision() {
               </label>
               <select
                 id="year"
-                className={fieldClass}
+                className={selectFieldClass}
                 value={form.academic_year}
                 onChange={(e) => set("academic_year")(e.target.value)}
               >

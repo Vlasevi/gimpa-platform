@@ -10,6 +10,8 @@ export interface AdmissionApplicationRow {
   status_label: string;
   submitted_at: string | null;
   created_at: string;
+  is_deleted: boolean;
+  deleted_at: string | null;
 }
 
 /** Detalle — `ApplicationDetailSerializer`. */
@@ -46,12 +48,22 @@ export interface AdmissionApplication {
   decided_at: string | null;
   created_at: string;
   updated_at: string;
+  is_deleted: boolean;
+  deleted_at: string | null;
   /** Solo llega a quien tiene `canViewAdmissions` (el acudiente nunca lo recibe). */
   internal?: {
     assigned_to: string | null;
     alert_health: boolean;
     alert_psychopedagogical: boolean;
     owner_email: string;
+  };
+  /** Resultado público de la decisión (lo ve también el acudiente). */
+  result?: {
+    decision: string;
+    decision_label: string;
+    conditions: string;
+    message_public: string;
+    decided_at: string | null;
   };
 }
 
@@ -86,6 +98,21 @@ export const showsPayment = (status: string) =>
   PAYMENT_FLOW.includes(status) || DOCUMENT_FLOW.includes(status);
 
 export const showsDocuments = (status: string) => DOCUMENT_FLOW.includes(status);
+
+/** Estados del tramo de agenda + evaluación (P10–P13). */
+const EVALUATION_FLOW = [
+  "PENDIENTE_AGENDA",
+  "CITA_PROGRAMADA",
+  "CITA_REALIZADA",
+  "ENTREVISTA_REGISTRADA",
+  "DIAGNOSTICO_REGISTRADO",
+  "REVISION_PSICOPEDAGOGICA",
+  "REQUIERE_NUEVA_VALORACION",
+  "COMITE_ADMISION",
+];
+
+/** El acudiente ve sus citas desde que hay agenda hasta que se decide. */
+export const showsInterviews = (status: string) => EVALUATION_FLOW.includes(status);
 
 /** Tipos de documento del aspirante (espejo de `IdDocType`). */
 export const ID_DOC_TYPES = [

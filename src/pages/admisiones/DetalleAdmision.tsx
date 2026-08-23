@@ -19,10 +19,12 @@ import {
   isEditable,
   showsPayment,
   showsDocuments,
+  showsInterviews,
   type AdmissionApplication,
 } from "@/components/admisiones/admissionTypes";
 import { GuardianPaymentCard } from "@/components/admisiones/GuardianPaymentCard";
 import { GuardianDocumentsCard } from "@/components/admisiones/GuardianDocumentsCard";
+import { GuardianInterviewsCard } from "@/components/admisiones/GuardianInterviewsCard";
 
 /** Secciones del formulario (espejo de `DATA_SECTIONS` del backend). */
 const SECTIONS: { key: string; label: string; hint: string }[] = [
@@ -30,7 +32,6 @@ const SECTIONS: { key: string; label: string; hint: string }[] = [
   { key: "academic_history", label: "Historial académico", hint: "Colegio anterior y grado cursado" },
   { key: "guardians", label: "Acudientes", hint: "Padre, madre y acudiente financiero" },
   { key: "health", label: "Salud", hint: "EPS, condiciones y apoyos" },
-  { key: "route_request", label: "Ruta y jornada", hint: "Modalidad solicitada" },
   { key: "declarations", label: "Declaraciones", hint: "Autorizaciones y firma" },
 ];
 
@@ -130,6 +131,41 @@ export default function DetalleAdmision() {
         </div>
       </div>
 
+      {/* Resultado de la decisión */}
+      {application.result && (
+        <div
+          className={`flex items-start gap-3 rounded-2xl border p-5 shadow-sm ${
+            application.result.decision.startsWith("ADMITIDO")
+              ? "border-accent/30 bg-accent/5"
+              : application.result.decision === "NO_ADMITIDO"
+                ? "border-error/25 bg-error/5"
+                : "border-primary/25 bg-primary/5"
+          }`}
+        >
+          {application.result.decision.startsWith("ADMITIDO") ? (
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
+          ) : (
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+          )}
+          <div>
+            <h2 className="font-display font-semibold text-secondary">
+              Resultado: {application.result.decision_label}
+            </h2>
+            {application.result.message_public && (
+              <p className="mt-1 whitespace-pre-line text-sm text-base-content/80">
+                {application.result.message_public}
+              </p>
+            )}
+            {application.result.conditions && (
+              <p className="mt-2 whitespace-pre-line text-sm text-base-content/80">
+                <span className="font-medium">Condiciones: </span>
+                {application.result.conditions}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Devolución del colegio */}
       {application.correction_comment && (
         <div className="flex items-start gap-3 rounded-2xl border border-warning/30 bg-warning/5 p-5 shadow-sm">
@@ -153,6 +189,11 @@ export default function DetalleAdmision() {
       {/* Documentos (P9) */}
       {showsDocuments(application.status) && (
         <GuardianDocumentsCard code={application.code} onChanged={load} />
+      )}
+
+      {/* Citas de evaluación (P10–P13) */}
+      {showsInterviews(application.status) && (
+        <GuardianInterviewsCard code={application.code} />
       )}
 
       {/* Avance del formulario */}

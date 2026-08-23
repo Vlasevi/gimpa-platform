@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Clock,
   Receipt,
+  ExternalLink,
 } from "lucide-react";
 
 import { apiUrl, apiFetch, API_ENDPOINTS } from "@/utils/api";
@@ -17,6 +18,7 @@ interface PaymentInfo {
   paid_at?: string | null;
   reference?: string | null;
   has_receipt?: boolean;
+  receipt_url?: string | null;
   admin_note?: string | null;
 }
 
@@ -147,6 +149,19 @@ export function GuardianPaymentCard({
           <Clock className="h-5 w-5 text-primary" />
           Recibimos tu comprobante. El colegio lo está revisando.
         </p>
+      )}
+
+      {/* Ver el comprobante enviado */}
+      {payment?.receipt_url && (
+        <a
+          href={payment.receipt_url}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+        >
+          <ExternalLink className="h-4 w-4" />
+          Ver comprobante enviado
+        </a>
       )}
 
       {/* Motivo del rechazo */}

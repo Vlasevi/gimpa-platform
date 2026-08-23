@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, AlertCircle, Search, Inbox, Eye } from "lucide-react";
 
 import { apiFetch, API_ENDPOINTS } from "@/utils/api";
+import { usePermissions } from "@/components/Login/loginLogic";
 import { FilterSelect } from "@/components/ui/FilterSelect";
 import { StatusBadge } from "@/components/admisiones/StatusBadge";
 import { ApplicationDetail } from "@/components/admisiones/admin/ApplicationDetail";
@@ -34,6 +35,10 @@ const YEAR_FILTERS = [
 ];
 
 export default function AdmisionesAdmin() {
+  const perms = usePermissions("admissions");
+  // Quien puede borrar puede además ver las eliminadas (atenuadas) en el listado.
+  const includeDeleted = Boolean(perms.canDelete);
+
   const [rows, setRows] = useState<AdmissionApplicationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +52,7 @@ export default function AdmisionesAdmin() {
     setLoading(true);
     setError(null);
     const params = new URLSearchParams();
+    if (includeDeleted) params.set("include_deleted", "true");
     if (statusFilter) params.set("status", statusFilter);
     if (yearFilter) params.set("academic_year", yearFilter);
     const qs = params.toString();
@@ -65,7 +71,7 @@ export default function AdmisionesAdmin() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, yearFilter]);
+  }, [includeDeleted, statusFilter, yearFilter]);
 
   useEffect(() => {
     load();
@@ -178,10 +184,19 @@ export default function AdmisionesAdmin() {
                 {visible.map((row) => (
                   <tr
                     key={row.code}
-                    className="transition-colors hover:bg-base-200/60"
+                    className={`transition-colors hover:bg-base-200/60 ${
+                      row.is_deleted ? "opacity-60" : ""
+                    }`}
                   >
                     <td className="px-5 py-3 font-medium text-base-content">
-                      {row.applicant_name}
+                      <span className="flex items-center gap-2">
+                        {row.applicant_name}
+                        {row.is_deleted && (
+                          <span className="rounded-full border border-error/25 bg-error/10 px-2 py-0.5 text-xs font-medium text-error">
+                            Eliminada
+                          </span>
+                        )}
+                      </span>
                     </td>
                     <td className="px-5 py-3 text-base-content/70">{row.grade_name}</td>
                     <td className="px-5 py-3 text-base-content/70">

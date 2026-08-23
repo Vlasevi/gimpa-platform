@@ -4,8 +4,12 @@ export type SectionValues = Record<string, unknown>;
 
 export const labelClass = "mb-1.5 block text-sm font-medium text-base-content/70";
 
-export const controlClass =
-  "h-12 w-full rounded-lg border border-base-300 bg-base-200 px-4 text-base text-base-content placeholder:text-base-content/40 transition-colors focus:border-primary focus:bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/40";
+// Estilo daisyui, igual que matrículas (input/select "bordered" con foco primary).
+export const inputClass = "input input-bordered w-full focus:input-primary transition-all";
+export const selectClass = "select select-bordered w-full focus:select-primary transition-all";
+export const textareaClass = "textarea textarea-bordered w-full focus:textarea-primary transition-all";
+// Alias por compatibilidad (se usa en algunos <select>).
+export const controlClass = selectClass;
 
 /** Rejilla responsive de campos. */
 export function FieldGrid({ children }: { children: React.ReactNode }) {
@@ -38,7 +42,7 @@ export function Field({
       <input
         id={name}
         type={type}
-        className={controlClass}
+        className={inputClass}
         placeholder={placeholder}
         value={(values[name] as string) ?? ""}
         onChange={(e) => onChange(name, e.target.value)}
@@ -62,7 +66,7 @@ export function SelectField({
       </label>
       <select
         id={name}
-        className={controlClass}
+        className={selectClass}
         value={(values[name] as string) ?? ""}
         onChange={(e) => onChange(name, e.target.value)}
       >
@@ -92,7 +96,7 @@ export function TextAreaField({
       <textarea
         id={name}
         rows={3}
-        className="w-full rounded-lg border border-base-300 bg-base-200 px-4 py-3 text-base text-base-content placeholder:text-base-content/40 transition-colors focus:border-primary focus:bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/40"
+        className={textareaClass}
         placeholder={placeholder}
         value={(values[name] as string) ?? ""}
         onChange={(e) => onChange(name, e.target.value)}

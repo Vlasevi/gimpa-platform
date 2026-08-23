@@ -101,6 +101,12 @@ export const API_ENDPOINTS = {
     `/api/admissions/applications/${code}/submit/`,
   admissionsApplicationTransition: (code: string) =>
     `/api/admissions/applications/${code}/transition/`,
+  admissionsApplicationRestore: (code: string) =>
+    `/api/admissions/applications/${code}/restore/`,
+
+  // Geo (catálogo Colombia — dropdowns en cascada)
+  geoDepartments: "/api/geo/departments/",
+  geoCities: "/api/geo/cities/",
 
   // Admissions — operación interna (fase 2)
   admissionsValidation: (code: string) =>
@@ -115,4 +121,15 @@ export const API_ENDPOINTS = {
     `/api/admissions/applications/${code}/documents/`,
   admissionsDocumentReview: (code: string) =>
     `/api/admissions/applications/${code}/documents/review/`,
+
+  // Admissions — agenda y evaluación (fase 3)
+  admissionsAssignableUsers: "/api/admissions/assignable-users/",
+  admissionsInterviews: (code: string) =>
+    `/api/admissions/applications/${code}/interviews/`,
+  admissionsInterviewRegister: (code: string) =>
+    `/api/admissions/applications/${code}/interviews/register/`,
+
+  // Admissions — comité / decisión final (fase 4)
+  admissionsDecision: (code: string) =>
+    `/api/admissions/applications/${code}/decision/`,
 } as const;
